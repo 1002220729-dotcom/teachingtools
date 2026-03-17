@@ -1,0 +1,2449 @@
+<!DOCTYPE html>
+<!--
+    ========================================
+    לוח הבחירה הדיגיטלי - מהדורה מאוחדת
+    Digital Choice Board - Unified Edition
+    ========================================
+    
+    © 2025 שלומי מימון (Shlomi Maimon)
+    כל הזכויות שמורות. All Rights Reserved.
+    
+    פותח בסיוע Claude AI מבית Anthropic
+    Developed with assistance from Claude AI by Anthropic
+    ========================================
+-->
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="Shlomi Maimon">
+    <meta name="copyright" content="© 2025 Shlomi Maimon. All Rights Reserved.">
+    <title>לוח הבחירה הדיגיטלי</title>
+    <link href="https://fonts.googleapis.com/css2?family=Varela+Round&family=Heebo:wght@400;600;800&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        /* ===== RESET & ROOT ===== */
+        :root {
+            --primary: #6C63FF;
+            --secondary: #4CAF50;
+            --accent: #FFB64D;
+            --danger: #FF6B6B;
+            --board-primary: #FF6B9D;
+            --board-secondary: #4ECDC4;
+            --board-tertiary: #FFE66D;
+            --text-dark: #2C3E50;
+            --text-light: #7F8C8D;
+            --bg-light: #F8F9FA;
+            --border: #E0E0E0;
+            --success: #95E1D3;
+            --shadow: rgba(0,0,0,0.1);
+            --grass: #7EC850;
+            --path: #F4E4C1;
+            --wood: #8B7355;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+
+        /* ===== APP NAVIGATION ===== */
+        .app-nav {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 9999;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            height: 60px;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.4);
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+        .app-nav-logo {
+            font-family: 'Heebo', sans-serif;
+            font-weight: 800;
+            font-size: 1.15rem;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .app-nav-logo span { font-size: 1.5rem; }
+        .nav-tabs {
+            display: flex;
+            gap: 6px;
+            background: rgba(255,255,255,0.08);
+            padding: 5px;
+            border-radius: 12px;
+        }
+        .nav-tab {
+            padding: 8px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: 'Heebo', sans-serif;
+            transition: all 0.25s;
+            color: rgba(255,255,255,0.65);
+            background: transparent;
+            display: flex; align-items: center; gap: 7px;
+        }
+        .nav-tab.active {
+            background: white;
+            color: #1a1a2e;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.25);
+        }
+        .nav-tab:not(.active):hover {
+            background: rgba(255,255,255,0.15);
+            color: white;
+        }
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-family: 'Heebo', sans-serif;
+            font-size: 0.8rem;
+            color: rgba(255,255,255,0.45);
+        }
+
+        /* ===== APP SECTIONS ===== */
+        .app-section {
+            padding-top: 60px;
+            min-height: 100vh;
+        }
+
+        /* ===== SHARE MODAL ===== */
+        .share-modal-overlay {
+            display: none;
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 99999;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .share-modal-overlay.active { display: flex; }
+        .share-modal-box {
+            background: white;
+            border-radius: 24px;
+            padding: 40px;
+            max-width: 560px;
+            width: 100%;
+            box-shadow: 0 30px 80px rgba(0,0,0,0.3);
+            text-align: center;
+            font-family: 'Heebo', sans-serif;
+        }
+        .share-modal-box h2 {
+            font-size: 1.7rem; font-weight: 800;
+            color: var(--text-dark); margin-bottom: 8px;
+        }
+        .share-modal-box p {
+            color: var(--text-light); margin-bottom: 24px; font-size: 1rem;
+        }
+        .share-url-box {
+            background: #f0f4ff;
+            border: 2px solid #c7d2fe;
+            border-radius: 12px;
+            padding: 14px 18px;
+            margin-bottom: 12px;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 0.82rem;
+            color: #3730a3;
+            text-align: left;
+            max-height: 80px;
+            overflow-y: auto;
+            direction: ltr;
+            min-height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: border-color 0.3s;
+        }
+        .share-url-box.loading {
+            color: #888;
+            font-family: 'Heebo', sans-serif;
+            font-size: 0.9rem;
+            direction: rtl;
+            justify-content: center;
+        }
+        .share-url-box.shortened { border-color: #6ee7b7; background: #f0fdf4; color: #065f46; }
+        .share-url-box.failed    { border-color: #fcd34d; background: #fffbeb; color: #92400e; }
+        .share-status-badge {
+            display: none;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            padding: 6px 14px;
+            border-radius: 20px;
+            margin: 0 auto 14px;
+            width: fit-content;
+        }
+        .share-status-badge.success { display: flex; background: #d1fae5; color: #065f46; }
+        .share-status-badge.warning { display: flex; background: #fef3c7; color: #92400e; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .share-spinner {
+            display: inline-block;
+            width: 16px; height: 16px;
+            border: 2px solid #c7d2fe;
+            border-top-color: #6C63FF;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            vertical-align: middle;
+            margin-left: 8px;
+        }
+        .share-btns {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .share-btn {
+            padding: 12px 22px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: 'Heebo', sans-serif;
+            transition: all 0.25s;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .share-btn:hover { transform: translateY(-2px); }
+        .share-btn-copy { background: linear-gradient(135deg,#6C63FF,#5a52d5); color:white; }
+        .share-btn-whatsapp { background: #25D366; color:white; }
+        .share-btn-close { background: #f0f0f0; color:#666; }
+        .copy-toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #1a1a2e;
+            color: white;
+            padding: 14px 28px;
+            border-radius: 50px;
+            font-family: 'Heebo', sans-serif;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
+            z-index: 999999;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        .copy-toast.show { transform: translateX(-50%) translateY(0); }
+
+        /* ===== TRANSFER BANNER ===== */
+        .transfer-banner {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            padding: 16px 24px;
+            text-align: center;
+            font-family: 'Heebo', sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .transfer-banner-text {
+            color: white;
+            font-size: 1rem;
+            font-weight: 700;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.15);
+        }
+        .transfer-btn {
+            background: white;
+            color: #0f9e6f;
+            border: none;
+            padding: 10px 28px;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 800;
+            cursor: pointer;
+            font-family: 'Heebo', sans-serif;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+            transition: all 0.25s;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .transfer-btn:hover { transform: scale(1.05); box-shadow: 0 6px 20px rgba(0,0,0,0.2); }
+
+        /* ===== EDITOR SECTION STYLES ===== */
+        #editorSection body, #editorSection {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        #editorSection .editor-wrap {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: calc(100vh - 60px);
+            padding: 20px;
+            padding-bottom: 80px;
+        }
+        #editorSection .e-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        .e-header {
+            background: linear-gradient(135deg, var(--primary), #5a52d5);
+            color: white;
+            padding: 30px 40px;
+            text-align: center;
+        }
+        .e-header h1 { font-size: 2.5rem; margin-bottom: 10px; text-shadow: 0 2px 4px rgba(0,0,0,0.2); font-family:'Heebo',sans-serif; }
+        .e-header p { font-size: 1.1rem; opacity: 0.95; }
+        .e-content { padding: 40px; }
+        .settings-section {
+            background: var(--bg-light);
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            border: 2px solid var(--border);
+        }
+        .settings-section h2 {
+            color: var(--primary);
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .form-group { margin-bottom: 20px; }
+        .form-group label {
+            display: block; margin-bottom: 8px;
+            font-weight: 600; color: var(--text-dark); font-size: 1rem;
+        }
+        .form-group input[type="text"],
+        .form-group input[type="number"],
+        .form-group input[type="url"],
+        .form-group textarea {
+            width: 100%; padding: 12px 15px;
+            border: 2px solid var(--border); border-radius: 10px;
+            font-size: 1rem; font-family: inherit; transition: all 0.3s;
+        }
+        .form-group input:focus, .form-group textarea:focus {
+            outline: none; border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(108,99,255,0.1);
+        }
+        .form-group textarea { min-height: 80px; resize: vertical; }
+        .form-row { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+        .tasks-section { margin-bottom: 30px; }
+        .tasks-section h2 { color: var(--primary); margin-bottom: 20px; font-size: 1.5rem; display:flex; align-items:center; gap:10px; }
+        .tasks-list { display: flex; flex-direction: column; gap: 15px; }
+        .task-card {
+            background: white; border: 2px solid var(--border);
+            border-radius: 15px; padding: 20px; position: relative;
+            transition: all 0.3s; box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .task-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.1); transform: translateY(-2px); }
+        .task-card.mandatory { border-right: 5px solid var(--primary); }
+        .task-card.choice { border-right: 5px solid var(--accent); }
+        .task-card.optional { border-right: 5px solid #56ab91; }
+        .task-card.start, .task-card.finish { border-right: 5px solid var(--secondary); background: var(--bg-light); }
+        .task-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .task-type-badge {
+            display: inline-block; padding: 5px 15px; border-radius: 20px;
+            font-size: 0.85rem; font-weight: 600; color: white;
+        }
+        .task-type-badge.mandatory { background: var(--primary); }
+        .task-type-badge.choice { background: var(--accent); }
+        .task-type-badge.optional { background: linear-gradient(135deg,#a8e6cf,#56ab91); }
+        .task-type-badge.start, .task-type-badge.finish { background: var(--secondary); }
+        .task-controls { display: flex; gap: 8px; }
+        .task-control-btn {
+            background: transparent; border: none; width: 35px; height: 35px;
+            border-radius: 8px; cursor: pointer; font-size: 1.2rem;
+            display: flex; align-items: center; justify-content: center; transition: all 0.2s;
+        }
+        .task-control-btn:hover { background: var(--bg-light); }
+        .task-control-btn.delete:hover { background: #ffebee; color: var(--danger); }
+        .task-content { display: grid; gap: 15px; }
+        .options-list { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+        .option-item { display: flex; gap: 10px; align-items: center; }
+        .option-item input { flex: 1; }
+        .option-item button {
+            background: var(--danger); color: white; border: none;
+            width: 35px; height: 35px; border-radius: 8px; cursor: pointer;
+            font-size: 1.2rem; transition: all 0.2s;
+        }
+        .option-item button:hover { background: #e74c3c; }
+        .add-buttons { display: flex; gap: 15px; margin-top: 20px; flex-wrap: wrap; }
+        .e-btn {
+            padding: 12px 24px; border: none; border-radius: 10px;
+            font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.3s;
+            display: flex; align-items: center; gap: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-family: inherit;
+        }
+        .e-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.2); }
+        .e-btn:active { transform: translateY(0); }
+        .e-btn-primary { background: var(--primary); color: white; }
+        .e-btn-secondary { background: var(--accent); color: white; }
+        .e-btn-success { background: var(--secondary); color: white; }
+        .e-btn-outline { background: white; color: var(--primary); border: 2px solid var(--primary); }
+        .e-btn-small { padding: 8px 16px; font-size: 0.9rem; }
+        .action-bar {
+            background: var(--bg-light); padding: 25px; border-radius: 15px;
+            display: flex; gap: 15px; flex-wrap: wrap; justify-content: center;
+            border: 2px solid var(--border);
+        }
+        .preview-section { margin-top: 30px; padding: 25px; background: var(--bg-light); border-radius: 15px; border: 2px solid var(--border); }
+        .preview-section h2 { color: var(--primary); margin-bottom: 20px; font-size: 1.5rem; }
+        .preview-path { display: flex; align-items: center; gap: 15px; flex-wrap: wrap; padding: 20px; background: white; border-radius: 10px; }
+        .preview-node { display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 15px; border-radius: 10px; min-width: 80px; text-align: center; transition: all 0.3s; }
+        .preview-node.mandatory { background: #e8e6ff; border: 2px solid var(--primary); }
+        .preview-node.choice { background: #fff4e6; border: 2px solid var(--accent); }
+        .preview-node.optional { background: #e8f8f0; border: 2px solid #56ab91; }
+        .preview-node.start, .preview-node.finish { background: #e8f5e9; border: 2px solid var(--secondary); }
+        .preview-icon { font-size: 2rem; }
+        .preview-title { font-size: 0.75rem; font-weight: 600; color: var(--text-dark); }
+        .preview-arrow { font-size: 1.5rem; color: var(--text-light); }
+        .empty-state { text-align: center; padding: 60px 20px; color: var(--text-light); }
+        .empty-state-icon { font-size: 4rem; margin-bottom: 20px; opacity: 0.5; }
+        .e-modal {
+            display: none; position: fixed; top:0; left:0; width:100%; height:100%;
+            background: rgba(0,0,0,0.7); z-index: 1000; align-items:center; justify-content:center; padding:20px;
+        }
+        .e-modal.active { display: flex; }
+        .e-modal-content {
+            background: white; border-radius: 20px; padding: 40px;
+            max-width: 600px; width: 100%; max-height: 90vh; overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .info-box {
+            background: linear-gradient(135deg,#e8e6ff,#f0f9ff);
+            border: 2px solid rgba(108,99,255,0.2);
+            border-radius: 15px; padding: 20px;
+            margin-bottom: 25px;
+            display: flex; gap: 15px; align-items: flex-start;
+        }
+        .info-box-icon { font-size: 2rem; flex-shrink: 0; }
+        .info-box-text { color: var(--text-dark); line-height: 1.7; font-size: 0.95rem; }
+        .drop-zone {
+            border: 3px dashed var(--border); border-radius: 15px;
+            padding: 30px; text-align: center; transition: all 0.3s;
+        }
+        .drop-zone.drag-over { border-color: var(--primary); background: rgba(108,99,255,0.05); }
+        .auto-save-indicator {
+            position: fixed; top: 70px; left: 20px;
+            background: rgba(76,175,80,0.95); color: white;
+            padding: 8px 16px; border-radius: 20px; font-size: 0.85rem;
+            font-weight: 600; display: none; z-index: 9998;
+            font-family: 'Heebo', sans-serif;
+        }
+
+        /* ===== BOARD SECTION STYLES ===== */
+        #boardSection {
+            font-family: 'Heebo', sans-serif;
+            background: linear-gradient(180deg, #87CEEB 0%, #98D8C8 100%);
+            min-height: calc(100vh - 60px);
+            color: var(--text-dark);
+            position: relative;
+            padding-bottom: 60px;
+        }
+        #boardSection::before {
+            content: '';
+            position: fixed; top:0; left:0; width:100%; height:100%;
+            background-image:
+                radial-gradient(circle at 20% 30%, rgba(255,255,255,0.3) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(255,255,255,0.2) 0%, transparent 50%);
+            pointer-events: none; z-index: 0;
+        }
+        .cloud {
+            position: fixed; background: rgba(255,255,255,0.7);
+            border-radius: 100px; opacity: 0.6;
+            animation: cloudFloat 40s infinite linear;
+        }
+        .cloud::before, .cloud::after {
+            content:''; position:absolute;
+            background: rgba(255,255,255,0.7); border-radius: 100px;
+        }
+        .cloud:nth-child(1) { width:100px; height:40px; top:10%; left:-150px; }
+        .cloud:nth-child(1)::before { width:50px; height:50px; top:-25px; right:20px; }
+        .cloud:nth-child(1)::after { width:60px; height:35px; top:-15px; left:15px; }
+        .cloud:nth-child(2) { width:120px; height:45px; top:60%; left:-180px; animation-delay:15s; animation-duration:50s; }
+        .cloud:nth-child(2)::before { width:55px; height:55px; top:-28px; right:25px; }
+        .cloud:nth-child(2)::after { width:65px; height:40px; top:-18px; left:18px; }
+        @keyframes cloudFloat { from{transform:translateX(0)} to{transform:translateX(calc(100vw + 200px))} }
+
+        .board-container {
+            max-width: 1200px; width: 95%;
+            margin: 0 auto; padding: 20px;
+            position: relative; z-index: 1; box-sizing: border-box;
+        }
+
+        /* Board header */
+        .board-header {
+            background: rgba(255,255,255,0.95);
+            padding: 18px 24px; border-radius: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+            border: 2px solid rgba(255,255,255,0.6);
+            display: flex; justify-content: space-between; align-items: center;
+            flex-wrap: wrap; gap: 12px;
+        }
+        .board-header-left h1 {
+            font-size: 1.6rem; font-weight: 800;
+            background: linear-gradient(135deg, var(--board-primary), var(--board-secondary));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text;
+            filter: drop-shadow(1px 1px 2px rgba(0,0,0,0.08));
+        }
+        .board-header-left p { font-size:0.85rem; color:var(--text-light); margin-top:3px; font-weight:600; }
+        .board-header-btns { display:flex; gap:8px; flex-wrap:wrap; }
+
+        /* Buttons for board header */
+        .btn {
+            padding: 10px 18px; border: none; border-radius: 10px;
+            font-size: 0.9rem; font-weight: 700; cursor: pointer;
+            transition: all 0.3s; display:flex; align-items:center; gap:6px;
+            font-family: 'Heebo', sans-serif;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.12);
+        }
+        .btn:hover { transform:translateY(-2px); box-shadow:0 5px 16px rgba(0,0,0,0.18); }
+        .btn:active { transform:translateY(0); }
+        .btn-primary { background:linear-gradient(135deg,#6C63FF,#5a52d5); color:white; }
+        .btn-success { background:linear-gradient(135deg,#43e97b,#38f9d7); color:white; }
+        .btn-share { background:linear-gradient(135deg,#f093fb,#f5576c); color:white; }
+        .btn-outline {
+            background:white; color:var(--text-dark);
+            border: 2px solid rgba(0,0,0,0.12);
+        }
+        .btn-back { background:linear-gradient(135deg,#667eea,#764ba2); color:white; }
+
+        /* Progress */
+        .progress-container {
+            background: rgba(255,255,255,0.95); padding:20px 25px;
+            border-radius:20px; margin-bottom:20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            border: 2px solid rgba(255,255,255,0.5);
+        }
+        .progress-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+        .progress-text { font-size:1rem; font-weight:600; color:var(--text-dark); }
+        .progress-percentage { font-size:1.5rem; font-weight:800; color:var(--board-primary); }
+        .progress-bar-bg { background:#F0F0F0; height:18px; border-radius:15px; overflow:hidden; position:relative; }
+        .progress-bar-fill {
+            background:linear-gradient(90deg,var(--board-primary),var(--board-secondary));
+            height:100%; border-radius:15px;
+            transition: width 0.6s cubic-bezier(0.4,0,0.2,1);
+            position:relative; overflow:hidden;
+        }
+        .progress-bar-fill::after {
+            content:''; position:absolute; top:0; left:0; right:0; bottom:0;
+            background:linear-gradient(90deg,transparent,rgba(255,255,255,0.3) 50%,transparent);
+            animation: shimmer 2s infinite;
+        }
+        @keyframes shimmer { 0%{transform:translateX(-100%)} 100%{transform:translateX(100%)} }
+
+        /* Timer */
+        .timer-container {
+            background:linear-gradient(135deg,var(--accent),#FFA726);
+            padding:14px 24px; border-radius:18px;
+            box-shadow: 0 6px 24px rgba(255,182,77,0.4);
+            margin-bottom:20px; text-align:center;
+            border: 3px solid rgba(255,255,255,0.3); display:none;
+        }
+        .timer-display { color:white; }
+        .timer-label { font-size:0.9rem; margin-bottom:6px; opacity:0.95; font-weight:600; text-shadow:0 2px 4px rgba(0,0,0,0.2); }
+        .timer-time { font-size:2.2rem; font-weight:bold; font-family:'Courier New',monospace; letter-spacing:4px; text-shadow:0 3px 8px rgba(0,0,0,0.3); }
+        .timer-time.warning { animation:timerPulse 1s infinite; }
+        .timer-time.danger { animation:timerPulse 0.5s infinite; color:#FFCDD2; }
+        @keyframes timerPulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }
+
+        /* Board path */
+        .board-path {
+            position:relative; padding:40px;
+            background:rgba(126,200,80,0.3);
+            border-radius:30px; min-height:400px; max-height:70vh; height:auto;
+            box-shadow: inset 0 0 50px rgba(0,0,0,0.1), 0 10px 40px rgba(0,0,0,0.15);
+            border:8px solid var(--wood);
+        }
+        .board-path::before {
+            content:''; position:absolute; top:0; left:0; right:0; bottom:0;
+            background-image:
+                repeating-linear-gradient(45deg,transparent,transparent 10px,rgba(255,255,255,0.05) 10px,rgba(255,255,255,0.05) 20px),
+                repeating-linear-gradient(-45deg,transparent,transparent 10px,rgba(0,0,0,0.02) 10px,rgba(0,0,0,0.02) 20px);
+            border-radius:22px; pointer-events:none;
+        }
+        .path-trail { position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:1; }
+        .path-line { stroke:var(--path); stroke-width:50; fill:none; filter:drop-shadow(0 4px 8px rgba(0,0,0,0.2)); }
+        .path-border { stroke:var(--wood); stroke-width:56; fill:none; opacity:0.5; }
+        .path-dashes { stroke:var(--wood); stroke-width:3; stroke-dasharray:15 15; fill:none; opacity:0.4; animation:dashMove 30s linear infinite; }
+        @keyframes dashMove { to{stroke-dashoffset:-300} }
+        .tasks-grid { position:relative; z-index:2; display:flex; flex-wrap:wrap; gap:0; }
+
+        /* Task stops */
+        .task-stop {
+            position:absolute; width:140px; height:140px;
+            display:flex; align-items:center; justify-content:center;
+            cursor:pointer; transition:all 0.3s cubic-bezier(0.4,0,0.2,1);
+            animation:fadeInScale 0.6s ease-out backwards; z-index:10;
+        }
+        @keyframes fadeInScale { from{opacity:0;transform:scale(0.5) rotate(-180deg)} to{opacity:1;transform:scale(1) rotate(0)} }
+        .task-stop:hover .task-marker { transform:scale(1.15) translateY(-8px); }
+        .task-marker {
+            width:100%; height:100%; background:white;
+            border-radius:50%;
+            box-shadow:0 8px 24px rgba(0,0,0,0.2),inset 0 -3px 8px rgba(0,0,0,0.1);
+            display:flex; flex-direction:column; align-items:center; justify-content:center;
+            transition:all 0.4s cubic-bezier(0.4,0,0.2,1);
+            border:5px solid #E0E0E0; position:relative; overflow:visible;
+        }
+        .task-stop.locked .task-marker { background:#D3D3D3; border-color:#999; opacity:0.6; cursor:not-allowed; }
+        .task-stop.current .task-marker {
+            border-color:var(--board-primary);
+            background:linear-gradient(135deg,#FFE6F0,#FFFFFF);
+            animation:pulseRing 2s infinite;
+            box-shadow:0 8px 24px rgba(255,107,157,0.4),inset 0 -3px 8px rgba(255,107,157,0.1),0 0 0 0 rgba(255,107,157,0.7);
+        }
+        @keyframes pulseRing {
+            0%{box-shadow:0 8px 24px rgba(255,107,157,0.4),inset 0 -3px 8px rgba(255,107,157,0.1),0 0 0 0 rgba(255,107,157,0.7)}
+            50%{box-shadow:0 8px 24px rgba(255,107,157,0.4),inset 0 -3px 8px rgba(255,107,157,0.1),0 0 0 20px rgba(255,107,157,0)}
+            100%{box-shadow:0 8px 24px rgba(255,107,157,0.4),inset 0 -3px 8px rgba(255,107,157,0.1),0 0 0 0 rgba(255,107,157,0)}
+        }
+        .task-stop.completed .task-marker { background:linear-gradient(135deg,var(--success),#6EDBCF); border-color:var(--success); cursor:pointer; }
+        .task-stop.completed .task-marker::after {
+            content:'✓'; position:absolute; top:-10px; right:-10px;
+            background:var(--board-secondary); color:white;
+            width:28px; height:28px; border-radius:50%;
+            display:flex; align-items:center; justify-content:center;
+            font-size:0.9rem; font-weight:bold;
+            box-shadow:0 3px 8px rgba(0,0,0,0.2); border:3px solid white; z-index:10;
+        }
+        .task-number-badge {
+            position:absolute; top:-10px; left:-10px;
+            background:rgba(0,0,0,0.6); color:white;
+            width:26px; height:26px; border-radius:50%;
+            display:flex; align-items:center; justify-content:center;
+            font-size:0.75rem; font-weight:bold;
+            border:3px solid white; z-index:10;
+        }
+        .task-icon { font-size:2.2rem; margin-bottom:4px; filter:drop-shadow(2px 2px 4px rgba(0,0,0,0.2)); }
+        .task-stop.locked .task-icon { opacity:0.4; }
+        .task-label { font-size:0.7rem; font-weight:700; text-align:center; color:var(--text-dark); max-width:90%; line-height:1.2; }
+        .task-stop.locked .task-label { color:#999; }
+
+        /* Character — 3D container */
+        .character {
+            position: absolute;
+            width: 180px;
+            height: 230px;
+            z-index: 100;
+            cursor: pointer;
+            transition: left 1.2s cubic-bezier(0.4,0,0.2,1), top 1.2s cubic-bezier(0.4,0,0.2,1);
+            overflow: visible;
+            pointer-events: auto;
+        }
+
+        /* Board modals */
+        .modal {
+            display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+            background:rgba(0,0,0,0.7); z-index:10000;
+            align-items:center; justify-content:center; padding:20px;
+        }
+        .modal.active { display:flex; }
+        .modal-content {
+            background:white; border-radius:20px; padding:40px;
+            max-width:600px; width:100%; max-height:90vh; overflow-y:auto;
+            position:relative; box-shadow:0 20px 60px rgba(0,0,0,0.3);
+            font-family:'Heebo',sans-serif;
+        }
+        .modal-close {
+            position:absolute; top:15px; left:15px;
+            background:rgba(0,0,0,0.08); border:none; width:36px; height:36px;
+            border-radius:50%; font-size:1.4rem; cursor:pointer;
+            display:flex; align-items:center; justify-content:center; transition:all 0.2s;
+        }
+        .modal-close:hover { background:rgba(0,0,0,0.15); }
+        .task-type { padding:5px 15px; border-radius:20px; font-size:0.9rem; font-weight:700; color:white; display:inline-block; margin-bottom:10px; }
+        .task-type.mandatory { background:linear-gradient(135deg,var(--board-primary),#E91E8C); }
+        .task-type.optional { background:linear-gradient(135deg,#a8e6cf,#56ab91); }
+        .task-type.choice { background:linear-gradient(135deg,var(--accent),#FF8C00); }
+        .choice-options { display:grid; gap:12px; margin:20px 0; }
+        .choice-option {
+            padding:15px 20px; border:3px solid #E0E0E0;
+            border-radius:12px; cursor:pointer; transition:all 0.25s;
+            display:flex; align-items:center; gap:12px;
+            font-weight:600; font-size:0.95rem;
+        }
+        .choice-option:hover { border-color:var(--board-secondary); background:rgba(78,205,196,0.08); transform:translateX(-4px); }
+        .choice-option.selected { border-color:var(--board-secondary); background:rgba(78,205,196,0.15); }
+        .completion-message { text-align:center; padding:20px 0; }
+        .trophy { font-size:5rem; animation:trophyBounce 0.6s cubic-bezier(0.4,0,0.2,1); }
+        @keyframes trophyBounce { 0%{transform:scale(0)} 70%{transform:scale(1.2)} 100%{transform:scale(1)} }
+
+        /* Board footer */
+        #boardSection footer {
+            position: fixed; bottom:0; left:0; right:0;
+            background:linear-gradient(to top,rgba(255,255,255,0.98),rgba(255,255,255,0.95));
+            backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+            border-top: 2px solid #e0e0e0; padding:10px 20px;
+            font-size:0.85rem; color:#444; text-align:center;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.08); z-index:1000;
+        }
+
+        /* Task type labels */
+        .task-stop:nth-child(1) { animation-delay: 0.1s; }
+        .task-stop:nth-child(2) { animation-delay: 0.2s; }
+        .task-stop:nth-child(3) { animation-delay: 0.3s; }
+        .task-stop:nth-child(4) { animation-delay: 0.4s; }
+        .task-stop:nth-child(5) { animation-delay: 0.5s; }
+        .task-stop:nth-child(6) { animation-delay: 0.6s; }
+
+        /* Board answer modal */
+        #answerModal { display:none; }
+        #answerModal.active { display:flex; }
+
+        /* Mobile */
+        @media (max-width:768px) {
+            .app-nav { padding: 0 14px; }
+            .app-nav-logo span:last-child { display:none; }
+            .nav-tab { padding: 7px 12px; font-size:0.8rem; }
+            .e-content { padding:20px; }
+            .e-header { padding:20px; }
+            .e-header h1 { font-size:1.8rem; }
+            .form-row { grid-template-columns:1fr; }
+            .board-header { flex-direction:column; align-items:flex-start; }
+            .board-header-btns { width:100%; justify-content:flex-start; }
+            .task-stop { width:80px; height:80px; }
+            .task-icon { font-size:1.5rem; }
+            .task-label { font-size:0.6rem; }
+            .transfer-banner { padding:12px 16px; }
+        }
+
+        /* ===== SHARED LINK MODE ===== */
+        body.shared-mode .app-nav { display: none !important; }
+        body.shared-mode .app-section { padding-top: 0 !important; }
+        body.shared-mode #boardSection { min-height: 100vh !important; }
+        body.shared-mode .board-container { padding-top: 20px !important; }
+    </style>
+</head>
+<body>
+
+    <!-- APP NAVIGATION -->
+    <nav class="app-nav">
+        <div class="app-nav-logo">
+            <span>🎮</span>
+            <span>לוח הבחירה הדיגיטלי</span>
+        </div>
+        <div class="nav-tabs">
+            <button class="nav-tab active" id="navEditor" onclick="showMode('editor')">
+                ✏️ עורך
+            </button>
+            <button class="nav-tab" id="navBoard" onclick="showMode('board'); char3D_ensureInit()">
+                🎮 לוח
+            </button>
+        </div>
+        <div class="nav-right">
+            <span>© 2025 שלומי מימון</span>
+        </div>
+    </nav>
+
+    <!-- AUTO SAVE INDICATOR -->
+    <div class="auto-save-indicator" id="autoSaveIndicator">✓ נשמר אוטומטית</div>
+
+    <!-- COPY TOAST -->
+    <div class="copy-toast" id="copyToast">✓ הקישור הועתק ללוח!</div>
+
+    <!-- SHARE MODAL -->
+    <div class="share-modal-overlay" id="shareModal">
+        <div class="share-modal-box">
+            <div style="font-size:3rem;margin-bottom:12px;">🔗</div>
+            <h2>שתף את הלוח</h2>
+            <p>שלח את הקישור הזה לתלמידים. הם יוכלו לפתוח את הלוח ולשחק ישירות דרך הדפדפן!</p>
+            <!-- Status badge — shown after shortening attempt -->
+            <div class="share-status-badge" id="shareStatusBadge"></div>
+            <div class="share-url-box" id="shareUrlDisplay">...</div>
+            <div class="share-btns">
+                <button class="share-btn share-btn-copy" onclick="copyShareLink()">
+                    📋 העתק קישור
+                </button>
+                <button class="share-btn share-btn-whatsapp" onclick="sendWhatsApp()">
+                    💬 שלח בוואטסאפ
+                </button>
+                <button class="share-btn share-btn-close" onclick="closeShareModal()">
+                    סגור
+                </button>
+            </div>
+            <p style="font-size:0.8rem;color:#999;margin-top:16px;">
+                💡 הקישור מכיל את כל נתוני הלוח. לא נדרש שרת או חיבור מיוחד.
+            </p>
+            <div style="margin-top:14px;display:flex;align-items:center;justify-content:center;gap:10px;font-family:'Heebo',sans-serif;font-size:0.9rem;color:#555;">
+                <label for="autoShortenToggle" style="cursor:pointer;display:flex;align-items:center;gap:8px;">
+                    <input type="checkbox" id="autoShortenToggle" checked
+                        style="width:16px;height:16px;cursor:pointer;accent-color:#6C63FF;">
+                    קצר את הקישור אוטומטית
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================== EDITOR SECTION ===================== -->
+    <div id="editorSection" class="app-section">
+        <div class="editor-wrap" style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);min-height:calc(100vh - 60px);padding:20px;padding-bottom:100px;">
+            <div class="e-container">
+                <div class="e-header">
+                    <h1>✏️ עורך לוח הבחירה</h1>
+                    <p>צור, ערוך ושלח את לוח הבחירה שלך לתלמידים</p>
+                </div>
+
+                <!-- TRANSFER BANNER -->
+                <div class="transfer-banner">
+                    <span class="transfer-banner-text">✅ סיימת לערוך? העבר את הלוח ישירות למשחק!</span>
+                    <button class="transfer-btn" onclick="transferToBoard()">
+                        🚀 העבר ללוח המשחק
+                    </button>
+                </div>
+
+                <div class="e-content">
+                    <!-- Top utility bar -->
+                    <div style="display:flex;justify-content:flex-end;gap:10px;margin-bottom:18px;flex-wrap:wrap;">
+                        <button class="e-btn e-btn-outline" onclick="importJSON()">📤 ייבא משחק קיים</button>
+                        <button class="e-btn" onclick="resetAll()" style="background:#ff6b6b;color:white;">🗑️ אפס הכל</button>
+                    </div>
+                    <!-- Settings -->
+                    <div class="settings-section">
+                        <h2>⚙️ הגדרות המשחק</h2>
+                        <div class="info-box">
+                            <div class="info-box-icon">💡</div>
+                            <div class="info-box-text">
+                                <strong>איך זה עובד?</strong> המשחק מתחיל בנקודת התחלה ומסתיים בנקודת סיום אוטומטיים.
+                                הוסף משימות חובה, בחירה ורשות בסדר הרצוי.
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="gameTitle">שם המשחק</label>
+                                <input type="text" id="gameTitle" placeholder="לדוגמה: מסע הלמידה בהיסטוריה">
+                            </div>
+                            <div class="form-group">
+                                <label for="timeLimit">זמן במשחק (דקות)</label>
+                                <input type="number" id="timeLimit" value="10" min="1" max="120">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tasks Section -->
+                    <div class="tasks-section">
+                        <h2>📝 משימות המשחק</h2>
+                        <div class="tasks-list" id="tasksList">
+                            <div class="task-card start">
+                                <div class="task-header">
+                                    <span class="task-type-badge start">🏁 התחלה</span>
+                                </div>
+                                <div class="task-content">
+                                    <p style="color:var(--text-light);font-style:italic;">נקודת ההתחלה נוספת אוטומטית.</p>
+                                </div>
+                            </div>
+                            <!-- dynamic tasks here -->
+                            <div class="task-card finish">
+                                <div class="task-header">
+                                    <span class="task-type-badge finish">🏆 סיום</span>
+                                </div>
+                                <div class="task-content">
+                                    <p style="color:var(--text-light);font-style:italic;">נקודת הסיום נוספת אוטומטית.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="add-buttons">
+                            <button class="e-btn e-btn-primary" onclick="addTask('mandatory')">📚 הוסף משימת חובה</button>
+                            <button class="e-btn e-btn-secondary" onclick="addTask('choice')">🎯 הוסף משימת בחירה</button>
+                            <button class="e-btn" onclick="addTask('optional')" style="background:linear-gradient(135deg,#a8e6cf,#56ab91);color:white;">🌟 הוסף משימת רשות</button>
+                        </div>
+                    </div>
+
+                    <!-- Preview -->
+                    <div class="preview-section">
+                        <h2>👀 תצוגה מקדימה של המסלול</h2>
+                        <div class="preview-path" id="previewPath">
+                            <div class="empty-state">
+                                <div class="empty-state-icon">🎯</div>
+                                <p>הוסף משימות כדי לראות תצוגה מקדימה</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Bar -->
+                    <div class="action-bar" style="margin-top:24px;">
+                        <button class="e-btn e-btn-primary" onclick="downloadJSON()">💾 הורד קובץ משחק (JSON)</button>
+                        <button class="e-btn e-btn-success" onclick="copyToClipboard()" style="background:linear-gradient(135deg,#667eea,#764ba2);">📋 העתק קוד</button>
+                    </div>
+
+                    <!-- Drop Zone -->
+                    <div id="editorDropZone" class="drop-zone" style="margin-top:20px;display:none;">
+                        <p style="margin:10px 0;font-size:1.1rem;">🎯 גרור קובץ JSON/TXT לכאן לייבוא</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <input type="file" id="fileInput" accept=".json,.txt" style="display:none;" onchange="handleFileImport(event)">
+    </div>
+
+    <!-- ===================== BOARD SECTION ===================== -->
+    <div id="boardSection" class="app-section" style="display:none;">
+        <div class="cloud"></div>
+        <div class="cloud"></div>
+
+        <div class="board-container">
+            <!-- Board Header -->
+            <div class="board-header">
+                <div class="board-header-left">
+                    <h1 id="boardTitle">🎮 לוח הבחירה הדיגיטלי</h1>
+                    <p>עקוב אחרי המסלול והשלם את המשימות!</p>
+                </div>
+                <div class="board-header-btns">
+                    <button class="btn btn-back" onclick="goBackToEditor()">← חזור לעורך</button>
+                    <button class="btn btn-share" onclick="openShareModal()">🔗 שתף קישור</button>
+                    <button class="btn btn-success" onclick="saveProgress()">💾 שמור התקדמות</button>
+                    <button class="btn btn-primary" onclick="showReportsModal()" style="display:none;" id="reportsBtn">📊 דוחות</button>
+                    <button class="btn btn-outline" onclick="printBoard()">🖨️ הדפס</button>
+                </div>
+            </div>
+
+            <!-- Progress -->
+            <div class="progress-container">
+                <div class="progress-header">
+                    <span class="progress-text">ההתקדמות שלך במסע</span>
+                    <span class="progress-percentage" id="progressPercentage">0%</span>
+                </div>
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" id="progressBar" style="width:0%"></div>
+                </div>
+            </div>
+
+            <!-- Timer -->
+            <div class="timer-container" id="timerContainer">
+                <div class="timer-display">
+                    <div class="timer-label">⏱️ זמן נותר</div>
+                    <div class="timer-time" id="timerDisplay">10:00</div>
+                </div>
+            </div>
+
+            <!-- Game Board -->
+            <div class="board-path">
+                <svg class="path-trail" id="pathTrail" viewBox="0 0 1000 600" preserveAspectRatio="none"></svg>
+                <div class="tasks-grid" id="tasksGrid"></div>
+                <div class="character" id="character" onclick="char3D_triggerWave()"></div>
+            </div>
+        </div>
+
+        <!-- Task Modal -->
+        <div class="modal" id="taskModal">
+            <div class="modal-content">
+                <button class="modal-close" onclick="closeModal()">×</button>
+                <div id="modalContent"></div>
+            </div>
+        </div>
+
+        <!-- Answer Modal -->
+        <div class="modal" id="answerModal">
+            <div class="modal-content" style="max-width:900px;">
+                <button class="modal-close" onclick="closeAnswerEditor()">×</button>
+                <div id="answerEditorContent"></div>
+            </div>
+        </div>
+
+        <footer>
+            <div style="display:flex;justify-content:center;align-items:center;gap:15px;flex-wrap:wrap;">
+                <span style="font-weight:600;color:#333;">© <span id="currentYear"></span> שלומי מימון - כל הזכויות שמורות</span>
+                <span style="color:#bbb;">•</span>
+                <span style="color:#666;">נבנה בסיוע Claude AI מבית Anthropic</span>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+    // ===================================================
+    // APP STATE & MODE SWITCHING
+    // ===================================================
+    let currentMode = 'editor';
+    let currentLoadedGame = null;
+    let isSharedMode = false;
+    let currentShareUrl = '';
+    let currentShareLongUrl = '';
+    let currentShareShortUrl = '';
+
+    function updateSharedModeUI() {
+        document.body.classList.toggle('shared-mode', isSharedMode);
+        const backBtn = document.querySelector('.btn-back');
+        const shareBtn = document.querySelector('.btn-share');
+        if (backBtn) backBtn.style.display = isSharedMode ? 'none' : 'inline-flex';
+        if (shareBtn) shareBtn.style.display = isSharedMode ? 'none' : 'inline-flex';
+    }
+
+    function showMode(mode) {
+        currentMode = mode;
+        const editorSection = document.getElementById('editorSection');
+        const boardSection = document.getElementById('boardSection');
+        const navEditor = document.getElementById('navEditor');
+        const navBoard = document.getElementById('navBoard');
+
+        if (mode === 'editor') {
+            editorSection.style.display = 'block';
+            boardSection.style.display = 'none';
+            navEditor.classList.add('active');
+            navBoard.classList.remove('active');
+        } else {
+            editorSection.style.display = 'none';
+            boardSection.style.display = 'block';
+            navEditor.classList.remove('active');
+            navBoard.classList.add('active');
+        }
+    }
+
+    function goBackToEditor() {
+        isSharedMode = false;
+        updateSharedModeUI();
+        showMode('editor');
+    }
+
+    // ===================================================
+    // SHARE URL FUNCTIONS
+    // ===================================================
+    function buildCurrentGameJSON() {
+        const title = document.getElementById('gameTitle').value || 'משחק לימודי';
+        const timeLimit = parseInt(document.getElementById('timeLimit').value) * 60 || 600;
+        return {
+            title: title,
+            timeLimit: timeLimit,
+            tasks: [
+                { id:0, type:'start', title:'🏁 נקודת התחלה', description:'ברוכים הבאים למסע הלימודי! לחצו על "התחל" כדי להתחיל את המסלול ולהפעיל את השעון.', requiresCompletion:true },
+                ...gameData.tasks.map((task, index) => ({
+                    id: index + 1,
+                    type: task.type,
+                    title: task.title || `משימה ${index + 1}`,
+                    description: task.description,
+                    link: task.link || '',
+                    links: task.links || [],
+                    options: task.options,
+                    minChoices: task.minChoices || 1,
+                    requiresCompletion: task.type === 'mandatory',
+                    requiresChoice: task.type === 'choice',
+                    blocking: task.type === 'optional' ? false : (task.blocking !== false)
+                })),
+                { id: gameData.tasks.length + 1, type:'finish', title:'🏆 סיום המסלול', description:'כל הכבוד! סיימת בהצלחה את המסלול הלימודי!', requiresCompletion:true }
+            ]
+        };
+    }
+
+    function generateShareURL() {
+        const game = currentLoadedGame || buildCurrentGameJSON();
+        const json = JSON.stringify(game);
+        const compressed = LZString.compressToEncodedURIComponent(json);
+        // Use ?game= (query param) instead of #game= (hash)
+        // URL shorteners strip the # fragment — query params survive shortening
+        const base = window.location.href.split('#')[0].split('?')[0];
+        return base + '?game=' + compressed;
+    }
+
+    function getAutoShortenEnabled() {
+        const toggle = document.getElementById('autoShortenToggle');
+        return !!(toggle && toggle.checked);
+    }
+
+    function setShareLoadingState() {
+        const display = document.getElementById('shareUrlDisplay');
+        const badge   = document.getElementById('shareStatusBadge');
+        display.className = 'share-url-box loading';
+        display.innerHTML = '<span class="share-spinner"></span>&nbsp;מכין קישור לשיתוף...';
+        badge.className   = 'share-status-badge';
+        badge.textContent = '';
+    }
+
+    function setShareSuccessState(url) {
+        const display = document.getElementById('shareUrlDisplay');
+        const badge   = document.getElementById('shareStatusBadge');
+        display.textContent = url;
+        display.className   = 'share-url-box shortened';
+        badge.innerHTML     = '✅ קישור מקוצר נוצר בהצלחה';
+        badge.className     = 'share-status-badge success';
+    }
+
+    function setShareFallbackState(url) {
+        const display = document.getElementById('shareUrlDisplay');
+        const badge   = document.getElementById('shareStatusBadge');
+        display.textContent = url;
+        display.className   = 'share-url-box failed';
+        badge.innerHTML     = '⚠️ לא ניתן לקצר כרגע — מוצג קישור מלא';
+        badge.className     = 'share-status-badge warning';
+    }
+
+    async function safeFetchJson(url, opts = {}) {
+        try {
+            const res = await fetch(url, opts);
+            const ct  = res.headers.get('content-type') || '(none)';
+            console.log(`[shorten] status=${res.status} content-type="${ct}" url=${url.slice(0,60)}`);
+            if (!res.ok) {
+                const body = await res.text();
+                console.warn(`[shorten] non-OK body (first 200): ${body.slice(0,200)}`);
+                return null;
+            }
+            const text = await res.text();
+            console.log(`[shorten] raw body (first 200): ${text.slice(0,200)}`);
+            try {
+                return JSON.parse(text);
+            } catch(e) {
+                console.warn(`[shorten] body is not JSON:`, e.message);
+                return null;
+            }
+        } catch (e) {
+            console.warn(`[shorten] fetch threw:`, e.message);
+            return null;
+        }
+    }
+
+    async function shortenUrlIfNeeded(longUrl) {
+        console.log('[shorten] calling /api/shorten with url length:', longUrl.length);
+        const data = await safeFetchJson(`/api/shorten?url=${encodeURIComponent(longUrl)}`, {
+            signal: AbortSignal.timeout(8000)
+        });
+        console.log('[shorten] /api/shorten response data:', JSON.stringify(data));
+        if (data && data.ok && data.shortUrl) return data.shortUrl;
+        console.warn('Shortening failed via /api/shorten, using long URL');
+        return null;
+    }
+
+    async function prepareShareUrl(forceRefresh = false) {
+        if (!forceRefresh && currentShareUrl) {
+            return { url: currentShareUrl, shortened: !!currentShareShortUrl };
+        }
+        const longUrl = generateShareURL();
+        currentShareLongUrl = longUrl;
+        currentShareShortUrl = '';
+        currentShareUrl = longUrl;
+
+        if (getAutoShortenEnabled()) {
+            const shortUrl = await shortenUrlIfNeeded(longUrl);
+            if (shortUrl && shortUrl !== longUrl) {
+                currentShareShortUrl = shortUrl;
+                currentShareUrl = shortUrl;
+                return { url: shortUrl, shortened: true };
+            }
+        }
+        return { url: longUrl, shortened: false };
+    }
+
+    async function openShareModal() {
+        const modal = document.getElementById('shareModal');
+        modal.classList.add('active');
+        setShareLoadingState();
+        const result = await prepareShareUrl(true);
+        if (result.shortened) {
+            setShareSuccessState(result.url);
+        } else if (getAutoShortenEnabled()) {
+            setShareFallbackState(result.url);
+        } else {
+            const display = document.getElementById('shareUrlDisplay');
+            const badge   = document.getElementById('shareStatusBadge');
+            display.textContent = result.url;
+            display.className   = 'share-url-box';
+            badge.className     = 'share-status-badge';
+            badge.textContent   = '';
+        }
+    }
+
+    function closeShareModal() {
+        document.getElementById('shareModal').classList.remove('active');
+        currentShareUrl = '';
+        currentShareLongUrl = '';
+        currentShareShortUrl = '';
+    }
+
+    async function copyShareLink() {
+        const result = await prepareShareUrl();
+        const url = result.url;
+        navigator.clipboard.writeText(url).then(() => {
+            showToast('✓ הקישור הועתק ללוח!');
+        }).catch(() => {
+            const ta = document.createElement('textarea');
+            ta.value = url; ta.style.position='fixed'; ta.style.opacity='0';
+            document.body.appendChild(ta); ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            showToast('✓ הקישור הועתק ללוח!');
+        });
+    }
+
+    async function sendWhatsApp() {
+        const result = await prepareShareUrl();
+        const url = result.url;
+        const msg = encodeURIComponent('🎮 פתחו את לוח הבחירה הדיגיטלי: ' + url);
+        window.open('https://wa.me/?text=' + msg, '_blank');
+    }
+
+    // ── Helper: reset share cache when board data changes ──
+    function resetShareState() {
+        currentShareUrl = '';
+        currentShareLongUrl = '';
+        currentShareShortUrl = '';
+    }
+
+    function showToast(msg) {
+        const toast = document.getElementById('copyToast');
+        toast.textContent = msg;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    // ===================================================
+    // TRANSFER: EDITOR → BOARD
+    // ===================================================
+    function transferToBoard() {
+        resetShareState();
+        if (gameData.tasks.length === 0) {
+            alert('⚠️ לא נוספו משימות עדיין!\n\nהוסף לפחות משימה אחת לפני שתעביר ללוח.');
+            return;
+        }
+        const title = document.getElementById('gameTitle').value;
+        if (!title.trim()) {
+            alert('⚠️ אנא הזן שם למשחק לפני שתעביר ללוח.');
+            document.getElementById('gameTitle').focus();
+            return;
+        }
+
+        const fullGame = buildCurrentGameJSON();
+        currentLoadedGame = fullGame;
+        isSharedMode = false;
+        updateSharedModeUI();
+        loadGameFromData(fullGame);
+        showMode('board');
+        char3D_ensureInit();
+        startGame();
+    }
+
+    function loadGameFromData(game) {
+        resetShareState();
+        tasks = game.tasks;
+        tasks.forEach((task, index) => {
+            if (task.id === undefined) task.id = index;
+        });
+        gameTitle = game.title;
+        gameState.totalDuration = game.timeLimit;
+
+        // Reset game state
+        gameState.currentTask = 0;
+        gameState.completedTasks = new Set();
+        gameState.selectedChoices = {};
+        gameState.taskAnswers = {};
+        gameState.timerRunning = false;
+        gameState.startTime = null;
+        gameState.endTime = null;
+        if (gameState.timerInterval) {
+            clearInterval(gameState.timerInterval);
+            gameState.timerInterval = null;
+        }
+        document.getElementById('timerContainer').style.display = 'none';
+        document.getElementById('reportsBtn').style.display = 'none';
+    }
+
+    // ===================================================
+    // EDITOR JS
+    // ===================================================
+    let gameData = { title:'', timeLimit:600, tasks:[] };
+    let taskIdCounter = 1;
+
+    function autoSave() {
+        const saveData = {
+            gameData, taskIdCounter,
+            gameTitle: document.getElementById('gameTitle').value,
+            timeLimit: document.getElementById('timeLimit').value,
+            timestamp: Date.now()
+        };
+        localStorage.setItem('gameEditor_autoSave', JSON.stringify(saveData));
+        const indicator = document.getElementById('autoSaveIndicator');
+        if (indicator) {
+            indicator.style.display = 'block';
+            setTimeout(() => indicator.style.display = 'none', 2000);
+        }
+    }
+
+    function loadAutoSave() {
+        const saved = localStorage.getItem('gameEditor_autoSave');
+        if (saved) {
+            try {
+                const saveData = JSON.parse(saved);
+                gameData = saveData.gameData;
+                taskIdCounter = saveData.taskIdCounter || 1;
+                document.getElementById('gameTitle').value = saveData.gameTitle || '';
+                document.getElementById('timeLimit').value = saveData.timeLimit || 10;
+                renderTasks();
+                updatePreview();
+                if (gameData.tasks.length > 0) {
+                    const saveTime = new Date(saveData.timestamp).toLocaleString('he-IL');
+                    setTimeout(() => alert(`✅ נטענה שמירה אוטומטית\n📅 ${saveTime}\n📚 ${gameData.tasks.length} משימות`), 400);
+                }
+            } catch(e) { console.error('loadAutoSave error', e); }
+        }
+    }
+
+    function addTask(type) {
+        const task = {
+            id: taskIdCounter++,
+            type, title:'', description:'', link:'', links:[],
+            options: type === 'choice' ? [{text:'',link:''},{text:'',link:''}] : undefined,
+            minChoices: type === 'choice' ? 1 : undefined,
+            blocking: true
+        };
+        gameData.tasks.push(task);
+        renderTasks(); updatePreview(); autoSave();
+    }
+
+    function removeTask(id) {
+        gameData.tasks = gameData.tasks.filter(t => t.id !== id);
+        renderTasks(); updatePreview(); autoSave();
+    }
+
+    function moveTaskUp(id) {
+        const i = gameData.tasks.findIndex(t => t.id === id);
+        if (i > 0) {
+            [gameData.tasks[i], gameData.tasks[i-1]] = [gameData.tasks[i-1], gameData.tasks[i]];
+            renderTasks(); updatePreview(); autoSave();
+        }
+    }
+
+    function moveTaskDown(id) {
+        const i = gameData.tasks.findIndex(t => t.id === id);
+        if (i < gameData.tasks.length - 1) {
+            [gameData.tasks[i], gameData.tasks[i+1]] = [gameData.tasks[i+1], gameData.tasks[i]];
+            renderTasks(); updatePreview(); autoSave();
+        }
+    }
+
+    function updateTaskField(id, field, value) {
+        const task = gameData.tasks.find(t => t.id === id);
+        if (task) { task[field] = value; updatePreview(); autoSave(); }
+    }
+
+    function addOption(taskId) {
+        const task = gameData.tasks.find(t => t.id === taskId);
+        if (task && task.type === 'choice') {
+            task.options.push({text:'',link:''}); renderTasks(); autoSave();
+        }
+    }
+
+    function removeOption(taskId, optionIndex) {
+        const task = gameData.tasks.find(t => t.id === taskId);
+        if (task && task.type === 'choice' && task.options.length > 2) {
+            task.options.splice(optionIndex, 1);
+            if (task.minChoices > task.options.length) task.minChoices = task.options.length;
+            renderTasks(); autoSave();
+        }
+    }
+
+    function updateOptionText(taskId, optionIndex, value) {
+        const task = gameData.tasks.find(t => t.id === taskId);
+        if (task && task.type === 'choice') {
+            if (typeof task.options[optionIndex] === 'string') task.options[optionIndex] = {text:value,link:''};
+            else task.options[optionIndex].text = value;
+            autoSave();
+        }
+    }
+
+    function updateOptionLink(taskId, optionIndex, value) {
+        const task = gameData.tasks.find(t => t.id === taskId);
+        if (task && task.type === 'choice') {
+            if (typeof task.options[optionIndex] === 'string') task.options[optionIndex] = {text:task.options[optionIndex],link:value};
+            else task.options[optionIndex].link = value;
+            autoSave();
+        }
+    }
+
+    function addAdditionalLink(taskId) {
+        const task = gameData.tasks.find(t => t.id === taskId);
+        if (task) {
+            if (!task.links) task.links = [];
+            task.links.push({title:'',url:''}); renderTasks(); autoSave();
+        }
+    }
+
+    function removeAdditionalLink(taskId, linkIndex) {
+        const task = gameData.tasks.find(t => t.id === taskId);
+        if (task && task.links) { task.links.splice(linkIndex,1); renderTasks(); autoSave(); }
+    }
+
+    function updateAdditionalLinkTitle(taskId, linkIndex, value) {
+        const task = gameData.tasks.find(t => t.id === taskId);
+        if (task && task.links && task.links[linkIndex]) { task.links[linkIndex].title = value; autoSave(); }
+    }
+
+    function updateAdditionalLinkUrl(taskId, linkIndex, value) {
+        const task = gameData.tasks.find(t => t.id === taskId);
+        if (task && task.links && task.links[linkIndex]) { task.links[linkIndex].url = value; autoSave(); }
+    }
+
+    function renderTasks() {
+        const container = document.getElementById('tasksList');
+        const finishCard = container.querySelector('.task-card.finish');
+        container.querySelectorAll('.task-card:not(.start):not(.finish)').forEach(c => c.remove());
+        gameData.tasks.forEach((task, index) => {
+            const card = createTaskCard(task, index);
+            container.insertBefore(card, finishCard);
+        });
+    }
+
+    function createTaskCard(task, index) {
+        const card = document.createElement('div');
+        card.className = `task-card ${task.type}`;
+        const typeLabels = { 'mandatory':'📚 משימת חובה', 'choice':'🎯 משימת בחירה', 'optional':'🌟 משימת רשות' };
+        const typeLabel = typeLabels[task.type] || '📚 משימת חובה';
+
+        let optionsHTML = '';
+        if (task.type === 'choice') {
+            optionsHTML = `
+            <div class="form-group">
+                <label>אפשרויות בחירה</label>
+                <div class="options-list" id="options-${task.id}">
+                    ${(task.options || []).map((opt, i) => {
+                        const optText = typeof opt === 'string' ? opt : (opt.text || '');
+                        const optLink = typeof opt === 'string' ? '' : (opt.link || '');
+                        return `<div class="option-item">
+                            <div style="flex:1;display:flex;flex-direction:column;gap:5px;">
+                                <input type="text" value="${optText}" placeholder="טקסט האפשרות" onchange="updateOptionText(${task.id},${i},this.value)" style="width:100%;padding:8px 10px;border:2px solid var(--border);border-radius:8px;font-family:inherit;font-size:0.95rem;">
+                                <input type="url" value="${optLink}" placeholder="קישור לאפשרות זו (אופציונלי)" onchange="updateOptionLink(${task.id},${i},this.value)" style="width:100%;padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-size:0.85rem;font-family:monospace;">
+                            </div>
+                            <button onclick="removeOption(${task.id},${i})" title="מחק אפשרות">🗑️</button>
+                        </div>`;
+                    }).join('')}
+                </div>
+                <button class="e-btn e-btn-small e-btn-outline" onclick="addOption(${task.id})" style="margin-top:10px;">+ הוסף אפשרות</button>
+            </div>
+            <div class="form-group">
+                <label>מינימום אפשרויות לבחירה</label>
+                <input type="number" value="${task.minChoices||1}" min="1" max="${(task.options||[]).length}" onchange="updateTaskField(${task.id},'minChoices',parseInt(this.value))">
+            </div>`;
+        }
+
+        let linksHTML = '';
+        if (task.links && task.links.length > 0) {
+            linksHTML = task.links.map((lnk, li) => `
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
+                <input type="text" placeholder="שם הקישור" value="${lnk.title||''}" onchange="updateAdditionalLinkTitle(${task.id},${li},this.value)" style="flex:1;padding:8px;border:2px solid var(--border);border-radius:8px;font-size:0.9rem;">
+                <input type="url" placeholder="כתובת URL" value="${lnk.url||''}" onchange="updateAdditionalLinkUrl(${task.id},${li},this.value)" style="flex:2;padding:8px;border:2px solid var(--border);border-radius:8px;font-size:0.85rem;font-family:monospace;">
+                <button onclick="removeAdditionalLink(${task.id},${li})" style="background:#ff6b6b;color:white;border:none;width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:1rem;">🗑️</button>
+            </div>`).join('');
+        }
+
+        card.innerHTML = `
+        <div class="task-header">
+            <span class="task-type-badge ${task.type}">${typeLabel}</span>
+            <div class="task-controls">
+                ${index > 0 ? `<button class="task-control-btn" onclick="moveTaskUp(${task.id})" title="הזז למעלה">↑</button>` : ''}
+                ${index < gameData.tasks.length-1 ? `<button class="task-control-btn" onclick="moveTaskDown(${task.id})" title="הזז למטה">↓</button>` : ''}
+                <button class="task-control-btn delete" onclick="removeTask(${task.id})" title="מחק">🗑️</button>
+            </div>
+        </div>
+        <div class="task-content">
+            <div class="form-group">
+                <label>כותרת המשימה</label>
+                <input type="text" value="${task.title}" onchange="updateTaskField(${task.id},'title',this.value)" placeholder="לדוגמה: קרא את הפרק הראשון">
+            </div>
+            <div class="form-group">
+                <label>תיאור המשימה</label>
+                <textarea onchange="updateTaskField(${task.id},'description',this.value)" placeholder="הסבר מפורט...">${task.description}</textarea>
+            </div>
+            <div class="form-group">
+                <label>🔗 קישור ראשי (אופציונלי)</label>
+                <input type="url" value="${task.link||''}" onchange="updateTaskField(${task.id},'link',this.value)" placeholder="https://example.com" style="font-family:monospace;">
+            </div>
+            ${linksHTML ? `<div class="form-group"><label>קישורים נוספים</label>${linksHTML}</div>` : ''}
+            <button class="e-btn e-btn-small e-btn-outline" onclick="addAdditionalLink(${task.id})" style="margin-bottom:10px;">+ הוסף קישור נוסף</button>
+            ${task.type === 'mandatory' || task.type === 'choice' ? `
+            <div class="form-group">
+                <label style="display:flex;align-items:center;cursor:pointer;">
+                    <input type="checkbox" ${task.blocking!==false?'checked':''} onchange="updateTaskField(${task.id},'blocking',this.checked)" style="margin-left:10px;width:18px;height:18px;">
+                    <span>חסום התקדמות עד להשלמת המשימה</span>
+                </label>
+            </div>` : ''}
+            ${optionsHTML}
+        </div>`;
+        return card;
+    }
+
+    function updatePreview() {
+        const container = document.getElementById('previewPath');
+        if (gameData.tasks.length === 0) {
+            container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🎯</div><p>הוסף משימות כדי לראות תצוגה מקדימה</p></div>`;
+            return;
+        }
+        let html = `<div class="preview-node start"><div class="preview-icon">🏁</div><div class="preview-title">התחלה</div></div><div class="preview-arrow">→</div>`;
+        gameData.tasks.forEach((task, index) => {
+            const icons = {mandatory:'📚', choice:'🎯', optional:'🌟'};
+            html += `<div class="preview-node ${task.type}"><div class="preview-icon">${icons[task.type]||'📚'}</div><div class="preview-title">${task.title||`משימה ${index+1}`}</div></div>`;
+            if (index < gameData.tasks.length - 1) html += `<div class="preview-arrow">→</div>`;
+        });
+        html += `<div class="preview-arrow">→</div><div class="preview-node finish"><div class="preview-icon">🏆</div><div class="preview-title">סיום</div></div>`;
+        container.innerHTML = html;
+    }
+
+    function downloadJSON() {
+        const fullGame = buildCurrentGameJSON();
+        const blob = new Blob([JSON.stringify(fullGame,null,2)],{type:'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = `${(fullGame.title||'משחק').replace(/\s+/g,'-')}.json`; a.click();
+    }
+
+    function copyToClipboard() {
+        const fullGame = buildCurrentGameJSON();
+        const str = JSON.stringify(fullGame,null,2);
+        navigator.clipboard.writeText(str).then(() => {
+            showToast('✅ הקוד הועתק בהצלחה!');
+        }).catch(() => {
+            const ta = document.createElement('textarea');
+            ta.value = str; ta.style.position='fixed'; ta.style.opacity='0';
+            document.body.appendChild(ta); ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            showToast('✅ הקוד הועתק!');
+        });
+    }
+
+    function importJSON() { document.getElementById('fileInput').click(); }
+
+    function handleFileImport(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        processImportedFile(file);
+    }
+
+    function processImportedFile(file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const imported = JSON.parse(e.target.result);
+                document.getElementById('gameTitle').value = imported.title || '';
+                document.getElementById('timeLimit').value = Math.floor((imported.timeLimit||600)/60);
+                gameData.tasks = imported.tasks
+                    .filter(t => t.type !== 'start' && t.type !== 'finish')
+                    .map((task, i) => ({
+                        id: i+1, type:task.type, title:task.title, description:task.description,
+                        link:task.link||'', links:task.links||[],
+                        options:task.options, minChoices:task.minChoices||1, blocking:task.blocking!==false
+                    }));
+                taskIdCounter = gameData.tasks.length + 1;
+                renderTasks(); updatePreview();
+                alert('המשחק יובא בהצלחה!');
+            } catch(err) { alert('שגיאה בקריאת הקובץ. אנא ודא שזהו קובץ JSON תקין.'); }
+        };
+        reader.readAsText(file);
+    }
+
+    function setupEditorDragAndDrop() {
+        const dropZone = document.getElementById('editorDropZone');
+        const editorSection = document.getElementById('editorSection');
+        if (!dropZone) return;
+        ['dragenter','dragover'].forEach(e => editorSection.addEventListener(e, ev => {
+            ev.preventDefault(); ev.stopPropagation();
+            if (ev.dataTransfer && Array.from(ev.dataTransfer.types).includes('Files')) dropZone.style.display = 'block';
+        }, false));
+        editorSection.addEventListener('dragleave', ev => {
+            if (!editorSection.contains(ev.relatedTarget)) dropZone.style.display = 'none';
+        }, false);
+        ['dragenter','dragover','dragleave','drop'].forEach(e => dropZone.addEventListener(e, ev => {ev.preventDefault();ev.stopPropagation();}, false));
+        dropZone.addEventListener('drop', ev => {
+            const files = ev.dataTransfer.files;
+            if (files.length > 0) processImportedFile(files[0]);
+            dropZone.style.display = 'none';
+        }, false);
+    }
+
+    function resetAll() {
+        if (confirm('⚠️ האם אתה בטוח שברצונך לאפס הכל?\n\nפעולה זו תמחק את כל המשימות!')) {
+            localStorage.removeItem('gameEditor_autoSave');
+            gameData = {title:'',timeLimit:10,tasks:[]};
+            taskIdCounter = 0;
+            document.getElementById('gameTitle').value = '';
+            document.getElementById('timeLimit').value = 10;
+            renderTasks(); updatePreview();
+        }
+    }
+
+    // ===================================================
+    // BOARD JS
+    // ===================================================
+    const gameState = {
+        currentTask: 0,
+        completedTasks: new Set(),
+        selectedChoices: {},
+        taskAnswers: {},
+        timerRunning: false,
+        totalDuration: 600,
+        timerInterval: null,
+        startTime: null,
+        endTime: null
+    };
+
+    const taskIcons = ['🏁','📚','🎯','💡','✍️','🎨','🔬','🎭','🎪','🎡','🎢','🎠','🏆'];
+    function getTaskIcon(index) {
+        if (index < taskIcons.length) return taskIcons[index];
+        const fb = ['📍','⭐','🌟','✨','💫','🎯','🔷','🔶','🔸','🔹'];
+        return fb[index % fb.length];
+    }
+
+    let tasks = [];
+    let gameTitle = '🎮 לוח הבחירה הדיגיטלי';
+    let taskPositions = [];
+
+    function calculateTaskPositions() {
+        const numTasks = tasks.length;
+        const positions = [];
+        positions.push({x:10,y:80});
+        for (let i = 1; i < numTasks - 1; i++) {
+            const progress = i / (numTasks - 1);
+            positions.push({x: 10 + progress * 80, y: 50 + Math.sin(progress * Math.PI) * 30});
+        }
+        positions.push({x:90,y:80});
+        return positions;
+    }
+
+    function initGame() {
+        drawPath(); renderBoardTasks(); updateProgress();
+        gameState.currentTask = 0; updateCharacterPosition();
+    }
+
+    function drawPath() {
+        const svg = document.getElementById('pathTrail');
+        svg.innerHTML = '';
+        let pathData = '';
+        taskPositions.forEach((pos, index) => {
+            const x = (pos.x/100)*1000, y = (pos.y/100)*600;
+            if (index === 0) { pathData += `M ${x} ${y}`; }
+            else {
+                const prev = taskPositions[index-1];
+                const px = (prev.x/100)*1000, py = (prev.y/100)*600;
+                pathData += ` Q ${(px+x)/2} ${(py+y)/2-50} ${x} ${y}`;
+            }
+        });
+        const mkPath = (cls) => {
+            const p = document.createElementNS('http://www.w3.org/2000/svg','path');
+            p.setAttribute('d',pathData); p.setAttribute('class',cls); return p;
+        };
+        svg.appendChild(mkPath('path-border'));
+        svg.appendChild(mkPath('path-line'));
+        svg.appendChild(mkPath('path-dashes'));
+    }
+
+    function renderBoardTasks() {
+        const grid = document.getElementById('tasksGrid');
+        grid.innerHTML = '';
+        tasks.forEach((task, index) => {
+            const isCompleted = gameState.completedTasks.has(task.id);
+            const isCurrent = index === gameState.currentTask;
+            const isLocked = index > gameState.currentTask;
+            const stop = document.createElement('div');
+            stop.className = `task-stop ${isCompleted?'completed':''} ${isCurrent?'current':''} ${isLocked?'locked':''}`;
+            const pos = taskPositions[index];
+            const isMobile = window.innerWidth <= 768;
+            const off = isMobile ? 40 : 70;
+            stop.style.left = `calc(${pos.x}% - ${off}px)`;
+            stop.style.top = `calc(${pos.y}% - ${off}px)`;
+            stop.onclick = () => { if (!isLocked || isCompleted) openTask(task); };
+            stop.innerHTML = `<div class="task-marker">
+                <div class="task-number-badge">${index+1}</div>
+                <div class="task-icon">${getTaskIcon(index)}</div>
+                <div class="task-label">${task.title.split(' ').slice(0,2).join(' ')}</div>
+            </div>`;
+            grid.appendChild(stop);
+        });
+    }
+
+    function updateCharacterPosition() {
+        const character = document.getElementById('character');
+        const currentPos = taskPositions[gameState.currentTask];
+        if (!currentPos) return;
+        const prevTask = gameState.currentTask - 1;
+        let direction = 'right';
+        if (prevTask >= 0) {
+            const prevPos = taskPositions[prevTask];
+            if (currentPos.x < prevPos.x) direction = 'left';
+        }
+        // Trigger 3D walking animation
+        char3D_startWalk(direction);
+        const isMobile = window.innerWidth <= 768;
+        character.style.left = `calc(${currentPos.x}% - ${isMobile ? 40 : 90}px)`;
+        character.style.top  = `calc(${currentPos.y}% - ${isMobile ? 55 : 115}px)`;
+    }
+
+    function openTask(task) {
+        const modal = document.getElementById('taskModal');
+        const content = document.getElementById('modalContent');
+        const isCompleted = gameState.completedTasks.has(task.id);
+
+        let html = `
+        <button data-action="back" class="btn btn-outline" style="margin-bottom:15px;width:100%;">&#8592; חזור</button>
+        <span class="task-type ${task.type}">${
+            task.type==='mandatory'?'⭐ משימת חובה':task.type==='optional'?'🌟 משימת רשות':'🎯 משימת בחירה'
+        }</span>
+        <h2 style="margin:20px 0;color:var(--text-dark);">${task.title}</h2>
+        <p style="color:var(--text-light);line-height:1.8;margin-bottom:25px;">${task.description}</p>
+        ${task.link ? `<a href="${task.link}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:12px 20px;border-radius:10px;text-decoration:none;font-weight:600;margin-bottom:20px;box-shadow:0 4px 12px rgba(102,126,234,0.3);">🔗 פתח חומר לימוד ↗</a>` : ''}
+        ${(task.links||[]).filter(l=>l.url).map((l,i) => `<a href="${l.url}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:8px;background:rgba(102,126,234,0.1);color:#667eea;padding:8px 16px;border-radius:8px;text-decoration:none;font-weight:600;margin:4px 8px 4px 0;border:2px solid rgba(102,126,234,0.3);">🔗 ${l.title||`קישור ${i+1}`}</a>`).join('')}
+        `;
+
+        if (task.requiresChoice && task.options && !isCompleted) {
+            const minC = task.minChoices || 1;
+            const savedChoices = gameState.selectedChoices[task.id] || [];
+            html += `<h3 style="margin-bottom:15px;color:var(--text-dark);">בחר ${minC > 1 ? `${minC} אפשרויות` : 'אפשרות אחת'}:</h3>
+            <div class="choice-options" id="choiceOptions">
+            ${task.options.map((opt,i) => {
+                const optText = typeof opt === 'string' ? opt : (opt.text||'');
+                const optLink = typeof opt === 'string' ? '' : (opt.link||'');
+                const isSelected = savedChoices.includes(i);
+                return `<div class="choice-option ${isSelected?'selected':''}" onclick="selectChoice(${task.id},${i},${minC})" data-index="${i}">
+                    <span style="width:28px;height:28px;background:rgba(78,205,196,0.1);border:2px solid #4ECDC4;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${minC>1?'☐':'○'}</span>
+                    <div><div>${optText}</div>${optLink?`<a href="${optLink}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="font-size:0.8rem;color:#667eea;">🔗 פתח קישור</a>`:''}</div>
+                </div>`;
+            }).join('')}
+            </div>
+            <button class="btn btn-primary" onclick="completeChoiceTask(${task.id})" style="margin-top:20px;width:100%;">✅ אשר בחירה</button>`;
+        } else if (task.type === 'start' && !isCompleted) {
+            html += `<button class="btn btn-success" onclick="startGameTimer(${task.id})" style="width:100%;padding:16px;font-size:1.1rem;">🚀 התחל את המסע!</button>`;
+        } else if (task.type === 'finish' && !isCompleted) {
+            html += `
+            <div style="text-align:center;padding:10px 0 20px;">
+                <div style="font-size:3.5rem;margin-bottom:12px;">🏆</div>
+                <p style="color:var(--text-light);margin-bottom:24px;font-size:1rem;line-height:1.7;">השלמת את כל המשימות במסלול — עכשיו לחץ כדי לסיים רשמית ולראות את הסיכום!</p>
+                <button class="btn btn-success" onclick="finishGame(${task.id})" style="width:100%;padding:16px;font-size:1.15rem;background:linear-gradient(135deg,#43e97b,#38f9d7);">🎉 סיים את המסלול!</button>
+            </div>`;
+        } else if (task.type === 'finish' && isCompleted) {
+            html += `
+            <div style="text-align:center;padding:10px 0;">
+                <div style="font-size:3.5rem;margin-bottom:12px;">🎊</div>
+                <p style="color:#2E7D32;font-weight:700;font-size:1.1rem;">סיימת את המסלול בהצלחה!</p>
+                <div style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap;justify-content:center;">
+                    <button class="btn btn-success" onclick="downloadReport()">📥 הורד דוח למורה</button>
+                    <button class="btn btn-primary" onclick="downloadAnswers()">📝 הורד תשובות</button>
+                </div>
+            </div>`;
+        } else if (!isCompleted && task.type !== 'finish') {
+            html += `
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                <button class="btn btn-success" onclick="completeTask(${task.id})" style="flex:1;">✅ סמן כמושלם</button>
+                <button class="btn btn-outline" onclick="openAnswerEditor(${task.id})" style="flex:1;">✍️ כתוב תשובה</button>
+            </div>`;
+        } else if (isCompleted) {
+            const savedAnswer = gameState.taskAnswers[task.id];
+            html += `
+            <div style="background:rgba(149,225,211,0.2);padding:15px;border-radius:12px;margin:15px 0;border:2px solid var(--success);">
+                <p style="color:#2E7D32;font-weight:700;">✅ המשימה הושלמה בהצלחה!</p>
+                ${savedAnswer ? `<p style="margin-top:8px;font-size:0.9rem;color:var(--text-light);">📝 יש תשובה שמורה</p>` : ''}
+            </div>
+            ${task.type !== 'finish' ? `<button class="btn btn-outline" onclick="openAnswerEditor(${task.id})" style="width:100%;margin-top:10px;">✍️ ערוך תשובה</button>` : ''}
+            ${(task.type === 'choice' || task.requiresChoice) ? `<button class="btn btn-outline" data-action="reopen-choice" style="width:100%;margin-top:10px;border-color:var(--accent);color:var(--accent);">🔄 חזור לבחירת משימה</button>` : ''}`;
+        }
+
+        content.innerHTML = html;
+        const backBtnModal = content.querySelector('[data-action="back"]');
+        if (backBtnModal) backBtnModal.addEventListener('click', closeModal);
+        const reopenBtn = content.querySelector('[data-action="reopen-choice"]');
+        if (reopenBtn) reopenBtn.addEventListener('click', () => reopenChoiceTask(task.id));
+        modal.classList.add('active');
+    }
+
+    function selectChoice(taskId, optionIndex, minChoices) {
+        const options = document.querySelectorAll('#choiceOptions .choice-option');
+        if (!gameState.selectedChoices[taskId]) gameState.selectedChoices[taskId] = [];
+        const current = gameState.selectedChoices[taskId];
+
+        if (minChoices === 1) {
+            gameState.selectedChoices[taskId] = [optionIndex];
+            options.forEach(o => o.classList.remove('selected'));
+            options[optionIndex].classList.add('selected');
+        } else {
+            const idx = current.indexOf(optionIndex);
+            if (idx >= 0) {
+                current.splice(idx,1);
+                options[optionIndex].classList.remove('selected');
+            } else if (current.length < minChoices) {
+                current.push(optionIndex);
+                options[optionIndex].classList.add('selected');
+            }
+        }
+    }
+
+    function completeChoiceTask(taskId) {
+        const task = tasks.find(t => t.id === taskId);
+        const minC = task.minChoices || 1;
+        const selected = gameState.selectedChoices[taskId] || [];
+        if (selected.length < minC) {
+            alert(`אנא בחר ${minC > 1 ? `לפחות ${minC} אפשרויות` : 'אפשרות אחת'} לפני שתמשיך.`);
+            return;
+        }
+        // סגור מודל הבחירה ופתח עורך תשובה – ההשלמה תקרה רק אחרי שמירה
+        closeModal();
+        openAnswerEditor(taskId, true);
+    }
+
+    function reopenChoiceTask(taskId) {
+        const taskIndex = tasks.findIndex(t => t.id === taskId);
+        if (taskIndex < 0) return;
+
+        // ביטול ההשלמה הקודמת
+        gameState.completedTasks.delete(taskId);
+
+        // ניקוי בחירה ותשובה קודמות
+        delete gameState.selectedChoices[taskId];
+        delete gameState.taskAnswers[taskId];
+
+        // לא מזיזים את currentTask — שומרים על ההתקדמות הקיימת
+        // כך כל התחנות המתקדמות נשארות פתוחות
+
+        // עדכון תצוגה בלבד (ללא הזזת דמות)
+        closeModal();
+        renderBoardTasks();
+        updateProgress();
+
+        // פתיחה מחדש של המשימה במצב בחירה
+        setTimeout(() => openTask(tasks[taskIndex]), 350);
+    }
+
+    function completeTask(taskId) {
+        gameState.completedTasks.add(taskId);
+        const taskIndex = tasks.findIndex(t => t.id === taskId);
+        if (taskIndex >= 0) {
+            // Math.max מבטיח שהשלמה מחדש של תחנה ישנה לא תחזיר את ההתקדמות אחורה
+            gameState.currentTask = Math.max(gameState.currentTask, taskIndex + 1);
+        }
+        closeModal();
+        renderBoardTasks();
+        updateProgress();
+        updateCharacterPosition();
+        if (gameState.currentTask >= tasks.length) {
+            stopTimer();
+            gameState.endTime = Date.now();
+            setTimeout(showCompletion, 800);
+        }
+    }
+
+    function startGameTimer(taskId) {
+        gameState.completedTasks.add(taskId);
+        gameState.currentTask = 1;
+        closeModal();
+        renderBoardTasks();
+        updateProgress();
+        updateCharacterPosition();
+        startTimer();
+    }
+
+    function finishGame(taskId) {
+        gameState.completedTasks.add(taskId);
+        gameState.currentTask = tasks.length;
+        stopTimer();
+        gameState.endTime = Date.now();
+        closeModal();
+        renderBoardTasks();
+        updateProgress();
+        updateCharacterPosition();
+        setTimeout(showCompletion, 600);
+    }
+
+    function openAnswerEditor(taskId, completeOnSave) {
+        completeOnSave = completeOnSave || false;
+        const task = tasks.find(t => t.id === taskId);
+        if (!task) return;
+        const currentAnswer = gameState.taskAnswers[taskId] || '';
+
+        // קישורים של המשימה
+        const linksHtml = [
+            task.link ? `<a href="${task.link}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:10px 16px;border-radius:10px;text-decoration:none;font-weight:600;font-size:0.9rem;box-shadow:0 3px 10px rgba(102,126,234,0.3);">🔗 פתח חומר לימוד ↗</a>` : '',
+            ...(task.links||[]).filter(l=>l.url).map((l,i) => `<a href="${l.url}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:8px;background:rgba(102,126,234,0.1);color:#667eea;padding:8px 14px;border-radius:8px;text-decoration:none;font-weight:600;font-size:0.9rem;border:2px solid rgba(102,126,234,0.3);">🔗 ${l.title||`קישור ${i+1}`}</a>`)
+        ].filter(Boolean).join('');
+
+        // האפשרות שנבחרה + הקישור שלה
+        let selectedChoiceHtml = '';
+        if ((task.requiresChoice || task.type === 'choice') && task.options) {
+            const chosenIndices = gameState.selectedChoices[taskId] || [];
+            const chosenItems = chosenIndices.map(i => {
+                const opt = task.options[i];
+                const text = typeof opt === 'string' ? opt : (opt && opt.text ? opt.text : '');
+                const link = typeof opt === 'string' ? '' : (opt && opt.link ? opt.link : '');
+                return { text, link };
+            }).filter(item => item.text);
+
+            if (chosenItems.length > 0) {
+                selectedChoiceHtml = `
+                <div style="background:rgba(78,205,196,0.12);border:2px solid #4ECDC4;border-radius:10px;padding:12px 16px;margin-bottom:20px;">
+                    <p style="font-size:0.8rem;font-weight:700;color:#4ECDC4;margin-bottom:8px;">🎯 הבחירה שלך:</p>
+                    ${chosenItems.map(item => `
+                        <div style="margin-bottom:${item.link ? '8px' : '4px'};">
+                            <p style="color:var(--text-dark);font-weight:600;margin:0 0 4px 0;">${item.text}</p>
+                            ${item.link ? `<a href="${item.link}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#4ECDC4,#44b8b0);color:white;padding:8px 14px;border-radius:8px;text-decoration:none;font-weight:600;font-size:0.9rem;box-shadow:0 2px 8px rgba(78,205,196,0.3);">🔗 פתח קישור לאפשרות זו ↗</a>` : ''}
+                        </div>`).join('')}
+                </div>`;
+            }
+        }
+
+        // כפתור חזרה לבחירה (רק כשהגיעו מ-completeChoiceTask)
+        const backToChoiceBtn = completeOnSave ? `
+        <button class="btn btn-outline" onclick="closeAnswerEditor(); setTimeout(() => openTask(tasks.find(t => t.id === ${taskId})), 50);"
+            style="margin-bottom:16px;width:100%;border-color:#4ECDC4;color:#4ECDC4;">
+            ← חזרה לבחירה
+        </button>` : '';
+
+        const html = `
+        ${backToChoiceBtn}
+        <h2 style="color:var(--board-primary);margin-bottom:10px;">✍️ כתיבת תשובה דיגיטלית</h2>
+        <h3 style="color:var(--text-dark);margin-bottom:15px;">${task.title}</h3>
+        <div style="background:#f5f7fa;padding:15px;border-radius:10px;margin-bottom:${linksHtml ? '12px' : '20px'};border-right:4px solid var(--board-primary);">
+            <p style="color:var(--text-dark);line-height:1.6;margin:0;">${task.description}</p>
+        </div>
+        ${linksHtml ? `<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;">${linksHtml}</div>` : ''}
+        ${selectedChoiceHtml}
+        <p style="color:var(--text-light);margin-bottom:10px;font-size:0.95rem;font-weight:600;">💭 כתוב כאן את תשובתך:</p>
+        <textarea id="answerText" style="width:100%;min-height:300px;padding:15px;border:2px solid #e0e0e0;border-radius:10px;font-size:1rem;font-family:inherit;resize:vertical;line-height:1.6;" placeholder="התחל לכתוב כאן...">${currentAnswer}</textarea>
+        <div style="display:flex;gap:10px;margin-top:15px;justify-content:space-between;align-items:center;">
+            <span style="color:var(--text-light);font-size:0.9rem;"><span id="charCount">${currentAnswer.length}</span> תווים</span>
+            <div style="display:flex;gap:10px;">
+                <button class="btn btn-outline" onclick="closeAnswerEditor()">ביטול</button>
+                <button class="btn btn-primary" id="saveAnswerBtn">💾 שמור תשובה</button>
+            </div>
+        </div>`;
+        document.getElementById('answerEditorContent').innerHTML = html;
+        document.getElementById('answerModal').classList.add('active');
+        const ta = document.getElementById('answerText');
+        ta.addEventListener('input', () => document.getElementById('charCount').textContent = ta.value.length);
+        document.getElementById('saveAnswerBtn').addEventListener('click', function() {
+            saveAnswer(taskId, completeOnSave);
+        });
+        setTimeout(() => ta.focus(), 200);
+    }
+
+    function saveAnswer(taskId, completeOnSave) {
+        const answer = document.getElementById('answerText').value.trim();
+        gameState.taskAnswers[taskId] = answer;
+        closeAnswerEditor();
+        if (completeOnSave) {
+            completeTask(taskId);
+        } else {
+            showToast('✅ התשובה נשמרה!');
+        }
+    }
+
+    function closeAnswerEditor() { document.getElementById('answerModal').classList.remove('active'); }
+
+    function updateProgress() {
+        const pct = Math.round((gameState.completedTasks.size / tasks.length) * 100);
+        document.getElementById('progressPercentage').textContent = `${pct}%`;
+        document.getElementById('progressBar').style.width = `${pct}%`;
+    }
+
+    function startTimer() {
+        if (gameState.timerRunning) return;
+        gameState.timerRunning = true;
+        gameState.startTime = Date.now();
+        document.getElementById('timerContainer').style.display = 'block';
+        document.getElementById('reportsBtn').style.display = 'flex';
+        gameState.timerInterval = setInterval(() => {
+            const elapsed = Math.floor((Date.now() - gameState.startTime) / 1000);
+            const remaining = Math.max(0, gameState.totalDuration - elapsed);
+            updateTimerDisplay(remaining);
+            if (remaining <= 0) { stopTimer(); showTimeUp(); }
+        }, 100);
+    }
+
+    function stopTimer() {
+        if (gameState.timerInterval) { clearInterval(gameState.timerInterval); gameState.timerInterval = null; }
+        gameState.timerRunning = false;
+        gameState.endTime = Date.now();
+    }
+
+    function updateTimerDisplay(timeRemaining) {
+        const m = Math.floor(timeRemaining/60), s = timeRemaining%60;
+        const el = document.getElementById('timerDisplay');
+        el.textContent = `${m}:${s.toString().padStart(2,'0')}`;
+        el.classList.remove('warning','danger');
+        if (timeRemaining <= 60) el.classList.add('danger');
+        else if (timeRemaining <= 180) el.classList.add('warning');
+    }
+
+    function showTimeUp() {
+        const content = document.getElementById('modalContent');
+        const completed = gameState.completedTasks.size, total = tasks.length;
+        const pct = Math.round((completed/total)*100);
+        content.innerHTML = `<div class="completion-message">
+            <div style="font-size:4rem;">⏰</div>
+            <h2 style="color:var(--accent);">הזמן נגמר!</h2>
+            <p style="font-size:1.2rem;color:var(--text-light);margin:20px 0;">השלמת <strong>${completed}</strong> מתוך <strong>${total}</strong> משימות</p>
+            <div style="background:linear-gradient(135deg,#FF6B6B,#FFA726);color:white;padding:15px 25px;border-radius:12px;margin:20px 0;">
+                <div style="font-size:0.9rem;margin-bottom:5px;">📊 אחוז השלמה</div>
+                <div style="font-size:2rem;font-weight:bold;">${pct}%</div>
+            </div>
+            <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+                <button class="btn btn-success" onclick="downloadReport()">📥 הורד דוח</button>
+                <button class="btn btn-outline" onclick="closeModal()">סגור</button>
+            </div>
+        </div>`;
+        document.getElementById('taskModal').classList.add('active');
+        document.getElementById('reportsBtn').style.display = 'flex';
+    }
+
+    function closeModal() { document.getElementById('taskModal').classList.remove('active'); }
+
+    function showCompletion() {
+        const timeTaken = (gameState.endTime||Date.now()) - gameState.startTime;
+        const m = Math.floor(timeTaken/60000), s = Math.floor((timeTaken%60000)/1000);
+        const content = document.getElementById('modalContent');
+        content.innerHTML = `<div class="completion-message">
+            <div class="trophy">🏆</div>
+            <h2>כל הכבוד!</h2>
+            <p style="font-size:1.2rem;color:var(--text-light);margin:20px 0;">השלמת בהצלחה את כל המשימות!</p>
+            <div style="background:linear-gradient(135deg,var(--accent),#FFA726);color:white;padding:15px 25px;border-radius:12px;margin:20px 0;">
+                <div style="font-size:0.9rem;margin-bottom:5px;">⏱️ זמן שהושלם</div>
+                <div style="font-size:2rem;font-weight:bold;font-family:'Courier New',monospace;">${m}:${s.toString().padStart(2,'0')}</div>
+            </div>
+            <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+                <button class="btn btn-success" onclick="downloadReport()">📥 הורד דוח למורה</button>
+                <button class="btn btn-primary" onclick="downloadAnswers()">📝 הורד תשובות</button>
+            </div>
+            <button class="btn btn-outline" onclick="closeModal()" style="margin-top:10px;width:100%;">סגור</button>
+        </div>`;
+        document.getElementById('taskModal').classList.add('active');
+        document.getElementById('reportsBtn').style.display = 'flex';
+    }
+
+    function showWelcome() {
+        const content = document.getElementById('modalContent');
+        content.innerHTML = `<div style="text-align:center;">
+            <div style="font-size:4rem;margin-bottom:20px;">👩‍🏫</div>
+            <h2 style="color:var(--board-primary);margin-bottom:15px;">ברוכים הבאים למסע הלימודי!</h2>
+            <p style="color:var(--text-light);line-height:1.8;margin-bottom:25px;">
+                היי! אני המורה שלכם ואני כאן ללוות אתכם במסע! 🌟<br><br>
+                <strong>איך זה עובד?</strong><br>
+                • לחצו על כל תחנה כדי לראות את המשימה<br>
+                • משימות חובה (⭐) חייבות להיות מושלמות<br>
+                • במשימות בחירה (🎯) בחרו מבין האפשרויות<br>
+                • לחצו "שתף קישור" כדי לשלוח לתלמידים! 🔗<br>
+            </p>
+            <button class="btn btn-primary" onclick="closeModal()">קדימה לדרך! 🚀</button>
+        </div>`;
+        document.getElementById('taskModal').classList.add('active');
+    }
+
+    function downloadReport() {
+        const timeTaken = (gameState.endTime||Date.now()) - (gameState.startTime||Date.now());
+        const m = Math.floor(timeTaken/60000), s = Math.floor((timeTaken%60000)/1000);
+        const completed = gameState.completedTasks.size, total = tasks.length;
+        const pct = Math.round((completed/total)*100);
+        const studentName = prompt('הכנס את שמך:') || 'לא צוין';
+        let report = `דוח ביצוע משחק: ${gameTitle}\n${'='.repeat(40)}\n\nתלמיד: ${studentName}\nתאריך: ${new Date().toLocaleString('he-IL')}\nזמן: ${m}:${s.toString().padStart(2,'0')}\nהשלמה: ${completed}/${total} (${pct}%)\n\nמשימות:\n${'='.repeat(40)}\n\n`;
+        tasks.forEach((task,i) => {
+            if (task.type !== 'start' && task.type !== 'finish') {
+                report += `${i}. ${task.title}\n   סוג: ${task.type==='mandatory'?'חובה':'בחירה'}\n   סטטוס: ${gameState.completedTasks.has(task.id)?'✓ הושלם':'✗ לא הושלם'}\n\n`;
+            }
+        });
+        const blob = new Blob([report],{type:'text/plain;charset=utf-8'});
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+        a.download = `דוח-${studentName}-${Date.now()}.txt`; a.click();
+    }
+
+    function downloadAnswers() {
+        const studentName = prompt('הכנס את שמך:') || 'תלמיד';
+        const hasAnswers = Object.values(gameState.taskAnswers).some(a => a && a.trim());
+        if (!hasAnswers) { alert('לא נכתבו תשובות דיגיטליות עדיין.'); return; }
+        let html = `<!DOCTYPE html><html dir="rtl" lang="he"><head><meta charset="UTF-8"><title>מחברת תשובות - ${studentName}</title><style>body{font-family:Heebo,sans-serif;max-width:800px;margin:40px auto;padding:40px;background:#f5f5f5;line-height:1.8;}.header{background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:30px;border-radius:15px;text-align:center;margin-bottom:30px;}.task-answer{background:white;padding:25px;margin-bottom:25px;border-radius:12px;box-shadow:0 4px 15px rgba(0,0,0,0.1);border-right:5px solid #667eea;}.task-title{color:#667eea;font-size:1.3rem;font-weight:bold;margin-bottom:15px;}.answer-content{color:#333;white-space:pre-wrap;line-height:1.8;padding:15px;background:#f9f9f9;border-radius:8px;}</style></head><body><div class="header"><h1>📝 מחברת תשובות</h1><p>תלמיד: ${studentName}</p><p>תאריך: ${new Date().toLocaleDateString('he-IL')}</p></div>`;
+        tasks.forEach((task,i) => {
+            const ans = gameState.taskAnswers[task.id];
+            if (ans && ans.trim()) {
+                html += `<div class="task-answer"><div class="task-title">${i}. ${task.title}</div><div class="answer-content">${ans}</div></div>`;
+            }
+        });
+        html += `</body></html>`;
+        const blob = new Blob([html],{type:'text/html;charset=utf-8'});
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+        a.download = `מחברת-תשובות-${studentName}-${Date.now()}.html`; a.click();
+    }
+
+    function saveProgress() {
+        const studentName = prompt('הכנס את שמך:') || 'תלמיד';
+        const saveData = {
+            gameTitle, studentName, saveDate: new Date().toISOString(),
+            gameState: {
+                currentTask: gameState.currentTask,
+                completedTasks: Array.from(gameState.completedTasks),
+                selectedChoices: gameState.selectedChoices,
+                taskAnswers: gameState.taskAnswers,
+                totalDuration: gameState.totalDuration,
+                timeRemaining: gameState.startTime ? Math.max(0, gameState.totalDuration - Math.floor((Date.now()-gameState.startTime)/1000)) : gameState.totalDuration,
+                timerRunning: gameState.timerRunning
+            },
+            tasks, timeLimit: gameState.totalDuration
+        };
+        const blob = new Blob([JSON.stringify(saveData,null,2)],{type:'application/json'});
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+        a.download = `שמירה-${studentName.replace(/\s+/g,'-')}-${Date.now()}.json`; a.click();
+        showToast('✅ ההתקדמות נשמרה!');
+    }
+
+    function showReportsModal() {
+        const timeTaken = (gameState.endTime||Date.now()) - (gameState.startTime||Date.now());
+        const m = Math.floor(timeTaken/60000), s = Math.floor((timeTaken%60000)/1000);
+        const completed = gameState.completedTasks.size, total = tasks.length;
+        const pct = Math.round((completed/total)*100);
+        const content = document.getElementById('modalContent');
+        content.innerHTML = `<div style="text-align:center;">
+            <span style="font-size:4rem;">📊</span>
+            <h2 style="color:var(--board-primary);margin:20px 0;">דוחות והתקדמות</h2>
+            <div style="background:rgba(108,99,255,0.1);padding:20px;border-radius:15px;margin:20px 0;">
+                <p style="font-size:1.5rem;font-weight:bold;color:#4CAF50;margin-bottom:10px;">${completed}/${total} משימות הושלמו</p>
+                <div style="width:100%;background:#e0e0e0;height:26px;border-radius:13px;overflow:hidden;">
+                    <div style="width:${pct}%;height:100%;background:linear-gradient(90deg,var(--board-primary),var(--board-secondary));"></div>
+                </div>
+                <p style="margin-top:10px;font-size:1.2rem;">${pct}% הושלם</p>
+            </div>
+            <div style="background:white;padding:20px;border-radius:12px;border:2px solid #e0e0e0;margin:20px 0;">
+                <div style="font-size:0.9rem;color:#999;margin-bottom:5px;">⏱️ זמן עד כה</div>
+                <div style="font-size:2rem;font-weight:bold;font-family:'Courier New',monospace;">${m}:${s.toString().padStart(2,'0')}</div>
+            </div>
+            <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+                <button class="btn btn-success" onclick="downloadReport()">📥 הורד דוח למורה</button>
+                <button class="btn btn-primary" onclick="downloadAnswers()">📝 הורד תשובות</button>
+                <button class="btn btn-success" onclick="saveProgress();closeModal();">💾 שמור התקדמות</button>
+            </div>
+            <button class="btn btn-outline" onclick="closeModal()" style="margin-top:10px;width:100%;">סגור</button>
+        </div>`;
+        document.getElementById('taskModal').classList.add('active');
+    }
+
+    function printBoard() { window.print(); }
+
+    function startGame() {
+        const boardTitle = document.getElementById('boardTitle');
+        if (boardTitle) boardTitle.textContent = gameTitle || '🎮 לוח הבחירה הדיגיטלי';
+        taskPositions = calculateTaskPositions();
+        initGame();
+        setTimeout(showWelcome, 500);
+    }
+
+    // ===================================================
+    // APP INITIALIZATION
+    // ===================================================
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('currentYear').textContent = new Date().getFullYear();
+
+        // Support both ?game= (new, shortener-friendly) and #game= (legacy)
+        const searchParams = new URLSearchParams(window.location.search);
+        const hashParam    = window.location.hash.startsWith('#game=')
+                             ? window.location.hash.slice(6) : null;
+        const compressed   = searchParams.get('game') || hashParam;
+
+        if (compressed) {
+            try {
+                const json = LZString.decompressFromEncodedURIComponent(compressed);
+                const game = JSON.parse(json);
+                currentLoadedGame = game;
+                isSharedMode = true;
+                updateSharedModeUI();
+                loadGameFromData(game);
+                showMode('board');
+                char3D_ensureInit();
+                startGame();
+            } catch(e) {
+                console.error('Error loading from URL:', e);
+                alert('⚠️ שגיאה בטעינת הלוח מהקישור. פותח את העורך.');
+                isSharedMode = false;
+                updateSharedModeUI();
+                showMode('editor');
+                setupEditorDragAndDrop();
+                loadAutoSave();
+                document.getElementById('gameTitle').addEventListener('input', autoSave);
+                document.getElementById('timeLimit').addEventListener('change', autoSave);
+            }
+        } else {
+            isSharedMode = false;
+            updateSharedModeUI();
+            showMode('editor');
+            setupEditorDragAndDrop();
+            loadAutoSave();
+            document.getElementById('gameTitle').addEventListener('input', autoSave);
+            document.getElementById('timeLimit').addEventListener('change', autoSave);
+        }
+
+        // Close share modal on outside click
+        document.getElementById('shareModal').addEventListener('click', function(e) {
+            if (e.target === this) closeShareModal();
+        });
+
+        // Close task modal on outside click
+        document.getElementById('taskModal').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+    });
+
+    updatePreview();
+
+    // ===================================================
+    // 3D CHARACTER (Three.js)
+    // ===================================================
+    let char3D_scene, char3D_camera, char3D_renderer, char3D_clock;
+    let char3D_mouseX = 0, char3D_mouseY = 0;
+    let char3D_isWaving = false, char3D_waveTime = 0;
+    let char3D_isWalking = false, char3D_walkTime = 0, char3D_walkDir = 1;
+
+    // Refs to animated parts
+    let char3D_headGroup, char3D_armLGroup, char3D_armRGroup;
+    let char3D_torsoGroup, char3D_pupR, char3D_pupL, char3D_browR, char3D_browL;
+    let char3D_ewR, char3D_ewL, char3D_legR, char3D_legL;
+    let char3D_character;
+
+    function char3D_triggerWave() {
+        if (!char3D_isWaving) { char3D_isWaving = true; char3D_waveTime = 0; }
+        showWelcome();
+    }
+
+    function char3D_startWalk(direction) {
+        char3D_isWalking = true;
+        char3D_walkTime = 0;
+        char3D_walkDir = direction === 'left' ? -1 : 1;
+        setTimeout(() => { char3D_isWalking = false; }, 1200);
+    }
+
+    function char3D_init() {
+        try {
+        const container = document.getElementById('character');
+        if (!container || typeof THREE === 'undefined') { console.error('char3D_init: missing container or THREE'); return; }
+
+        // Remove any old canvas if re-init
+        const old = container.querySelector('canvas');
+        if (old) old.remove();
+
+        const W = 180, H = 230;
+
+        char3D_scene = new THREE.Scene();
+        char3D_camera = new THREE.PerspectiveCamera(40, W / H, 0.1, 100);
+        char3D_camera.position.set(0, 2.0, 8.5);
+        char3D_camera.lookAt(0, 1.8, 0);
+
+        char3D_renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+        char3D_renderer.setSize(W, H);
+        char3D_renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        char3D_renderer.shadowMap.enabled = true;
+        char3D_renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        char3D_renderer.domElement.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;display:block;pointer-events:none;';
+        container.style.overflow = 'visible';
+        container.appendChild(char3D_renderer.domElement);
+
+        // Lights
+        char3D_scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+        const main = new THREE.DirectionalLight(0xffffff, 0.8);
+        main.position.set(5, 10, 7); main.castShadow = true;
+        main.shadow.mapSize.width = 512; main.shadow.mapSize.height = 512;
+        main.shadow.bias = -0.001;
+        char3D_scene.add(main);
+        const rim = new THREE.PointLight(0x88ccff, 0.5);
+        rim.position.set(-5, 5, -5); char3D_scene.add(rim);
+
+        // Materials
+        const skinMat    = new THREE.MeshStandardMaterial({ color: 0xffcdb2, roughness: 0.4, metalness: 0.1 });
+        const hairMat    = new THREE.MeshStandardMaterial({ color: 0x4a3123, roughness: 0.9 });
+        const jacketMat  = new THREE.MeshStandardMaterial({ color: 0x2a75d3, roughness: 0.6, metalness: 0.1 });
+        const shirtMat   = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.8 });
+        const pantsMat   = new THREE.MeshStandardMaterial({ color: 0x37474f, roughness: 0.8 });
+        const shoeMat    = new THREE.MeshStandardMaterial({ color: 0xeeeeee, roughness: 0.5 });
+        const backMat    = new THREE.MeshStandardMaterial({ color: 0xd32f2f, roughness: 0.7 });
+        const whiteMat   = new THREE.MeshBasicMaterial({ color: 0xffffff });
+        const blackMat   = new THREE.MeshBasicMaterial({ color: 0x111111 });
+        const blushMat   = new THREE.MeshBasicMaterial({ color: 0xff8888, transparent: true, opacity: 0.4 });
+
+        char3D_character = new THREE.Group();
+        char3D_scene.add(char3D_character);
+
+        // ── HEAD ──
+        char3D_headGroup = new THREE.Group();
+        char3D_headGroup.position.y = 3.0;
+        char3D_character.add(char3D_headGroup);
+
+        const head = new THREE.Mesh(new THREE.SphereGeometry(0.65, 32, 32), skinMat);
+        head.castShadow = true; head.scale.y = 1.05;
+        char3D_headGroup.add(head);
+
+        // Hair
+        const hairGroup = new THREE.Group();
+        char3D_headGroup.add(hairGroup);
+        const hairBase = new THREE.Mesh(new THREE.SphereGeometry(0.67,32,32,0,Math.PI*2,0,Math.PI*0.34), hairMat);
+        hairBase.position.set(0, 0.18, -0.05);
+        hairGroup.add(hairBase);
+        const pGeo = new THREE.SphereGeometry(0.25,16,16);
+        [[0.32,0.62,0.22],[-0.32,0.62,0.22],[0.00,0.72,0.28],[0.18,0.58,0.30],[-0.18,0.58,0.30]].forEach(([x,y,z]) => {
+            const p = new THREE.Mesh(pGeo, hairMat); p.position.set(x,y,z); hairGroup.add(p);
+        });
+
+        // Eyes
+        const eyeWhiteGeo = new THREE.SphereGeometry(0.12,16,16);
+        const pupilGeo    = new THREE.SphereGeometry(0.06,16,16);
+        const eyeR = new THREE.Group(); eyeR.position.set( 0.25,0.1,0.55); char3D_headGroup.add(eyeR);
+        const eyeL = new THREE.Group(); eyeL.position.set(-0.25,0.1,0.55); char3D_headGroup.add(eyeL);
+        char3D_ewR = new THREE.Mesh(eyeWhiteGeo, whiteMat); char3D_ewR.scale.z=0.5; eyeR.add(char3D_ewR);
+        char3D_ewL = new THREE.Mesh(eyeWhiteGeo, whiteMat); char3D_ewL.scale.z=0.5; eyeL.add(char3D_ewL);
+        char3D_pupR = new THREE.Mesh(pupilGeo, blackMat); char3D_pupR.position.z=0.07; eyeR.add(char3D_pupR);
+        char3D_pupL = new THREE.Mesh(pupilGeo, blackMat); char3D_pupL.position.z=0.07; eyeL.add(char3D_pupL);
+
+        // Brows
+        const browGeo = new THREE.CylinderGeometry(0.02,0.02,0.14,8);
+        char3D_browR = new THREE.Mesh(browGeo, hairMat);
+        char3D_browR.position.set(0.25,0.3,0.58); char3D_browR.rotation.z=-0.1; char3D_browR.rotation.x=Math.PI/2;
+        char3D_headGroup.add(char3D_browR);
+        char3D_browL = new THREE.Mesh(browGeo, hairMat);
+        char3D_browL.position.set(-0.25,0.3,0.58); char3D_browL.rotation.z=0.1; char3D_browL.rotation.x=Math.PI/2;
+        char3D_headGroup.add(char3D_browL);
+
+        // Cheeks
+        const cheekGeo = new THREE.SphereGeometry(0.08,16,16);
+        const cR = new THREE.Mesh(cheekGeo, blushMat); cR.position.set( 0.35,-0.1,0.55); char3D_headGroup.add(cR);
+        const cL = new THREE.Mesh(cheekGeo, blushMat); cL.position.set(-0.35,-0.1,0.55); char3D_headGroup.add(cL);
+
+        // Smile
+        const smileCurve = new THREE.QuadraticBezierCurve3(
+            new THREE.Vector3(-0.15,-0.2,0.61), new THREE.Vector3(0,-0.3,0.63), new THREE.Vector3(0.15,-0.2,0.61)
+        );
+        char3D_headGroup.add(new THREE.Mesh(new THREE.TubeGeometry(smileCurve,20,0.02,8,false), blackMat));
+
+        // ── TORSO ──
+        char3D_torsoGroup = new THREE.Group();
+        char3D_torsoGroup.position.y = 1.75;
+        char3D_character.add(char3D_torsoGroup);
+
+        char3D_torsoGroup.add(new THREE.Mesh(new THREE.CylinderGeometry(0.48,0.55,1.4,32), shirtMat));
+        const jGeo = new THREE.CylinderGeometry(0.52,0.6,1.2,32,1,true,0,Math.PI*1.6);
+        const jacket = new THREE.Mesh(jGeo, jacketMat); jacket.rotation.y=Math.PI*-0.8; jacket.position.y=-0.05; jacket.castShadow=true;
+        char3D_torsoGroup.add(jacket);
+
+        // Backpack
+        const pack = new THREE.Mesh(new THREE.BoxGeometry(0.9,1.1,0.5), backMat);
+        pack.position.set(0,0.1,-0.6); pack.castShadow=true; char3D_torsoGroup.add(pack);
+        const sGeo = new THREE.BoxGeometry(0.15,1.2,1.2);
+        const sR = new THREE.Mesh(sGeo, backMat); sR.position.set( 0.3,0.1,0); char3D_torsoGroup.add(sR);
+        const sL = new THREE.Mesh(sGeo, backMat); sL.position.set(-0.3,0.1,0); char3D_torsoGroup.add(sL);
+
+        // ── ARMS ──
+        const armGeo = new THREE.CylinderGeometry(0.15,0.12,0.9,16);
+        armGeo.translate(0,-0.45,0);
+        char3D_armRGroup = new THREE.Group(); char3D_armRGroup.position.set( 0.65,2.3,0); char3D_character.add(char3D_armRGroup);
+        char3D_armLGroup = new THREE.Group(); char3D_armLGroup.position.set(-0.65,2.3,0); char3D_character.add(char3D_armLGroup);
+        const aR = new THREE.Mesh(armGeo, jacketMat); aR.castShadow=true; char3D_armRGroup.add(aR);
+        const aL = new THREE.Mesh(armGeo, jacketMat); aL.castShadow=true; char3D_armLGroup.add(aL);
+        const handGeo = new THREE.SphereGeometry(0.15,16,16);
+        const hR = new THREE.Mesh(handGeo, skinMat); hR.position.set(0,-0.9,0); char3D_armRGroup.add(hR);
+        const hL = new THREE.Mesh(handGeo, skinMat); hL.position.set(0,-0.9,0); char3D_armLGroup.add(hL);
+
+        // ── SHOULDERS ──
+        const shoulderGeo = new THREE.SphereGeometry(0.20, 16, 16);
+        const shoulR = new THREE.Mesh(shoulderGeo, jacketMat);
+        shoulR.position.set(0.65, 2.38, 0); shoulR.castShadow = true;
+        char3D_character.add(shoulR);
+        const shoulL = new THREE.Mesh(shoulderGeo, jacketMat);
+        shoulL.position.set(-0.65, 2.38, 0); shoulL.castShadow = true;
+        char3D_character.add(shoulL);
+
+        // ── LEGS ──
+        const legGeo = new THREE.CylinderGeometry(0.2,0.15,0.8,16);
+        legGeo.translate(0,-0.4,0);
+        char3D_legR = new THREE.Mesh(legGeo, pantsMat); char3D_legR.position.set( 0.2,1.12,0); char3D_legR.castShadow=true; char3D_character.add(char3D_legR);
+        char3D_legL = new THREE.Mesh(legGeo, pantsMat); char3D_legL.position.set(-0.2,1.12,0); char3D_legL.castShadow=true; char3D_character.add(char3D_legL);
+        const shoeGeo = new THREE.BoxGeometry(0.28,0.18,0.52);
+        const shoeR = new THREE.Mesh(shoeGeo, shoeMat); shoeR.position.set(0,-0.86,0.10); char3D_legR.add(shoeR);
+        const shoeL = new THREE.Mesh(shoeGeo, shoeMat); shoeL.position.set(0,-0.86,0.10); char3D_legL.add(shoeL);
+        const soleMat = new THREE.MeshStandardMaterial({color:0x222222, roughness:0.9});
+        const soleGeo = new THREE.BoxGeometry(0.30,0.05,0.54);
+        const soleR = new THREE.Mesh(soleGeo, soleMat); soleR.position.set(0,-0.96,0.10); char3D_legR.add(soleR);
+        const soleL = new THREE.Mesh(soleGeo, soleMat); soleL.position.set(0,-0.96,0.10); char3D_legL.add(soleL);
+
+        // Shadow floor
+        const floorMesh = new THREE.Mesh(new THREE.PlaneGeometry(10,10), new THREE.ShadowMaterial({opacity:0.12}));
+        floorMesh.rotation.x = -Math.PI/2; floorMesh.position.y=0.08; floorMesh.receiveShadow=true;
+        char3D_scene.add(floorMesh);
+
+        // Mouse tracking on board section
+        document.getElementById('boardSection').addEventListener('mousemove', (e) => {
+            char3D_mouseX = (e.clientX / window.innerWidth) * 2 - 1;
+            char3D_mouseY = -(e.clientY / window.innerHeight) * 2 + 1;
+        });
+
+        char3D_clock = new THREE.Clock();
+        char3D_loop();
+        } catch(e) { console.error('char3D_init error:', e); }
+    }
+
+    function char3D_loop() {
+        requestAnimationFrame(char3D_loop);
+        if (!char3D_clock) return;
+        const t = char3D_clock.getElapsedTime();
+
+        // Breathing
+        const breath = Math.sin(t * 2.5);
+        if (char3D_torsoGroup) {
+            char3D_torsoGroup.scale.y = 1 + breath * 0.02;
+            char3D_torsoGroup.position.y = 1.75 + breath * 0.02;
+        }
+        if (char3D_headGroup)  char3D_headGroup.position.y  = 3.0 + breath * 0.04;
+        if (char3D_armRGroup)  char3D_armRGroup.position.y  = 2.3 + breath * 0.03;
+        if (char3D_armLGroup)  char3D_armLGroup.position.y  = 2.3 + breath * 0.03;
+
+        // Body gentle sway
+        if (char3D_character) char3D_character.rotation.y = Math.sin(t * 0.5) * 0.05;
+
+        // Head follows mouse
+        if (char3D_headGroup) {
+            char3D_headGroup.rotation.y += (char3D_mouseX * 0.5 - char3D_headGroup.rotation.y) * 0.1;
+            char3D_headGroup.rotation.x += (-char3D_mouseY * 0.3 - char3D_headGroup.rotation.x) * 0.1;
+        }
+
+        // Pupils follow mouse
+        if (char3D_pupR) { char3D_pupR.position.x = char3D_mouseX * 0.04; char3D_pupR.position.y = char3D_mouseY * 0.04; }
+        if (char3D_pupL) { char3D_pupL.position.x = char3D_mouseX * 0.04; char3D_pupL.position.y = char3D_mouseY * 0.04; }
+
+        // Random blink
+        if (Math.random() > 0.995 && char3D_ewR) {
+            char3D_ewR.scale.y = 0.1; char3D_ewL.scale.y = 0.1;
+            setTimeout(() => { if(char3D_ewR){char3D_ewR.scale.y=1; char3D_ewL.scale.y=1;} }, 150);
+        }
+
+        // Wave animation
+        if (char3D_isWaving) {
+            char3D_waveTime += 0.1;
+            if (char3D_armLGroup) {
+                char3D_armLGroup.rotation.z = Math.sin(char3D_waveTime * 4) * 0.4 - 2.5;
+                char3D_armLGroup.rotation.x = 0;
+            }
+            if (char3D_browR) { char3D_browR.position.y = 0.33; char3D_browL.position.y = 0.33; }
+            if (char3D_waveTime > Math.PI * 2.5) char3D_isWaving = false;
+        } else {
+            // Rest pose for arms
+            if (char3D_armLGroup) {
+                char3D_armLGroup.rotation.z += (-0.2 - char3D_armLGroup.rotation.z) * 0.1;
+                char3D_armLGroup.rotation.x = Math.sin(t) * 0.05;
+            }
+            if (char3D_armRGroup) {
+                char3D_armRGroup.rotation.z += (0.2 - char3D_armRGroup.rotation.z) * 0.1;
+                char3D_armRGroup.rotation.x = Math.sin(t + Math.PI) * 0.05;
+            }
+            if (char3D_browR) { char3D_browR.position.y = 0.3; char3D_browL.position.y = 0.3; }
+        }
+
+        // Walk animation (leg swing + body turn)
+        if (char3D_isWalking) {
+            char3D_walkTime += 0.1;
+            const swing = Math.sin(char3D_walkTime * 5) * 0.35;
+            if (char3D_legR) char3D_legR.rotation.x =  swing;
+            if (char3D_legL) char3D_legL.rotation.x = -swing;
+            if (char3D_character) char3D_character.rotation.y = char3D_walkDir * (-0.25 + Math.sin(char3D_walkTime * 5) * 0.1);
+            // Arm swing opposite to legs
+            if (char3D_armRGroup) char3D_armRGroup.rotation.x = -swing * 0.5;
+            if (char3D_armLGroup) char3D_armLGroup.rotation.x =  swing * 0.5;
+        } else {
+            if (char3D_legR) char3D_legR.rotation.x += (0 - char3D_legR.rotation.x) * 0.15;
+            if (char3D_legL) char3D_legL.rotation.x += (0 - char3D_legL.rotation.x) * 0.15;
+        }
+
+        char3D_renderer.render(char3D_scene, char3D_camera);
+    }
+
+    let char3D_initialized = false;
+    function char3D_ensureInit() {
+        if (!char3D_initialized) {
+            char3D_initialized = true;
+            // Small delay to ensure boardSection is display:block before init
+            setTimeout(char3D_init, 50);
+        }
+    }
+
+    </script>
+</body>
+</html>

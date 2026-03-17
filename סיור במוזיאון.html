@@ -1,0 +1,2899 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ניהול מוזיאון וירטואלי</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a1a;
+            color: #fff;
+        }
+
+        /* Loading Spinner */
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        .loading-overlay.active {
+            display: flex;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            color: #fff;
+            margin-top: 20px;
+            font-size: 18px;
+        }
+
+        /* Visitor View Styles */
+        #visitor-view {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            perspective: 1000px;
+            overflow: hidden;
+        }
+
+        .museum-scene {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transition: background 0.6s ease;
+        }
+
+        /* Default color scheme */
+        .museum-scene {
+            background: 
+                radial-gradient(ellipse at center top, 
+                    rgba(255, 255, 255, 0.15) 0%,
+                    rgba(0, 0, 0, 0) 50%
+                ),
+                linear-gradient(to bottom, 
+                    #E8DCC8 0%,
+                    #D4C4B0 30%,
+                    #C9B89F 70%,
+                    #B8A892 100%
+                );
+        }
+
+        /* Room color variations - like modern museums */
+        .museum-scene[data-room-color="cream"] {
+            background: 
+                radial-gradient(ellipse at center top, rgba(255, 255, 255, 0.2) 0%, transparent 50%),
+                linear-gradient(to bottom, #F5F0E8 0%, #E8DCC8 50%, #D4C4B0 100%);
+        }
+
+        .museum-scene[data-room-color="sage"] {
+            background: 
+                radial-gradient(ellipse at center top, rgba(255, 255, 255, 0.2) 0%, transparent 50%),
+                linear-gradient(to bottom, #C8D5C8 0%, #B8C5B8 50%, #A8B5A8 100%);
+        }
+
+        .museum-scene[data-room-color="coral"] {
+            background: 
+                radial-gradient(ellipse at center top, rgba(255, 255, 255, 0.15) 0%, transparent 50%),
+                linear-gradient(to bottom, #E8B8A8 0%, #D8A898 50%, #C89888 100%);
+        }
+
+        .museum-scene[data-room-color="burgundy"] {
+            background: 
+                radial-gradient(ellipse at center top, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+                linear-gradient(to bottom, #A85860 0%, #984850 50%, #884048 100%);
+        }
+
+        .museum-scene[data-room-color="navy"] {
+            background: 
+                radial-gradient(ellipse at center top, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+                linear-gradient(to bottom, #5B6B7B 0%, #4B5B6B 50%, #3B4B5B 100%);
+        }
+
+        .museum-scene[data-room-color="terracotta"] {
+            background: 
+                radial-gradient(ellipse at center top, rgba(255, 255, 255, 0.15) 0%, transparent 50%),
+                linear-gradient(to bottom, #C8856B 0%, #B8755B 50%, #A8654B 100%);
+        }
+
+        .museum-scene[data-room-color="slate"] {
+            background: 
+                radial-gradient(ellipse at center top, rgba(255, 255, 255, 0.15) 0%, transparent 50%),
+                linear-gradient(to bottom, #8B9AA8 0%, #7B8A98 50%, #6B7A88 100%);
+        }
+
+        .museum-scene[data-room-color="olive"] {
+            background: 
+                radial-gradient(ellipse at center top, rgba(255, 255, 255, 0.15) 0%, transparent 50%),
+                linear-gradient(to bottom, #A8A878 0%, #989868 50%, #888858 100%);
+        }
+
+        .museum-scene[data-room-color="plum"] {
+            background: 
+                radial-gradient(ellipse at center top, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+                linear-gradient(to bottom, #8B7B8B 0%, #7B6B7B 50%, #6B5B6B 100%);
+        }
+
+        .museum-scene[data-room-color="teal"] {
+            background: 
+                radial-gradient(ellipse at center top, rgba(255, 255, 255, 0.15) 0%, transparent 50%),
+                linear-gradient(to bottom, #6B9B9B 0%, #5B8B8B 50%, #4B7B7B 100%);
+        }
+
+        /* Classic museum wall texture - subtle fabric/canvas texture */
+        .museum-scene::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 25%;
+            background-image: 
+                repeating-linear-gradient(
+                    0deg,
+                    transparent,
+                    transparent 1px,
+                    rgba(0, 0, 0, 0.02) 1px,
+                    rgba(0, 0, 0, 0.02) 2px
+                ),
+                repeating-linear-gradient(
+                    90deg,
+                    transparent,
+                    transparent 1px,
+                    rgba(0, 0, 0, 0.02) 1px,
+                    rgba(0, 0, 0, 0.02) 2px
+                );
+            pointer-events: none;
+        }
+
+        /* Elegant crown molding at top - white/cream */
+        .museum-scene::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 50px;
+            background: linear-gradient(to bottom,
+                rgba(255, 255, 255, 0.9) 0%,
+                rgba(245, 240, 232, 0.7) 30%,
+                rgba(234, 224, 213, 0.4) 70%,
+                transparent 100%
+            );
+            box-shadow: 
+                0 3px 15px rgba(0, 0, 0, 0.15),
+                inset 0 -1px 2px rgba(139, 115, 85, 0.1);
+            pointer-events: none;
+        }
+
+        /* Ceiling spotlights */
+        .ceiling-lights {
+            position: absolute;
+            top: 40px;
+            left: 0;
+            right: 0;
+            height: 60px;
+            display: flex;
+            justify-content: space-around;
+            padding: 0 10%;
+            z-index: 50;
+            pointer-events: none;
+        }
+
+        .ceiling-light {
+            width: 60px;
+            height: 60px;
+            background: 
+                radial-gradient(circle at center, 
+                    rgba(255, 255, 220, 0.5) 0%,
+                    rgba(200, 200, 180, 0.3) 30%,
+                    rgba(100, 100, 80, 0.2) 60%,
+                    transparent 100%
+                );
+            border-radius: 50%;
+            position: relative;
+            filter: blur(0.5px);
+            box-shadow: 
+                0 0 30px rgba(255, 255, 200, 0.6),
+                0 0 60px rgba(255, 255, 180, 0.3),
+                inset 0 0 20px rgba(255, 255, 240, 0.4);
+        }
+
+        .ceiling-light::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 35px;
+            height: 35px;
+            background: radial-gradient(circle, 
+                rgba(255, 255, 240, 0.8) 0%,
+                rgba(220, 220, 200, 0.5) 50%,
+                rgba(200, 200, 180, 0.2) 100%
+            );
+            border-radius: 50%;
+            box-shadow: 
+                0 0 30px rgba(255, 255, 200, 0.7),
+                0 0 50px rgba(255, 255, 150, 0.4);
+        }
+
+        .ceiling-light::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            height: 500px;
+            background: linear-gradient(to bottom,
+                rgba(255, 255, 220, 0.25) 0%,
+                rgba(255, 255, 220, 0.12) 25%,
+                rgba(255, 255, 200, 0.05) 50%,
+                transparent 100%
+            );
+            clip-path: polygon(35% 0%, 65% 0%, 100% 100%, 0% 100%);
+            pointer-events: none;
+            filter: drop-shadow(0 10px 20px rgba(255, 255, 200, 0.15));
+        }
+
+        /* Decorative elements on walls */
+        .wall-decoration {
+            position: absolute;
+            pointer-events: none;
+            opacity: 0.25;
+        }
+
+        .wall-decoration.frame-left {
+            left: 5%;
+            top: 15%;
+            width: 100px;
+            height: 130px;
+            border: 6px solid rgba(139, 115, 85, 0.6);
+            background: linear-gradient(135deg, 
+                rgba(200, 180, 160, 0.35), 
+                rgba(160, 140, 120, 0.45)
+            );
+            box-shadow: 
+                0 8px 25px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2),
+                0 0 20px rgba(139, 115, 85, 0.3);
+            border-radius: 2px;
+        }
+
+        .wall-decoration.frame-right {
+            right: 5%;
+            top: 20%;
+            width: 110px;
+            height: 140px;
+            border: 6px solid rgba(139, 115, 85, 0.6);
+            background: linear-gradient(135deg, 
+                rgba(180, 160, 140, 0.35), 
+                rgba(140, 120, 100, 0.45)
+            );
+            box-shadow: 
+                0 8px 25px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2),
+                0 0 20px rgba(139, 115, 85, 0.3);
+            border-radius: 2px;
+        }
+
+        /* Statue/sculpture silhouettes in corners */
+        .wall-decoration.statue-left {
+            left: 3%;
+            bottom: 22%;
+            width: 75px;
+            height: 180px;
+            background: linear-gradient(to top,
+                rgba(60, 50, 40, 0.5) 0%,
+                rgba(90, 75, 60, 0.35) 40%,
+                rgba(120, 100, 80, 0.15) 100%
+            );
+            clip-path: polygon(
+                30% 0%, 70% 0%,
+                75% 20%, 80% 40%,
+                70% 60%, 65% 80%,
+                60% 100%, 40% 100%,
+                35% 80%, 30% 60%,
+                20% 40%, 25% 20%
+            );
+            box-shadow: 
+                0 15px 40px rgba(0, 0, 0, 0.6),
+                0 0 30px rgba(0, 0, 0, 0.3);
+            filter: drop-shadow(2px 2px 5px rgba(0, 0, 0, 0.4));
+        }
+
+        .wall-decoration.statue-right {
+            right: 3%;
+            bottom: 22%;
+            width: 85px;
+            height: 170px;
+            background: linear-gradient(to top,
+                rgba(50, 40, 30, 0.5) 0%,
+                rgba(80, 65, 50, 0.35) 40%,
+                rgba(110, 90, 70, 0.15) 100%
+            );
+            clip-path: polygon(
+                35% 0%, 65% 0%,
+                70% 15%, 75% 35%,
+                65% 55%, 60% 75%,
+                55% 100%, 45% 100%,
+                40% 75%, 35% 55%,
+                25% 35%, 30% 15%
+            );
+            box-shadow: 
+                0 15px 40px rgba(0, 0, 0, 0.6),
+                0 0 30px rgba(0, 0, 0, 0.3);
+            filter: drop-shadow(2px 2px 5px rgba(0, 0, 0, 0.4));
+        }
+
+        .floor {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 22%;
+            background: 
+                /* Marble veins pattern */
+                radial-gradient(ellipse at 20% 30%, rgba(255, 255, 255, 0.15) 0%, transparent 50%),
+                radial-gradient(ellipse at 60% 70%, rgba(255, 255, 255, 0.1) 0%, transparent 40%),
+                radial-gradient(ellipse at 80% 20%, rgba(200, 200, 200, 0.2) 0%, transparent 30%),
+                /* Main marble color with variations */
+                linear-gradient(135deg, 
+                    #2C2520 0%, 
+                    #3A2F28 20%,
+                    #2C2520 40%,
+                    #3D3230 60%,
+                    #2C2520 80%,
+                    #362A24 100%
+                ),
+                /* Tile grid subtle overlay */
+                repeating-linear-gradient(
+                    90deg,
+                    transparent,
+                    transparent 250px,
+                    rgba(0, 0, 0, 0.1) 250px,
+                    rgba(0, 0, 0, 0.1) 252px
+                ),
+                repeating-linear-gradient(
+                    0deg,
+                    transparent,
+                    transparent 250px,
+                    rgba(0, 0, 0, 0.1) 250px,
+                    rgba(0, 0, 0, 0.1) 252px
+                );
+            border-top: 6px solid #1A1512;
+            box-shadow: 
+                0 -20px 60px rgba(0, 0, 0, 0.5),
+                inset 0 2px 20px rgba(255, 255, 255, 0.05);
+        }
+
+        /* White baseboard */
+        .floor::before {
+            content: '';
+            position: absolute;
+            top: -25px;
+            left: 0;
+            right: 0;
+            height: 25px;
+            background: linear-gradient(to bottom,
+                rgba(253, 251, 247, 0.95) 0%,
+                rgba(245, 240, 232, 0.9) 50%,
+                rgba(232, 220, 200, 0.85) 100%
+            );
+            box-shadow: 
+                0 3px 8px rgba(0, 0, 0, 0.25),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8),
+                inset 0 -1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Marble shine/gloss effect */
+        .floor::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 100%;
+            background: 
+                /* Spotlight reflections */
+                radial-gradient(ellipse 400px 150px at 25% 50%, 
+                    rgba(255, 255, 255, 0.08) 0%, 
+                    transparent 50%
+                ),
+                radial-gradient(ellipse 400px 150px at 75% 50%, 
+                    rgba(255, 255, 255, 0.08) 0%, 
+                    transparent 50%
+                ),
+                /* Overall shine gradient */
+                linear-gradient(to bottom, 
+                    rgba(255, 255, 255, 0.06) 0%,
+                    rgba(255, 255, 255, 0.02) 50%,
+                    transparent 100%
+                );
+            pointer-events: none;
+        }
+
+        .walls-container {
+            position: absolute;
+            top: 12%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 92%;
+            max-width: 1400px;
+            height: 56%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 40px;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        /* Custom scrollbar for museum theme */
+        .walls-container::-webkit-scrollbar {
+            width: 12px;
+        }
+
+        .walls-container::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+        }
+
+        .walls-container::-webkit-scrollbar-thumb {
+            background: rgba(139, 69, 19, 0.6);
+            border-radius: 10px;
+            border: 2px solid rgba(0, 0, 0, 0.3);
+        }
+
+        .walls-container::-webkit-scrollbar-thumb:hover {
+            background: rgba(139, 69, 19, 0.8);
+        }
+
+        .wall {
+            width: 320px;
+            height: 400px;
+            background: linear-gradient(145deg, #2a2a2a 0%, #1f1f1f 100%);
+            border: 3px solid rgba(100, 100, 100, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            flex-shrink: 0;
+            box-shadow: 
+                0 15px 40px rgba(0, 0, 0, 0.6),
+                0 5px 15px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+
+        .wall::before {
+            content: '';
+            position: absolute;
+            top: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            height: 30px;
+            background: linear-gradient(to bottom, 
+                rgba(255, 255, 200, 0.1) 0%,
+                rgba(255, 255, 200, 0) 100%
+            );
+            border-radius: 50%;
+            filter: blur(15px);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.4s;
+        }
+
+        .wall:hover::before {
+            opacity: 1;
+        }
+
+        .wall:hover {
+            transform: translateY(-15px) scale(1.05);
+            border-color: rgba(255, 215, 0, 0.7);
+            box-shadow: 
+                0 25px 60px rgba(255, 215, 0, 0.35),
+                0 15px 40px rgba(0, 0, 0, 0.7),
+                inset 0 1px 0 rgba(255, 255, 255, 0.15),
+                0 0 20px rgba(255, 215, 0, 0.25);
+        }
+
+        .wall-frame {
+            width: 100%;
+            height: 100%;
+            border: 12px solid #4a3728;
+            border-radius: 3px;
+            background: linear-gradient(135deg, #fcfcfc 0%, #f0f0f0 100%);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 
+                inset 0 0 20px rgba(0, 0, 0, 0.15),
+                inset 0 2px 8px rgba(0, 0, 0, 0.25),
+                inset 0 -2px 8px rgba(255, 255, 255, 0.3),
+                0 8px 20px rgba(0, 0, 0, 0.2);
+            position: relative;
+        }
+
+        .wall-frame::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border: 2px solid rgba(139, 69, 19, 0.3);
+            border-radius: 3px;
+            pointer-events: none;
+        }
+
+        .wall-content {
+            flex: 1;
+            padding: 15px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(to bottom, #fafafa 0%, #f0f0f0 100%);
+            position: relative;
+        }
+
+        .wall-content::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 40%;
+            background: linear-gradient(to bottom, 
+                rgba(255, 255, 255, 0.8) 0%,
+                rgba(255, 255, 255, 0) 100%
+            );
+            pointer-events: none;
+        }
+
+        .wall-content img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            filter: contrast(1.05) brightness(1.02);
+            transition: transform 0.3s ease;
+        }
+
+        .wall:hover .wall-content img {
+            transform: scale(1.02);
+        }
+
+        .wall-content video {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .wall-title {
+            background: linear-gradient(135deg, #6b4423 0%, #5c3a1f 100%);
+            color: #fff;
+            padding: 14px 15px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 14px;
+            letter-spacing: 1px;
+            text-shadow: 
+                0 2px 4px rgba(0, 0, 0, 0.5),
+                0 0 10px rgba(0, 0, 0, 0.2);
+            border-top: 3px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 
+                inset 0 1px 0 rgba(255, 255, 255, 0.1),
+                inset 0 -1px 2px rgba(0, 0, 0, 0.3);
+        }
+
+        .wall-number {
+            position: absolute;
+            top: -20px;
+            right: -20px;
+            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+            color: #000;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 22px;
+            border: 5px solid #2a2a2a;
+            box-shadow: 
+                0 6px 18px rgba(255, 215, 0, 0.6),
+                0 3px 8px rgba(0, 0, 0, 0.5),
+                inset 0 2px 0 rgba(255, 255, 255, 0.7),
+                inset 0 -2px 4px rgba(0, 0, 0, 0.3),
+                0 0 15px rgba(255, 215, 0, 0.4);
+            z-index: 10;
+            transition: all 0.3s ease;
+        }
+
+        .wall:hover .wall-number {
+            transform: scale(1.15) rotate(5deg);
+            box-shadow: 
+                0 8px 24px rgba(255, 215, 0, 0.7),
+                0 4px 12px rgba(0, 0, 0, 0.6),
+                inset 0 2px 0 rgba(255, 255, 255, 0.8),
+                inset 0 -2px 4px rgba(0, 0, 0, 0.4),
+                0 0 25px rgba(255, 215, 0, 0.5);
+        }
+
+        .empty-wall {
+            color: #aaa;
+            font-size: 48px;
+            text-align: center;
+            opacity: 0.3;
+        }
+
+        /* Navigation */
+        .navigation {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 25px;
+            z-index: 100;
+        }
+
+        .nav-btn {
+            background: linear-gradient(135deg, 
+                rgba(93, 64, 55, 0.9) 0%, 
+                rgba(78, 52, 46, 0.9) 100%
+            );
+            border: 3px solid rgba(139, 69, 19, 0.6);
+            color: #fff;
+            padding: 14px 35px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 17px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(10px);
+            box-shadow: 
+                0 6px 20px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .nav-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, 
+                transparent, 
+                rgba(255, 215, 0, 0.2), 
+                transparent
+            );
+            transition: left 0.5s;
+        }
+
+        .nav-btn:hover:not(:disabled)::before {
+            left: 100%;
+        }
+
+        .nav-btn:hover:not(:disabled) {
+            background: linear-gradient(135deg, 
+                rgba(139, 69, 19, 0.95) 0%, 
+                rgba(101, 67, 33, 0.95) 100%
+            );
+            border-color: rgba(255, 215, 0, 0.8);
+            transform: translateY(-3px);
+            box-shadow: 
+                0 8px 25px rgba(255, 215, 0, 0.3),
+                0 4px 15px rgba(0, 0, 0, 0.5),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        }
+
+        .nav-btn:active:not(:disabled) {
+            transform: translateY(-1px);
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Museum Map Button */
+        .map-btn {
+            position: fixed;
+            bottom: 120px;
+            right: 20px;
+            background: rgba(139, 115, 85, 0.95);
+            color: #f5e6d3;
+            border: none;
+            padding: 15px;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            font-size: 24px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .map-btn:hover {
+            background: rgba(111, 92, 71, 0.95);
+            transform: translateY(-2px) scale(1.1);
+        }
+
+        #visitor-view .map-btn {
+            display: flex;
+        }
+
+        /* Museum Map Panel */
+        .map-panel {
+            position: fixed;
+            bottom: 190px;
+            right: 20px;
+            width: 280px;
+            max-height: 500px;
+            background: rgba(139, 115, 85, 0.98);
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(10px);
+            z-index: 999;
+            display: none;
+            flex-direction: column;
+            border: 3px solid rgba(210, 180, 140, 0.5);
+            overflow: hidden;
+        }
+
+        .map-panel.open {
+            display: flex;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .map-header {
+            padding: 15px;
+            background: linear-gradient(135deg, rgba(111, 92, 71, 0.95) 0%, rgba(101, 84, 63, 0.95) 100%);
+            border-bottom: 2px solid rgba(210, 180, 140, 0.5);
+            text-align: center;
+        }
+
+        .map-header h3 {
+            color: #f5e6d3;
+            font-size: 16px;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .map-content {
+            padding: 10px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .map-room-item {
+            background: rgba(255, 248, 220, 0.95);
+            margin: 8px 0;
+            padding: 12px 15px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .map-room-item:hover {
+            background: rgba(255, 255, 240, 1);
+            transform: translateX(-5px);
+            border-color: rgba(210, 180, 140, 0.8);
+        }
+
+        .map-room-item.active {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.9) 0%, rgba(118, 75, 162, 0.9) 100%);
+            color: white;
+            border-color: rgba(102, 126, 234, 0.5);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .map-room-number {
+            background: rgba(139, 115, 85, 0.8);
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .map-room-item.active .map-room-number {
+            background: rgba(255, 255, 255, 0.9);
+            color: #667eea;
+        }
+
+        .map-room-name {
+            flex: 1;
+            font-size: 13px;
+            font-weight: 600;
+            color: #4a3f35;
+            text-align: right;
+        }
+
+        .map-room-item.active .map-room-name {
+            color: white;
+        }
+
+        .map-room-count {
+            font-size: 11px;
+            color: #666;
+            background: rgba(255, 255, 255, 0.7);
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+
+        .map-room-item.active .map-room-count {
+            background: rgba(255, 255, 255, 0.3);
+            color: white;
+        }
+
+        /* Room Info */
+        .room-info {
+            position: absolute;
+            top: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, 
+                rgba(93, 64, 55, 0.97) 0%, 
+                rgba(78, 52, 46, 0.97) 100%
+            );
+            padding: 12px 40px;
+            border-radius: 35px;
+            border: 3px solid rgba(255, 215, 0, 0.7);
+            backdrop-filter: blur(15px);
+            box-shadow: 
+                0 6px 25px rgba(0, 0, 0, 0.6),
+                inset 0 1px 0 rgba(255, 255, 255, 0.15);
+            z-index: 100;
+        }
+
+        .room-info::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(135deg, 
+                rgba(255, 215, 0, 0.4), 
+                rgba(255, 215, 0, 0.15)
+            );
+            border-radius: 35px;
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .room-info:hover::before {
+            opacity: 1;
+        }
+
+        .room-info h2 {
+            font-size: 22px;
+            color: #ffd700;
+            text-align: center;
+            font-weight: 700;
+            letter-spacing: 1.2px;
+            text-shadow: 
+                0 2px 4px rgba(0, 0, 0, 0.6),
+                0 0 15px rgba(255, 215, 0, 0.4);
+            margin: 0;
+        }
+
+        /* Admin View Styles */
+        #admin-view {
+            display: none;
+            padding: 30px;
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #fff;
+            min-height: 100vh;
+            color: #333;
+            overflow-y: auto;
+        }
+
+        .admin-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+        }
+
+        .admin-header h1 {
+            margin-bottom: 10px;
+        }
+
+        #storage-indicator {
+            margin-top: 10px;
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .room-management {
+            margin-bottom: 30px;
+        }
+
+        .room-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .room-btn-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .room-btn {
+            background: #667eea;
+            color: #fff;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        .room-btn:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+        }
+
+        .room-btn.active {
+            background: #764ba2;
+            box-shadow: 0 5px 15px rgba(118, 75, 162, 0.4);
+        }
+
+        .edit-room-btn {
+            background: #ffc107;
+            color: #000;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .edit-room-btn:hover {
+            background: #ffb300;
+            transform: scale(1.1);
+        }
+
+        .delete-room-btn {
+            background: #dc3545;
+            color: #fff;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .delete-room-btn:hover {
+            background: #c82333;
+            transform: scale(1.1);
+        }
+
+        .move-room-btn {
+            background: #6c757d;
+            color: #fff;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .move-room-btn:hover:not(:disabled) {
+            background: #5a6268;
+            transform: scale(1.1);
+        }
+
+        .move-room-btn:disabled {
+            cursor: not-allowed;
+        }
+
+        .add-room-btn {
+            background: #28a745;
+            color: #fff;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .add-room-btn:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+
+        /* Edit Room Modal */
+        .edit-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 3000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .edit-modal-content {
+            background: #fff;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .edit-modal-content h3 {
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+
+        .edit-modal-content input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+
+        .edit-modal-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .edit-modal-buttons button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .confirm-btn {
+            background: #28a745;
+            color: #fff;
+        }
+
+        .confirm-btn:hover {
+            background: #218838;
+        }
+
+        .cancel-btn {
+            background: #6c757d;
+            color: #fff;
+        }
+
+        .cancel-btn:hover {
+            background: #5a6268;
+        }
+
+        .exhibits-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 25px;
+        }
+
+        .exhibit-card {
+            background: #f8f9fa;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            position: relative;
+        }
+
+        .exhibit-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .exhibit-card h3 {
+            color: #667eea;
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .delete-exhibit-btn {
+            background: #dc3545;
+            color: #fff;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+            line-height: 1;
+        }
+
+        .delete-exhibit-btn:hover {
+            background: #c82333;
+            transform: scale(1.1);
+        }
+
+        .exhibits-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .exhibits-header h2 {
+            color: #667eea;
+            margin: 0;
+        }
+
+        .add-exhibit-btn {
+            background: #28a745;
+            color: #fff;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .add-exhibit-btn:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .form-group input[type="text"],
+        .form-group input[type="url"],
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .file-input-wrapper input[type="file"] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .file-input-label {
+            display: block;
+            padding: 10px;
+            background: #667eea;
+            color: #fff;
+            text-align: center;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .file-input-label:hover {
+            background: #764ba2;
+        }
+
+        .preview {
+            margin-top: 10px;
+            max-width: 100%;
+            max-height: 200px;
+            border-radius: 8px;
+            object-fit: cover;
+        }
+
+        .save-btn {
+            background: #28a745;
+            color: #fff;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+            margin-top: 10px;
+            transition: all 0.3s;
+        }
+
+        .save-btn:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+
+        .toggle-view-btn {
+            position: fixed;
+            top: 25px;
+            left: 25px;
+            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+            color: #000;
+            border: 3px solid rgba(139, 69, 19, 0.4);
+            padding: 14px 30px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 15px;
+            letter-spacing: 0.5px;
+            z-index: 1000;
+            box-shadow: 
+                0 6px 20px rgba(0, 0, 0, 0.3),
+                0 3px 10px rgba(255, 215, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.5);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .toggle-view-btn:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 
+                0 8px 25px rgba(0, 0, 0, 0.4),
+                0 4px 15px rgba(255, 215, 0, 0.6),
+                inset 0 1px 0 rgba(255, 255, 255, 0.6);
+            border-color: rgba(139, 69, 19, 0.6);
+        }
+
+        .toggle-view-btn:active {
+            transform: translateY(-1px) scale(1.03);
+        }
+
+        /* Modal for detailed view */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background: #fff;
+            border-radius: 15px;
+            max-width: 900px;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 30px;
+            position: relative;
+            color: #333;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: #ff4444;
+            color: #fff;
+            border: none;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 20px;
+            line-height: 1;
+        }
+
+        .modal-media {
+            width: 100%;
+            max-height: 400px;
+            object-fit: contain;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 28px;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .modal-description {
+            font-size: 16px;
+            line-height: 1.6;
+            color: #555;
+            white-space: pre-wrap;
+        }
+
+        /* Footer Copyright */
+        .footer-copyright {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(26, 26, 46, 0.95);
+            color: #999;
+            padding: 12px 20px;
+            text-align: center;
+            font-size: 11px;
+            line-height: 1.6;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 5000;
+            backdrop-filter: blur(10px);
+        }
+
+        .footer-copyright a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .footer-copyright a:hover {
+            color: #8b9cff;
+            text-decoration: underline;
+        }
+
+        .copyright-divider {
+            margin: 0 8px;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="spinner"></div>
+        <div class="loading-text" id="loading-text">טוען...</div>
+    </div>
+
+    <button class="toggle-view-btn" onclick="toggleView()">
+        <span id="toggle-text">מעבר לממשק ניהול</span>
+    </button>
+
+    <!-- Visitor View -->
+    <div id="visitor-view">
+        <button class="map-btn" onclick="toggleVisitorMap()" title="מפת המוזיאון">
+            🗺️
+        </button>
+
+        <!-- Museum Map Panel -->
+        <div class="map-panel" id="visitor-map-panel">
+            <div class="map-header">
+                <h3>🗺️ מפת המוזיאון</h3>
+            </div>
+            <div class="map-content" id="visitor-map-content">
+                <!-- Map items will be generated dynamically -->
+            </div>
+        </div>
+
+        <div class="museum-scene">
+            <!-- Ceiling Lights -->
+            <div class="ceiling-lights">
+                <div class="ceiling-light"></div>
+                <div class="ceiling-light"></div>
+                <div class="ceiling-light"></div>
+                <div class="ceiling-light"></div>
+            </div>
+
+            <!-- Decorative Wall Elements -->
+            <div class="wall-decoration frame-left"></div>
+            <div class="wall-decoration frame-right"></div>
+            <div class="wall-decoration statue-left"></div>
+            <div class="wall-decoration statue-right"></div>
+
+            <div class="room-info">
+                <h2 id="room-title">אולם 1 - תצוגה ראשית</h2>
+            </div>
+
+            <div class="walls-container" id="walls-container">
+                <!-- Walls will be dynamically generated -->
+            </div>
+
+            <div class="floor"></div>
+
+            <div class="navigation">
+                <button class="nav-btn" id="prev-room" onclick="changeRoom(-1)">← אולם קודם</button>
+                <button class="nav-btn" id="next-room" onclick="changeRoom(1)">אולם הבא →</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin View -->
+    <div id="admin-view">
+        <div class="admin-header">
+            <h1>🎨 ניהול תצוגות המוזיאון</h1>
+            <p>העלה תמונות, סרטונים והסברים לתצוגות המוזיאון</p>
+            <div id="storage-indicator"></div>
+        </div>
+
+        <!-- Room Management -->
+        <div class="room-management">
+            <div class="room-selector" id="room-selector">
+                <!-- Room buttons will be generated dynamically -->
+            </div>
+        </div>
+
+        <!-- Exhibits Management -->
+        <div class="exhibits-header">
+            <h2>תצוגות באולם</h2>
+            <button class="add-exhibit-btn" onclick="addExhibit()">
+                ➕ הוסף תצוגה
+            </button>
+        </div>
+
+        <div class="exhibits-grid" id="exhibits-grid">
+            <!-- Exhibit cards will be generated dynamically -->
+        </div>
+
+        <!-- Hidden file input for JSON import -->
+        <input type="file" id="import-json-input" accept=".json" multiple style="display: none;" onchange="importJSON(event)">
+    </div>
+
+    <!-- Modal for detailed exhibit view -->
+    <div class="modal" id="exhibit-modal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeModal()">✕</button>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+
+    <script>
+        // Museum Data Structure
+        let museumData = {
+            rooms: []
+        };
+
+        let currentRoomIndex = 0;
+        let isVisitorView = true;
+        let currentEditingRoom = null;
+        let currentEditingExhibit = null;
+
+        // Normalize helpers — ensure data integrity at every entry point
+        function normalizeExhibit(exhibit = {}) {
+            return {
+                type: exhibit?.type || 'image',
+                title: exhibit?.title || 'ללא כותרת',
+                description: exhibit?.description || '',
+                url: exhibit?.url || '',
+                textContent: exhibit?.textContent || '',
+                driveSubtype: exhibit?.driveSubtype || 'video'
+            };
+        }
+
+        function normalizeRoom(room = {}, index = 0) {
+            return {
+                id: room?.id || Date.now() + index,
+                name: room?.name || `אולם ${index + 1}`,
+                exhibits: Array.isArray(room?.exhibits)
+                    ? room.exhibits.filter(Boolean).map(normalizeExhibit)
+                    : []
+            };
+        }
+
+        function normalizeMuseumData(data) {
+            const rooms = Array.isArray(data?.rooms)
+                ? data.rooms.map((room, index) => normalizeRoom(room, index))
+                : [];
+
+            if (!rooms.length) {
+                rooms.push({ id: 1, name: 'אולם 1 - תצוגה ראשית', exhibits: [] });
+            }
+
+            return { rooms };
+        }
+
+        // Initialize Museum Data from localStorage
+        function initializeMuseum() {
+            try {
+                const stored = localStorage.getItem('museumData');
+                if (stored) {
+                    museumData = normalizeMuseumData(JSON.parse(stored));
+                } else {
+                    museumData = normalizeMuseumData(null);
+                }
+                if (currentRoomIndex < 0) currentRoomIndex = 0;
+                if (currentRoomIndex >= museumData.rooms.length) {
+                    currentRoomIndex = museumData.rooms.length - 1;
+                }
+                saveMuseumData();
+                renderVisitorView();
+                renderAdminView();
+            } catch (error) {
+                console.error('Error initializing museum:', error);
+                museumData = normalizeMuseumData(null);
+                currentRoomIndex = 0;
+                saveMuseumData();
+                renderVisitorView();
+                renderAdminView();
+                alert('הייתה בעיה בטעינת הנתונים. בוצע שחזור למבנה תקין.');
+            }
+        }
+
+        function saveMuseumData() {
+            try {
+                localStorage.setItem('museumData', JSON.stringify(museumData));
+                updateStorageIndicator();
+            } catch (error) {
+                console.error('Error saving museum data:', error);
+                if (error.name === 'QuotaExceededError') {
+                    alert('מקום הזיכרון אזל. בדוק את גודל הקבצים המעלים.');
+                }
+            }
+        }
+
+        function updateStorageIndicator() {
+            try {
+                const stored = localStorage.getItem('museumData');
+                const size = new Blob([stored]).size;
+                const sizeMB = (size / 1024 / 1024).toFixed(2);
+                document.getElementById('storage-indicator').textContent = 
+                    `גודל האחסון: ${sizeMB} MB`;
+            } catch (error) {
+                console.error('Error updating storage indicator:', error);
+            }
+        }
+
+        // Visitor View Functions
+        function renderVisitorView() {
+            museumData = normalizeMuseumData(museumData);
+
+            if (!museumData.rooms || museumData.rooms.length === 0) {
+                document.getElementById('walls-container').innerHTML =
+                    '<div style="color: white; font-size: 24px; text-align: center;">אין אולמות להצגה</div>';
+                return;
+            }
+
+            if (currentRoomIndex < 0) currentRoomIndex = 0;
+            if (currentRoomIndex >= museumData.rooms.length) {
+                currentRoomIndex = museumData.rooms.length - 1;
+            }
+
+            const room = normalizeRoom(museumData.rooms[currentRoomIndex], currentRoomIndex);
+            museumData.rooms[currentRoomIndex] = room;
+
+            document.getElementById('room-title').textContent = room.name || `אולם ${currentRoomIndex + 1}`;
+
+            const colors = ['cream', 'sage', 'coral', 'burgundy', 'navy', 'terracotta', 'slate', 'olive', 'plum', 'teal'];
+            const colorIndex = currentRoomIndex % colors.length;
+            const museumScene = document.querySelector('.museum-scene');
+            if (museumScene) {
+                museumScene.setAttribute('data-room-color', colors[colorIndex]);
+            }
+
+            const wallsContainer = document.getElementById('walls-container');
+            wallsContainer.innerHTML = '';
+
+            const exhibits = Array.isArray(room.exhibits) ? room.exhibits : [];
+
+            if (exhibits.length === 0) {
+                wallsContainer.innerHTML =
+                    '<div style="color: white; font-size: 24px; text-align: center;">אין תצוגות באולם זה</div>';
+                updateNavigationButtons();
+                return;
+            }
+
+            exhibits.forEach((rawExhibit, index) => {
+                const exhibit = normalizeExhibit(rawExhibit);
+
+                const wall = document.createElement('div');
+                wall.className = 'wall';
+                wall.onclick = function() { openExhibitModal(exhibit); };
+
+                const wallNumber = document.createElement('div');
+                wallNumber.className = 'wall-number';
+                wallNumber.textContent = index + 1;
+                wall.appendChild(wallNumber);
+
+                const frame = document.createElement('div');
+                frame.className = 'wall-frame';
+
+                const content = document.createElement('div');
+                content.className = 'wall-content';
+
+                if (exhibit.type === 'image' && exhibit.url) {
+                    const img = document.createElement('img');
+                    img.src = exhibit.url;
+                    img.alt = exhibit.title;
+                    img.onerror = function() {
+                        content.innerHTML = '<div class="empty-wall">🖼️</div>';
+                    };
+                    content.appendChild(img);
+                } else if (exhibit.type === 'video' && exhibit.url) {
+                    const video = document.createElement('video');
+                    video.src = exhibit.url;
+                    video.controls = false;
+                    video.muted = true;
+                    video.loop = true;
+                    video.autoplay = true;
+                    content.appendChild(video);
+                } else if (exhibit.type === 'youtube' && exhibit.url) {
+                    const videoId = extractYouTubeId(exhibit.url);
+                    if (videoId) {
+                        const thumbnailWrapper = document.createElement('div');
+                        thumbnailWrapper.style.cssText = 'position: relative; width: 100%; height: 100%; cursor: pointer; display: flex; align-items: center; justify-content: center;';
+                        const thumbnail = document.createElement('img');
+                        thumbnail.src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+                        thumbnail.style.cssText = 'width: 100%; height: 100%; object-fit: cover;';
+                        thumbnail.alt = 'YouTube Video Thumbnail';
+                        const playBtn = document.createElement('div');
+                        playBtn.style.cssText = 'position: absolute; width: 80px; height: 80px; background: rgba(255, 0, 0, 0.8); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 48px; transition: all 0.3s ease; z-index: 10; box-shadow: 0 4px 15px rgba(0,0,0,0.3);';
+                        playBtn.innerHTML = '▶';
+                        thumbnailWrapper.onmouseover = function() { playBtn.style.background = 'rgba(255, 0, 0, 0.95)'; playBtn.style.transform = 'scale(1.15)'; };
+                        thumbnailWrapper.onmouseout = function() { playBtn.style.background = 'rgba(255, 0, 0, 0.8)'; playBtn.style.transform = 'scale(1)'; };
+                        thumbnailWrapper.onclick = function(e) {
+                            e.stopPropagation();
+                            const iframe = document.createElement('iframe');
+                            iframe.src = `https://www.youtube.com/embed/${videoId}?rel=0&autoplay=1`;
+                            iframe.style.cssText = 'width: 100%; height: 100%; border: none;';
+                            iframe.setAttribute('frameborder', '0');
+                            iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture');
+                            iframe.setAttribute('allowfullscreen', 'true');
+                            content.innerHTML = '';
+                            content.appendChild(iframe);
+                        };
+                        thumbnailWrapper.appendChild(thumbnail);
+                        thumbnailWrapper.appendChild(playBtn);
+                        content.appendChild(thumbnailWrapper);
+                    } else {
+                        const link = document.createElement('a');
+                        link.href = exhibit.url;
+                        link.target = '_blank';
+                        link.rel = 'noopener noreferrer';
+                        link.style.cssText = 'text-decoration: none; color: #667eea; font-size: 16px; display: flex; flex-direction: column; align-items: center; gap: 10px;';
+                        link.innerHTML = '<div style="font-size: 48px;">🎬</div><div>פתח סרטון YouTube</div>';
+                        content.appendChild(link);
+                    }
+                } else if (exhibit.type === 'drive' && exhibit.url) {
+                    const driveEmbed = createDriveEmbed(exhibit.url, exhibit.driveSubtype);
+                    if (driveEmbed) {
+                        content.appendChild(driveEmbed);
+                    } else {
+                        const link = document.createElement('a');
+                        link.href = exhibit.url;
+                        link.target = '_blank';
+                        link.rel = 'noopener noreferrer';
+                        link.style.cssText = 'text-decoration: none; color: #667eea; font-size: 16px; display: flex; flex-direction: column; align-items: center; gap: 10px;';
+                        link.innerHTML = '<div style="font-size: 48px;">📁</div><div>פתח קובץ Google Drive</div>';
+                        content.appendChild(link);
+                    }
+                } else if (exhibit.type === 'text' && exhibit.textContent) {
+                    const textBoard = document.createElement('div');
+                    textBoard.style.cssText = 'width: 100%; height: 100%; background: linear-gradient(135deg, #D4AF37 0%, #AA8C2C 100%); padding: 20px; text-align: center; box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.3); border: 5px solid #8B7355; position: relative; overflow-y: auto;';
+                    const textContent = document.createElement('div');
+                    textContent.style.cssText = 'color: #2C1810; font-size: 16px; line-height: 1.8; font-weight: 600; text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.5); white-space: pre-wrap; word-wrap: break-word; max-width: 100%; padding-top: 10px;';
+                    textContent.textContent = exhibit.textContent;
+                    textBoard.appendChild(textContent);
+                    content.appendChild(textBoard);
+                } else if (exhibit.type === 'pdf' && exhibit.url) {
+                    const iframe = document.createElement('iframe');
+                    let pdfUrl = exhibit.url;
+                    if (pdfUrl.includes('.pdf')) {
+                        pdfUrl = pdfUrl + (pdfUrl.includes('?') ? '&' : '?') + 'view=FitH&zoom=125';
+                    }
+                    iframe.src = pdfUrl;
+                    iframe.style.cssText = 'width: 100%; height: 100%; border: none;';
+                    iframe.setAttribute('frameborder', '0');
+                    iframe.onerror = function() {
+                        content.innerHTML = '<div class="empty-wall">📄<br><small style="font-size: 14px;">PDF</small></div>';
+                    };
+                    content.appendChild(iframe);
+                } else if (exhibit.type === 'website' && exhibit.url) {
+                    const iframe = document.createElement('iframe');
+                    iframe.src = exhibit.url;
+                    iframe.style.cssText = 'width: 100%; height: 100%; border: none;';
+                    iframe.setAttribute('frameborder', '0');
+                    iframe.setAttribute('allowfullscreen', 'true');
+                    iframe.onerror = function() {
+                        content.innerHTML = '<div class="empty-wall">🌐<br><small style="font-size: 14px;">אתר</small></div>';
+                    };
+                    content.appendChild(iframe);
+                } else {
+                    const empty = document.createElement('div');
+                    empty.className = 'empty-wall';
+                    empty.textContent = '📌';
+                    content.appendChild(empty);
+                }
+
+                const title = document.createElement('div');
+                title.className = 'wall-title';
+                title.textContent = exhibit.title || 'ללא כותרת';
+
+                frame.appendChild(content);
+                frame.appendChild(title);
+                wall.appendChild(frame);
+                wallsContainer.appendChild(wall);
+            });
+
+            updateNavigationButtons();
+        }
+
+        function changeRoom(direction) {
+            currentRoomIndex += direction;
+            if (currentRoomIndex < 0) currentRoomIndex = 0;
+            if (currentRoomIndex >= museumData.rooms.length) 
+                currentRoomIndex = museumData.rooms.length - 1;
+            renderVisitorView();
+        }
+
+        function toggleVisitorMap() {
+            const panel = document.getElementById('visitor-map-panel');
+            panel.classList.toggle('open');
+            if (panel.classList.contains('open')) {
+                renderVisitorMap();
+            }
+        }
+
+        function renderVisitorMap() {
+            if (!museumData || !museumData.rooms) return;
+            
+            const mapContent = document.getElementById('visitor-map-content');
+            mapContent.innerHTML = '';
+            
+            museumData.rooms.forEach((room, index) => {
+                const item = document.createElement('div');
+                item.className = 'map-room-item' + (index === currentRoomIndex ? ' active' : '');
+                item.onclick = () => {
+                    currentRoomIndex = index;
+                    renderVisitorView();
+                    renderVisitorMap(); // Update map to show new active room
+                };
+                
+                const exhibitsCount = room.exhibits ? room.exhibits.length : 0;
+                
+                item.innerHTML = `
+                    <div class="map-room-number">${index + 1}</div>
+                    <div class="map-room-name">${room.name || `אולם ${index + 1}`}</div>
+                    <div class="map-room-count">${exhibitsCount} 🖼️</div>
+                `;
+                
+                mapContent.appendChild(item);
+            });
+        }
+
+        function updateNavigationButtons() {
+            document.getElementById('prev-room').disabled = currentRoomIndex === 0;
+            document.getElementById('next-room').disabled = 
+                currentRoomIndex === museumData.rooms.length - 1;
+        }
+
+        function extractYouTubeId(url) {
+            if (!url) return null;
+            
+            // Remove whitespace
+            url = url.trim();
+            
+            // Try different extraction patterns
+            let videoId = null;
+            
+            // Pattern 1: youtu.be/VIDEO_ID
+            const shortMatch = url.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/);
+            if (shortMatch) return shortMatch[1];
+            
+            // Pattern 2: watch?v=VIDEO_ID
+            const watchMatch = url.match(/[?&]v=([a-zA-Z0-9_-]{11})/);
+            if (watchMatch) return watchMatch[1];
+            
+            // Pattern 3: embed/VIDEO_ID
+            const embedMatch = url.match(/embed\/([a-zA-Z0-9_-]{11})/);
+            if (embedMatch) return embedMatch[1];
+            
+            // Pattern 4: /v/VIDEO_ID
+            const vMatch = url.match(/\/v\/([a-zA-Z0-9_-]{11})/);
+            if (vMatch) return vMatch[1];
+            
+            return null;
+        }
+
+        function openExhibitModal(exhibit) {
+            const modal = document.getElementById('exhibit-modal');
+            const modalBody = document.getElementById('modal-body');
+            
+            let mediaHTML = '';
+            if (exhibit.type === 'image' && exhibit.url) {
+                mediaHTML = `<img src="${exhibit.url}" class="modal-media" alt="${exhibit.title || 'תצוגה'}">`;
+            } else if (exhibit.type === 'video' && exhibit.url) {
+                mediaHTML = `<video controls class="modal-media" style="width: 100%; max-height: 400px;"><source src="${exhibit.url}"></video>`;
+            } else if (exhibit.type === 'youtube' && exhibit.url) {
+                const videoId = extractYouTubeId(exhibit.url);
+                if (videoId) {
+                    mediaHTML = `<iframe width="100%" height="400" src="https://www.youtube.com/embed/${videoId}?rel=0" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+                }
+            }
+
+            modalBody.innerHTML = `
+                ${mediaHTML}
+                <h2 class="modal-title">${exhibit.title || 'ללא כותרת'}</h2>
+                <p class="modal-description">${exhibit.description || ''}</p>
+            `;
+            
+            modal.style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('exhibit-modal').style.display = 'none';
+        }
+
+        // Admin View Functions
+        function renderAdminView() {
+            renderRoomSelector();
+            renderExhibitsGrid();
+        }
+
+        function renderRoomSelector() {
+            const selector = document.getElementById('room-selector');
+            selector.innerHTML = '';
+
+            museumData.rooms.forEach((room, index) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'room-btn-wrapper';
+
+                const btn = document.createElement('button');
+                btn.className = 'room-btn' + (index === currentRoomIndex ? ' active' : '');
+                btn.textContent = room.name;
+                btn.onclick = () => selectRoom(index);
+                
+                const editBtn = document.createElement('button');
+                editBtn.className = 'edit-room-btn';
+                editBtn.textContent = '✏️';
+                editBtn.onclick = () => editRoom(index);
+                
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'delete-room-btn';
+                deleteBtn.textContent = '🗑️';
+                deleteBtn.onclick = () => deleteRoom(index);
+
+                // Add reorder buttons
+                const moveUpBtn = document.createElement('button');
+                moveUpBtn.className = 'move-room-btn';
+                moveUpBtn.textContent = '⬆️';
+                moveUpBtn.title = 'הזז אולם למעלה';
+                moveUpBtn.onclick = () => moveRoom(index, -1);
+                moveUpBtn.disabled = index === 0;
+                if (index === 0) moveUpBtn.style.opacity = '0.3';
+
+                const moveDownBtn = document.createElement('button');
+                moveDownBtn.className = 'move-room-btn';
+                moveDownBtn.textContent = '⬇️';
+                moveDownBtn.title = 'הזז אולם למטה';
+                moveDownBtn.onclick = () => moveRoom(index, 1);
+                moveDownBtn.disabled = index === museumData.rooms.length - 1;
+                if (index === museumData.rooms.length - 1) moveDownBtn.style.opacity = '0.3';
+
+                wrapper.appendChild(btn);
+                wrapper.appendChild(moveUpBtn);
+                wrapper.appendChild(moveDownBtn);
+                wrapper.appendChild(editBtn);
+                wrapper.appendChild(deleteBtn);
+                selector.appendChild(wrapper);
+            });
+
+            const addBtn = document.createElement('button');
+            addBtn.className = 'add-room-btn';
+            addBtn.textContent = '➕ הוסף אולם';
+            addBtn.onclick = addRoom;
+            selector.appendChild(addBtn);
+
+            const mergeRoomsBtn = document.createElement('button');
+            mergeRoomsBtn.className = 'add-room-btn';
+            mergeRoomsBtn.style.background = '#ff9800';
+            mergeRoomsBtn.textContent = '🔀 מזג אולמות';
+            mergeRoomsBtn.onclick = mergeRooms;
+            selector.appendChild(mergeRoomsBtn);
+
+            const downloadBtn = document.createElement('button');
+            downloadBtn.className = 'add-room-btn';
+            downloadBtn.style.background = '#28a745';
+            downloadBtn.textContent = '💾 הורדת JSON';
+            downloadBtn.onclick = downloadJSON;
+            selector.appendChild(downloadBtn);
+
+            const importBtn = document.createElement('button');
+            importBtn.className = 'add-room-btn';
+            importBtn.style.background = '#17a2b8';
+            importBtn.textContent = '📥 ייבוא/מיזוג JSON';
+            importBtn.onclick = () => document.getElementById('import-json-input').click();
+            selector.appendChild(importBtn);
+
+            const resetBtn = document.createElement('button');
+            resetBtn.className = 'add-room-btn';
+            resetBtn.style.background = '#dc3545';
+            resetBtn.textContent = '🔄 איפוס כללי';
+            resetBtn.onclick = resetAll;
+            selector.appendChild(resetBtn);
+        }
+
+        function selectRoom(index) {
+            currentRoomIndex = index;
+            renderRoomSelector();
+            renderExhibitsGrid();
+        }
+
+        function addRoom() {
+            const roomName = prompt('הזן שם לאולם החדש:');
+            if (roomName) {
+                const newRoom = {
+                    id: Date.now(),
+                    name: roomName,
+                    exhibits: []
+                };
+                museumData.rooms.push(newRoom);
+                saveMuseumData();
+                currentRoomIndex = museumData.rooms.length - 1;
+                renderAdminView();
+                renderVisitorView();
+            }
+        }
+
+        function editRoom(index) {
+            const newName = prompt('שם אולם חדש:', museumData.rooms[index].name);
+            if (newName && newName.trim()) {
+                museumData.rooms[index].name = newName;
+                saveMuseumData();
+                renderAdminView();
+                renderVisitorView();
+            }
+        }
+
+        function deleteRoom(index) {
+            if (confirm('האם אתה בטוח שברצונך למחוק אולם זה?')) {
+                museumData.rooms.splice(index, 1);
+                
+                // If no rooms left, create a default room
+                if (museumData.rooms.length === 0) {
+                    museumData.rooms = [
+                        {
+                            id: Date.now(),
+                            name: 'אולם 1 - תצוגה ראשית',
+                            exhibits: []
+                        }
+                    ];
+                    alert('האולם נמחק. נוצר אולם ברירת מחדל חדש.');
+                }
+                
+                if (currentRoomIndex >= museumData.rooms.length) {
+                    currentRoomIndex = museumData.rooms.length - 1;
+                }
+                saveMuseumData();
+                renderAdminView();
+                renderVisitorView();
+            }
+        }
+
+        function mergeRooms() {
+            if (museumData.rooms.length < 2) {
+                alert('❌ נדרשים לפחות 2 אולמות למיזוג.\nצור אולם נוסף תחילה.');
+                return;
+            }
+
+            const modal = document.getElementById('exhibit-modal');
+            const modalBody = document.getElementById('modal-body');
+            
+            let roomsHTML = '<div style="max-height: 400px; overflow-y: auto;">';
+            museumData.rooms.forEach((room, index) => {
+                roomsHTML += `
+                    <div style="
+                        background: ${index === currentRoomIndex ? '#e3f2fd' : '#f8f9fa'};
+                        padding: 15px;
+                        margin: 10px 0;
+                        border-radius: 10px;
+                        border: 2px solid ${index === currentRoomIndex ? '#667eea' : '#ddd'};
+                    ">
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="checkbox" value="${index}" class="merge-room-checkbox" 
+                                   style="width: 20px; height: 20px; margin-left: 10px;">
+                            <div>
+                                <strong>${room.name}</strong><br>
+                                <small>${(room.exhibits || []).length} תצוגות</small>
+                            </div>
+                        </label>
+                    </div>
+                `;
+            });
+            roomsHTML += '</div>';
+
+            modalBody.innerHTML = `
+                <h2 style="color: #667eea; margin-bottom: 20px;">🔀 מיזוג אולמות</h2>
+                <p style="margin-bottom: 15px; line-height: 1.6;">
+                    בחר 2 אולמות או יותר למיזוג.<br>
+                    כל התצוגות יאוחדו לאולם אחד חדש.
+                </p>
+                <p style="margin-bottom: 15px;"><strong>בחר אולמות למיזוג:</strong></p>
+                ${roomsHTML}
+                <div style="margin-top: 20px; display: flex; gap: 10px;">
+                    <button onclick="confirmMergeRooms()" style="
+                        flex: 1;
+                        padding: 15px;
+                        background: #ff9800;
+                        color: white;
+                        border: none;
+                        border-radius: 10px;
+                        font-size: 16px;
+                        font-weight: bold;
+                        cursor: pointer;
+                    ">🔀 מזג אולמות נבחרים</button>
+                    <button onclick="closeModal()" style="
+                        padding: 15px 30px;
+                        background: #6c757d;
+                        color: white;
+                        border: none;
+                        border-radius: 10px;
+                        font-size: 16px;
+                        cursor: pointer;
+                    ">ביטול</button>
+                </div>
+            `;
+            
+            modal.style.display = 'flex';
+        }
+
+        function confirmMergeRooms() {
+            const checkboxes = document.querySelectorAll('.merge-room-checkbox:checked');
+            
+            if (checkboxes.length < 2) {
+                alert('❌ יש לבחור לפחות 2 אולמות למיזוג');
+                return;
+            }
+
+            const selectedIndices = Array.from(checkboxes).map(cb => parseInt(cb.value)).sort((a, b) => a - b);
+            const roomNames = selectedIndices.map(i => museumData.rooms[i].name).join('\n  • ');
+            
+            const newRoomName = prompt(
+                `🔀 מיזוג ${selectedIndices.length} אולמות:\n\n` +
+                `  • ${roomNames}\n\n` +
+                `הזן שם לאולם החדש:`,
+                'אולם ממוזג'
+            );
+            
+            if (!newRoomName) {
+                return;
+            }
+
+            // Collect all exhibits from selected rooms
+            const mergedExhibits = [];
+            selectedIndices.forEach(index => {
+                mergedExhibits.push(...museumData.rooms[index].exhibits);
+            });
+
+            // Create new merged room
+            const newRoom = {
+                id: Date.now(),
+                name: newRoomName,
+                exhibits: mergedExhibits
+            };
+
+            // Remove old rooms (in reverse order to maintain indices)
+            for (let i = selectedIndices.length - 1; i >= 0; i--) {
+                museumData.rooms.splice(selectedIndices[i], 1);
+            }
+
+            // Add new room
+            museumData.rooms.push(newRoom);
+
+            // Update current room index
+            currentRoomIndex = museumData.rooms.length - 1;
+
+            saveMuseumData();
+            renderAdminView();
+            renderVisitorView();
+            closeModal();
+
+            alert(`✅ מיזוג הושלם!\n\n` +
+                  `אולם חדש: "${newRoomName}"\n` +
+                  `סה"כ תצוגות: ${mergedExhibits.length}`);
+        }
+
+        function moveRoom(index, direction) {
+            const newIndex = index + direction;
+            
+            // Check bounds
+            if (newIndex < 0 || newIndex >= museumData.rooms.length) {
+                return;
+            }
+            
+            // Swap rooms
+            const temp = museumData.rooms[index];
+            museumData.rooms[index] = museumData.rooms[newIndex];
+            museumData.rooms[newIndex] = temp;
+            
+            // Update current index if needed
+            if (currentRoomIndex === index) {
+                currentRoomIndex = newIndex;
+            } else if (currentRoomIndex === newIndex) {
+                currentRoomIndex = index;
+            }
+            
+            saveMuseumData();
+            renderAdminView();
+            renderVisitorView();
+        }
+
+        function renderExhibitsGrid() {
+            museumData = normalizeMuseumData(museumData);
+
+            if (currentRoomIndex < 0) currentRoomIndex = 0;
+            if (currentRoomIndex >= museumData.rooms.length) {
+                currentRoomIndex = museumData.rooms.length - 1;
+            }
+
+            const room = normalizeRoom(museumData.rooms[currentRoomIndex], currentRoomIndex);
+            museumData.rooms[currentRoomIndex] = room;
+
+            const grid = document.getElementById('exhibits-grid');
+            if (!grid) return;
+            grid.innerHTML = '';
+
+            const exhibits = Array.isArray(room.exhibits) ? room.exhibits : [];
+
+            exhibits.forEach((rawExhibit, index) => {
+                const exhibit = normalizeExhibit(rawExhibit);
+                const card = document.createElement('div');
+                card.className = 'exhibit-card';
+
+                const moveButtons = `
+                    <div style="display: flex; gap: 5px; margin-bottom: 10px;">
+                        <button class="save-btn" onclick="moveExhibit(${index}, -1)" style="background: #6c757d; padding: 5px 10px; font-size: 12px;" ${index === 0 ? 'disabled style="opacity: 0.5;"' : ''}>⬆️ הזז למעלה</button>
+                        <button class="save-btn" onclick="moveExhibit(${index}, 1)" style="background: #6c757d; padding: 5px 10px; font-size: 12px;" ${index === exhibits.length - 1 ? 'disabled style="opacity: 0.5;"' : ''}>⬇️ הזז למטה</button>
+                    </div>
+                `;
+
+                card.innerHTML = `
+                    <div class="exhibit-card-header">
+                        <h3>${exhibit.title || 'ללא כותרת'}</h3>
+                        <div style="display: flex; gap: 5px;">
+                            <button class="delete-exhibit-btn" onclick="moveExhibitToRoom(${index})" title="העבר לאולם אחר">🔄</button>
+                            <button class="delete-exhibit-btn" onclick="deleteExhibit(${index})" title="מחק">🗑️</button>
+                        </div>
+                    </div>
+                    ${moveButtons}
+                    <p><strong>סוג:</strong> ${exhibit.type || 'לא מוגדר'}</p>
+                    ${exhibit.url ? `<p><strong>URL:</strong> ${exhibit.url.substring(0, 50)}...</p>` : ''}
+                    ${exhibit.description ? `<p><strong>תיאור:</strong> ${exhibit.description.substring(0, 100)}...</p>` : ''}
+                    <button class="save-btn" onclick="editExhibit(${index})" style="background: #667eea; margin-top: 10px;">ערוך</button>
+                `;
+
+                grid.appendChild(card);
+            });
+        }
+
+        function addExhibit() {
+            showExhibitForm();
+        }
+
+        function editExhibit(index) {
+            currentEditingExhibit = index;
+            showExhibitForm(index);
+        }
+
+        function createDriveEmbed(url, driveSubtype) {
+            if (!url) return null;
+            
+            // Extract Google Drive file ID from various URL formats
+            let fileId = null;
+            
+            // Format: https://drive.google.com/file/d/FILE_ID/view
+            const match1 = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+            if (match1) fileId = match1[1];
+            
+            // Format: https://drive.google.com/open?id=FILE_ID
+            const match2 = url.match(/id=([a-zA-Z0-9_-]+)/);
+            if (match2 && !fileId) fileId = match2[1];
+            
+            if (!fileId) return null;
+            
+            const subtype = driveSubtype || 'document';
+            const container = document.createElement('div');
+            container.style.cssText = 'width: 100%; height: 100%; display: flex; flex-direction: column;';
+            
+            if (subtype === 'video') {
+                const iframe = document.createElement('iframe');
+                iframe.src = `https://drive.google.com/file/d/${fileId}/preview`;
+                iframe.style.cssText = 'width: 100%; height: 100%; border: none; flex: 1;';
+                iframe.allow = 'autoplay';
+                
+                // Fallback handler for permission errors
+                iframe.onerror = function() {
+                    container.innerHTML = `<div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; background: #f5f5f5; color: #666; padding: 20px; text-align: center;">
+                        <div style="font-size: 48px; margin-bottom: 10px;">🔒</div>
+                        <div style="font-weight: bold; margin-bottom: 5px;">נדרשות הרשאות</div>
+                        <div style="font-size: 12px; margin-bottom: 15px;">לא ניתן להציג את הקובץ בלי הרשאות</div>
+                        <a href="${url}" target="_blank" rel="noopener noreferrer" style="background: #667eea; color: white; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 12px;">פתח ב-Google Drive</a>
+                    </div>`;
+                };
+                
+                container.appendChild(iframe);
+                return container;
+            } else if (subtype === 'image') {
+                const img = document.createElement('img');
+                img.src = `https://drive.google.com/uc?id=${fileId}`;
+                img.style.cssText = 'max-width: 100%; max-height: 100%; object-fit: contain;';
+                
+                img.onerror = function() { 
+                    img.src = `https://drive.google.com/thumbnail?id=${fileId}&sz=w300`;
+                    
+                    // If thumbnail also fails, show error
+                    setTimeout(() => {
+                        if (!img.complete || img.naturalHeight === 0) {
+                            container.innerHTML = `<div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; background: #f5f5f5; color: #666; padding: 20px; text-align: center;">
+                                <div style="font-size: 48px; margin-bottom: 10px;">🔒</div>
+                                <div style="font-weight: bold; margin-bottom: 5px;">נדרשות הרשאות</div>
+                                <div style="font-size: 12px; margin-bottom: 15px;">לא ניתן להציג את התמונה בלי הרשאות</div>
+                                <a href="${url}" target="_blank" rel="noopener noreferrer" style="background: #667eea; color: white; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 12px;">פתח ב-Google Drive</a>
+                            </div>`;
+                        }
+                    }, 1000);
+                };
+                
+                container.appendChild(img);
+                return container;
+            } else if (subtype === 'document' || subtype === 'presentation' || subtype === 'spreadsheet') {
+                // For documents, use export URL to bypass permission issues when possible
+                const iframe = document.createElement('iframe');
+                
+                // Try preview first
+                iframe.src = `https://drive.google.com/file/d/${fileId}/preview`;
+                iframe.style.cssText = 'width: 100%; height: 100%; border: none; flex: 1;';
+                
+                // Fallback: show user-friendly error with link
+                iframe.onerror = function() {
+                    container.innerHTML = `<div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; background: #f5f5f5; color: #666; padding: 20px; text-align: center;">
+                        <div style="font-size: 48px; margin-bottom: 10px;">🔒</div>
+                        <div style="font-weight: bold; margin-bottom: 5px;">נדרשות הרשאות</div>
+                        <div style="font-size: 12px; margin-bottom: 15px;">לא ניתן להציג את המסמך בלי הרשאות</div>
+                        <a href="${url}" target="_blank" rel="noopener noreferrer" style="background: #667eea; color: white; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 12px;">פתח ב-Google Drive</a>
+                    </div>`;
+                };
+                
+                container.appendChild(iframe);
+                return container;
+            }
+            
+            return null;
+        }
+
+        function showExhibitForm(index = null) {
+            const room = museumData.rooms[currentRoomIndex];
+            const exhibit = index !== null ? room.exhibits[index] : { type: 'image', title: '', description: '', url: '', driveSubtype: 'video' };
+
+            // Show/hide drive subtype based on selection
+            const updateFormVisibility = () => {
+                const type = document.getElementById('exhibit-type').value;
+                const driveGroup = document.getElementById('drive-subtype-group');
+                const textGroup = document.getElementById('text-content-group');
+                const urlGroup = document.getElementById('url-field-group');
+                
+                if (driveGroup) {
+                    driveGroup.style.display = type === 'drive' ? 'block' : 'none';
+                }
+                if (textGroup) {
+                    textGroup.style.display = type === 'text' ? 'block' : 'none';
+                }
+                // Hide URL field for text type
+                if (urlGroup) {
+                    urlGroup.style.display = type === 'text' ? 'none' : 'block';
+                }
+            };
+
+            const formHTML = `
+                <div style="background: #f8f9fa; padding: 30px; border-radius: 15px;">
+                    <h2 style="color: #667eea; margin-bottom: 20px;">${index !== null ? 'עריכת תצוגה' : 'הוסף תצוגה חדשה'}</h2>
+                    
+                    <div class="form-group">
+                        <label>כותרת *</label>
+                        <input type="text" id="exhibit-title" value="${exhibit.title || ''}" placeholder="כותרת התצוגה">
+                    </div>
+
+                    <div class="form-group">
+                        <label>סוג *</label>
+                        <select id="exhibit-type">
+                            <option value="text" ${exhibit.type === 'text' ? 'selected' : ''}>📝 לוח טקסט/מידע</option>
+                            <option value="image" ${exhibit.type === 'image' ? 'selected' : ''}>📷 תמונה (קישור ישיר)</option>
+                            <option value="video" ${exhibit.type === 'video' ? 'selected' : ''}>🎬 וידאו (קישור ישיר)</option>
+                            <option value="youtube" ${exhibit.type === 'youtube' ? 'selected' : ''}>▶️ YouTube</option>
+                            <option value="drive" ${exhibit.type === 'drive' ? 'selected' : ''}>💾 Google Drive</option>
+                            <option value="pdf" ${exhibit.type === 'pdf' ? 'selected' : ''}>📄 מסמך PDF</option>
+                            <option value="website" ${exhibit.type === 'website' ? 'selected' : ''}>🌐 אתר אינטרנט</option>
+                        </select>
+                        <small style="display: block; margin-top: 8px; color: #666; line-height: 1.4;">
+                            💡 <strong>הסבר:</strong><br>
+                            • <strong>לוח טקסט:</strong> הצג טקסט ישירות על הקיר (כמו שלט או לוח מידע)<br>
+                            • <strong>תמונה/וידאו:</strong> קישור ישיר לקובץ (מסתיים ב-.jpg, .mp4 וכו')<br>
+                            • <strong>PDF:</strong> קישור למסמך PDF (מסתיים ב-.pdf)<br>
+                            • <strong>אתר אינטרנט:</strong> כל כתובת אתר (לדוגמה: ויקיפדיא, מאמר, מפה)
+                        </small>
+                    </div>
+
+                    <div class="form-group" id="text-content-group" style="display: none;">
+                        <label>תוכן הטקסט *</label>
+                        <textarea id="exhibit-text-content" rows="8" placeholder="הקלד כאן את הטקסט שיוצג על הקיר...">${exhibit.textContent || ''}</textarea>
+                        <small style="display: block; margin-top: 5px; color: #666;">
+                            💡 טקסט זה יוצג על לוח מעוצב בסגנון מוזהב על הקיר
+                        </small>
+                    </div>
+
+                    <div class="form-group" id="drive-subtype-group" style="display: none;">
+                        <label>סוג קובץ ב-Google Drive</label>
+                        <select id="drive-subtype">
+                            <option value="video">סרטון</option>
+                            <option value="image">תמונה</option>
+                            <option value="document">מסמך</option>
+                            <option value="presentation">מצגת</option>
+                            <option value="spreadsheet">גיליון חישוב</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" id="url-field-group">
+                        <label id="url-label">URL</label>
+                        <input type="url" id="exhibit-url" value="${exhibit.url || ''}" placeholder="https://example.com/image.jpg או https://www.example.com">
+                        <small style="display: block; margin-top: 5px; color: #666;">
+                            💡 <strong>עצה ל-Google Drive:</strong> לחץ שמאלה וברר את קטגוריית הקובץ בחזרה
+                        </small>
+                    </div>
+
+                    <div class="form-group">
+                        <label>תיאור</label>
+                        <textarea id="exhibit-description" placeholder="תיאור התצוגה">${exhibit.description || ''}</textarea>
+                    </div>
+
+                    <div style="display: flex; gap: 10px;">
+                        <button class="save-btn" onclick="saveExhibit(${index !== null ? index : 'null'})">שמור</button>
+                        <button class="save-btn" onclick="closeExhibitForm()" style="background: #6c757d;">ביטול</button>
+                    </div>
+                </div>
+            `;
+
+            const adminView = document.getElementById('admin-view');
+            const formContainer = document.createElement('div');
+            formContainer.id = 'exhibit-form-container';
+            formContainer.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 2500; padding: 20px;';
+            formContainer.innerHTML = `<div style="background: white; border-radius: 15px; max-width: 600px; width: 100%; padding: 0; overflow-y: auto; max-height: 90vh;">${formHTML}</div>`;
+            document.body.appendChild(formContainer);
+
+            // Add event listener for exhibit type change
+            setTimeout(() => {
+                const typeSelect = document.getElementById('exhibit-type');
+                if (typeSelect) {
+                    typeSelect.addEventListener('change', updateFormVisibility);
+                    updateFormVisibility();
+                }
+            }, 0);
+        }
+
+        function closeExhibitForm() {
+            const container = document.getElementById('exhibit-form-container');
+            if (container) container.remove();
+            currentEditingExhibit = null;
+        }
+
+        function saveExhibit(index) {
+            const title = document.getElementById('exhibit-title').value.trim();
+            const type = document.getElementById('exhibit-type').value;
+            const url = document.getElementById('exhibit-url').value.trim();
+            const description = document.getElementById('exhibit-description').value.trim();
+            const driveSubtypeSelect = document.getElementById('drive-subtype');
+            const driveSubtype = driveSubtypeSelect ? driveSubtypeSelect.value : 'video';
+            const textContentField = document.getElementById('exhibit-text-content');
+            const textContent = textContentField ? textContentField.value.trim() : '';
+
+            // Validation based on type
+            if (!title) {
+                alert('אנא מלא את שדה הכותרת');
+                return;
+            }
+            
+            if (type === 'text') {
+                if (!textContent) {
+                    alert('אנא מלא את תוכן הטקסט');
+                    return;
+                }
+            } else {
+                if (!url) {
+                    alert('אנא מלא את שדה ה-URL');
+                    return;
+                }
+            }
+
+            const room = museumData.rooms[currentRoomIndex];
+            const exhibit = { title, type, description };
+            
+            if (type === 'text') {
+                exhibit.textContent = textContent;
+            } else {
+                exhibit.url = url;
+            }
+            
+            if (type === 'drive') {
+                exhibit.driveSubtype = driveSubtype;
+            }
+
+            if (index !== null && index !== 'null') {
+                room.exhibits[index] = exhibit;
+            } else {
+                room.exhibits.push(exhibit);
+            }
+
+            saveMuseumData();
+            closeExhibitForm();
+            renderExhibitsGrid();
+            renderVisitorView();
+        }
+
+        function deleteExhibit(index) {
+            if (confirm('האם אתה בטוח שברצונך למחוק תצוגה זו?')) {
+                const room = museumData.rooms[currentRoomIndex];
+                room.exhibits.splice(index, 1);
+                saveMuseumData();
+                renderExhibitsGrid();
+                renderVisitorView();
+            }
+        }
+
+        function moveExhibitToRoom(exhibitIndex) {
+            const currentRoom = museumData.rooms[currentRoomIndex];
+            const exhibit = currentRoom.exhibits[exhibitIndex];
+            
+            if (museumData.rooms.length < 2) {
+                alert('❌ אין אולמות נוספים להעביר אליהם.\nצור אולם נוסף תחילה.');
+                return;
+            }
+
+            // Create room selection dialog
+            let roomsHTML = '<div style="max-height: 400px; overflow-y: auto;">';
+            museumData.rooms.forEach((room, index) => {
+                if (index !== currentRoomIndex) {
+                    roomsHTML += `
+                        <div style="
+                            background: #f8f9fa;
+                            padding: 15px;
+                            margin: 10px 0;
+                            border-radius: 10px;
+                            border: 2px solid #ddd;
+                            cursor: pointer;
+                            transition: all 0.3s;
+                        " 
+                        onmouseover="this.style.background='#e9ecef'; this.style.borderColor='#667eea';"
+                        onmouseout="this.style.background='#f8f9fa'; this.style.borderColor='#ddd';"
+                        onclick="confirmMoveExhibit(${exhibitIndex}, ${index})">
+                            <strong>${room.name}</strong><br>
+                            <small>${(room.exhibits || []).length} תצוגות</small>
+                        </div>
+                    `;
+                }
+            });
+            roomsHTML += '</div>';
+
+            const modal = document.getElementById('exhibit-modal');
+            const modalBody = document.getElementById('modal-body');
+            
+            modalBody.innerHTML = `
+                <h2 style="color: #667eea; margin-bottom: 20px;">🔄 העבר תצוגה לאולם אחר</h2>
+                <p style="margin-bottom: 20px;">
+                    <strong>תצוגה:</strong> ${exhibit.title || 'ללא כותרת'}<br>
+                    <strong>מאולם:</strong> ${currentRoom.name}
+                </p>
+                <p style="margin-bottom: 15px;"><strong>בחר אולם יעד:</strong></p>
+                ${roomsHTML}
+            `;
+            
+            modal.style.display = 'flex';
+        }
+
+        function confirmMoveExhibit(exhibitIndex, targetRoomIndex) {
+            const sourceRoom = museumData.rooms[currentRoomIndex];
+            const targetRoom = museumData.rooms[targetRoomIndex];
+            const exhibit = sourceRoom.exhibits[exhibitIndex];
+            
+            if (confirm(`האם להעביר את "${exhibit.title || 'ללא כותרת'}" ל"${targetRoom.name}"?`)) {
+                // Remove from source
+                sourceRoom.exhibits.splice(exhibitIndex, 1);
+                
+                // Add to target
+                targetRoom.exhibits.push(exhibit);
+                
+                saveMuseumData();
+                renderExhibitsGrid();
+                renderVisitorView();
+                closeModal();
+                
+                alert(`✅ התצוגה הועברה בהצלחה ל"${targetRoom.name}"!`);
+            }
+        }
+
+        function moveExhibit(index, direction) {
+            const room = museumData.rooms[currentRoomIndex];
+            const newIndex = index + direction;
+            
+            // Check bounds
+            if (newIndex < 0 || newIndex >= room.exhibits.length) {
+                return;
+            }
+            
+            // Swap exhibits
+            const temp = room.exhibits[index];
+            room.exhibits[index] = room.exhibits[newIndex];
+            room.exhibits[newIndex] = temp;
+            
+            saveMuseumData();
+            renderExhibitsGrid();
+            renderVisitorView();
+        }
+
+        // Download museum data as JSON
+        function downloadJSON() {
+            const dataStr = JSON.stringify(museumData, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'museum-data.json';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
+        // Import museum data from JSON file
+        function importJSON(event) {
+            const files = Array.from(event.target.files);
+            if (files.length === 0) return;
+
+            // Check all files are JSON
+            const nonJsonFiles = files.filter(f => !f.name.endsWith('.json'));
+            if (nonJsonFiles.length > 0) {
+                alert('❌ אנא בחר קבצי JSON בלבד\n\nקבצים לא תקינים:\n' + nonJsonFiles.map(f => f.name).join('\n'));
+                event.target.value = '';
+                return;
+            }
+
+            // Show loading message for multiple files
+            if (files.length > 1) {
+                const loadingOverlay = document.getElementById('loading-overlay');
+                const loadingText = document.getElementById('loading-text');
+                loadingText.textContent = `קורא ${files.length} קבצים...`;
+                loadingOverlay.classList.add('active');
+            }
+
+            // Read all files
+            const filePromises = files.map(file => {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = e => {
+                        try {
+                            const data = JSON.parse(e.target.result);
+                            if (!data.rooms || !Array.isArray(data.rooms)) {
+                                reject(new Error(`הקובץ "${file.name}" לא תקין - חסר מבנה אולמות`));
+                            } else {
+                                resolve({ filename: file.name, data: data });
+                            }
+                        } catch (error) {
+                            reject(new Error(`שגיאה בקריאת "${file.name}": ${error.message}`));
+                        }
+                    };
+                    reader.onerror = () => reject(new Error(`שגיאה בקריאת הקובץ "${file.name}"`));
+                    reader.readAsText(file);
+                });
+            });
+
+            Promise.all(filePromises)
+                .then(filesData => {
+                    // Hide loading
+                    document.getElementById('loading-overlay').classList.remove('active');
+
+                    // Calculate current data
+                    const currentRooms = museumData.rooms.length;
+                    const currentExhibits = museumData.rooms.reduce((sum, room) => sum + (room.exhibits?.length || 0), 0);
+                    
+                    // Calculate imported data
+                    let importedRooms = 0;
+                    let importedExhibits = 0;
+                    filesData.forEach(fileData => {
+                        importedRooms += fileData.data.rooms.length;
+                        importedExhibits += fileData.data.rooms.reduce((sum, room) => sum + (room.exhibits?.length || 0), 0);
+                    });
+
+                    // Ask user: Replace or Merge?
+                    const hasExistingData = currentRooms > 0 || currentExhibits > 0;
+                    let shouldMerge = false;
+
+                    if (hasExistingData) {
+                        const filesList = filesData.map(f => `  • ${f.filename}`).join('\n');
+                        const choice = confirm(
+                            `📥 בחר פעולה:\n\n` +
+                            `קבצים לייבוא:\n${filesList}\n\n` +
+                            `מכילים:\n• ${importedRooms} אולמות\n• ${importedExhibits} תצוגות\n\n` +
+                            `קיים כרגע:\n• ${currentRooms} אולמות\n• ${currentExhibits} תצוגות\n\n` +
+                            `────────────────────\n` +
+                            `לחץ "אישור" = 🔀 מיזוג (שמירת הכל)\n` +
+                            `לחץ "ביטול" = 🔄 החלפה (מחיקת הישן)`
+                        );
+                        shouldMerge = choice;
+                    }
+
+                    if (shouldMerge || files.length > 1) {
+                        // Merge mode
+                        mergeFiles(filesData, hasExistingData);
+                    } else {
+                        // Replace mode - simple import (only if user chose cancel or no existing data)
+                        if (!hasExistingData || confirm(`⚠️ אישור סופי: להחליף את כל הנתונים?`)) {
+                            if (files.length === 1) {
+                                museumData = filesData[0].data;
+                            } else {
+                                mergeFiles(filesData, false);
+                                return;
+                            }
+                            finalizeMerge();
+                        }
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('loading-overlay').classList.remove('active');
+                    alert('❌ שגיאה:\n' + error.message);
+                    console.error('Import error:', error);
+                });
+            
+            // Reset the input
+            event.target.value = '';
+        }
+
+        function mergeFiles(filesData, includeExisting = true) {
+            // Merge strategy
+            const mergedData = { rooms: [] };
+            const roomMap = new Map(); // Track rooms by name to avoid duplicates
+            let nextRoomId = Date.now();
+
+            // First, add existing data if requested
+            if (includeExisting && museumData.rooms) {
+                museumData.rooms.forEach(room => {
+                    const roomKey = room.name || `אולם ${room.id}`;
+                    const newRoom = {
+                        id: nextRoomId++,
+                        name: room.name || roomKey,
+                        exhibits: [...(room.exhibits || [])]
+                    };
+                    roomMap.set(roomKey, newRoom);
+                    mergedData.rooms.push(newRoom);
+                });
+            }
+
+            // Then merge imported files
+            filesData.forEach(fileData => {
+                fileData.data.rooms.forEach(room => {
+                    const roomKey = room.name || `אולם ${room.id}`;
+                    
+                    if (roomMap.has(roomKey)) {
+                        // Room exists - merge exhibits
+                        const existingRoom = roomMap.get(roomKey);
+                        const existingExhibitTitles = new Set(existingRoom.exhibits.map(e => e.title));
+                        
+                        // Add exhibits that don't exist yet (by title)
+                        (room.exhibits || []).forEach(exhibit => {
+                            if (!existingExhibitTitles.has(exhibit.title)) {
+                                existingRoom.exhibits.push(exhibit);
+                            }
+                        });
+                    } else {
+                        // New room - add it
+                        const newRoom = {
+                            id: nextRoomId++,
+                            name: room.name || roomKey,
+                            exhibits: [...(room.exhibits || [])]
+                        };
+                        roomMap.set(roomKey, newRoom);
+                        mergedData.rooms.push(newRoom);
+                    }
+                });
+            });
+
+            // Show merge results
+            const mergeResults = `✅ מיזוג הושלם!\n\n` +
+                               `תוצאות:\n` +
+                               `• ${mergedData.rooms.length} אולמות (אחרי מיזוג)\n` +
+                               `• ${mergedData.rooms.reduce((sum, room) => sum + (room.exhibits || []).length, 0)} תצוגות סה"כ\n\n` +
+                               `${includeExisting ? 'הנתונים הקיימים שולבו עם הקבצים החדשים.' : 'הקבצים אוחדו ביניהם.'}\n` +
+                               `הערה: אולמות עם אותו שם אוחדו, ותצוגות כפולות (לפי כותרת) הוסרו.`;
+            
+            alert(mergeResults);
+            
+            museumData = mergedData;
+            finalizeMerge();
+        }
+
+        function finalizeMerge() {
+            currentRoomIndex = 0;
+            
+            // Save to localStorage
+            saveMuseumData();
+            
+            // Refresh the view
+            if (isVisitorView) {
+                renderVisitorView();
+            } else {
+                renderRoomSelector();
+                renderExhibitsGrid();
+            }
+            
+            alert('✅ הייבוא הושלם בהצלחה!');
+        }
+
+        // Reset all museum data
+        function resetAll() {
+            if (confirm('⚠️ האם אתה בטוח שברצונך לאפס את כל נתוני המוזיאון?\n\nפעולה זו תמחק:\n• את כל האולמות\n• את כל התצוגות\n• את כל התוכן\n\nהפעולה היא בלתי הפיכה!')) {
+                if (confirm('❗ אישור סופי: האם אתה בטוח לחלוטין?\n\nכדאי להוריד גיבוי (JSON) לפני האיפוס.')) {
+                    // Reset to default state
+                    museumData = {
+                        rooms: [
+                            {
+                                id: Date.now(),
+                                name: 'אולם 1 - תצוגה ראשית',
+                                exhibits: []
+                            }
+                        ]
+                    };
+                    currentRoomIndex = 0;
+                    saveMuseumData();
+                    renderAdminView();
+                    renderVisitorView();
+                    alert('✅ המוזיאון אופס בהצלחה!\n\nנוצר אולם ברירת מחדל חדש.');
+                }
+            }
+        }
+
+        // Toggle between views
+        function toggleView() {
+            museumData = normalizeMuseumData(museumData);
+            isVisitorView = !isVisitorView;
+            const visitorView = document.getElementById('visitor-view');
+            const adminView = document.getElementById('admin-view');
+            const toggleText = document.getElementById('toggle-text');
+
+            if (isVisitorView) {
+                visitorView.style.display = 'block';
+                adminView.style.display = 'none';
+                toggleText.textContent = 'מעבר לממשק ניהול';
+                renderVisitorView();
+            } else {
+                visitorView.style.display = 'none';
+                adminView.style.display = 'block';
+                toggleText.textContent = 'מעבר לתצוגה';
+                renderAdminView();
+            }
+        }
+
+        // Initialize on page load
+        window.addEventListener('load', () => {
+            initializeMuseum();
+        });
+
+        // Close modal when clicking outside
+        window.addEventListener('click', (event) => {
+            const modal = document.getElementById('exhibit-modal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        });
+    </script>
+
+    <!-- Footer Copyright -->
+    <div class="footer-copyright">
+        <div>
+            © 2025 שלומי מימון <span class="copyright-divider">|</span> כל הזכויות שמורות
+        </div>
+        <div style="margin-top: 4px; font-size: 10px;">
+            כלי זה מסופק "כמות שהוא" ללא אחריות מכל סוג <span class="copyright-divider">|</span> 
+            היוצר אינו אחראי לכל נזק או שימוש לרעה <span class="copyright-divider">|</span> 
+            השימוש בכלי הינו באחריות המשתמש בלבד
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,2354 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>כלים דיגיטליים להוראה הכלה והשתלבות</title>
+
+    <!-- ── PWA ──────────────────────────────────────────────────── -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#07111f">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="פורטל הדרכה">
+    <!-- ──────────────────────────────────────────────────────────── -->
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            corePlugins: {
+                preflight: false,
+            }
+        }
+    </script>
+    <script src="data_manager.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fuse.js@7/dist/fuse.min.js"></script>
+    <style>
+        /* ═══════════════════════════════════════════════════════
+           AURORA TEACHING PORTAL — Design Tokens
+        ═══════════════════════════════════════════════════════ */
+        :root {
+            /* Background layers */
+            --bg-1: #07111f;
+            --bg-2: #0d1b2a;
+            --bg-3: #12253b;
+            /* Glass surfaces */
+            --glass: rgba(255,255,255,0.07);
+            --glass-strong: rgba(255,255,255,0.13);
+            --glass-header: rgba(13,27,42,0.92);
+            /* Borders */
+            --border: rgba(255,255,255,0.12);
+            --border-strong: rgba(255,255,255,0.22);
+            /* Text */
+            --text: #f4f7fb;
+            --muted: #8da4be;
+            --muted-strong: #b7c4d6;
+            /* Accents */
+            --accent: #56e0ff;
+            --accent-2: #8b7cff;
+            --accent-3: #1ee6a8;
+            --warning: #ffb454;
+            --danger: #ff6b6b;
+            /* Shadows */
+            --shadow: 0 10px 30px rgba(0,0,0,0.35);
+            --shadow-sm: 0 4px 14px rgba(0,0,0,0.25);
+            /* Legacy compat aliases */
+            --primary-color: #07111f;
+            --secondary-color: #0d1b2a;
+            --accent-color: #56e0ff;
+            --text-light: #f4f7fb;
+            --text-dark: #f4f7fb;
+            --bg-body: #07111f;
+            --bg-sidebar: #0d1b2a;
+            --hover-color: #1ee6a8;
+            --glass-bg: rgba(13,27,42,0.92);
+            --sidebar-width: 280px;
+            --header-height: 62px;
+            --transition: all 0.25s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Heebo', sans-serif;
+        }
+
+        /* ─── Layout ──────────────────────────────────────────── */
+        body {
+            background: radial-gradient(ellipse at 30% 0%, #0e1e35 0%, var(--bg-1) 65%);
+            color: var(--text);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* ─── Sidebar ─────────────────────────────────────────── */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: linear-gradient(180deg, var(--bg-2) 0%, #0a1828 100%);
+            border-left: 1px solid var(--border);
+            color: var(--text);
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            transition: var(--transition);
+            box-shadow: -4px 0 30px rgba(0,0,0,0.4);
+            z-index: 10;
+        }
+
+        .sidebar-header {
+            height: var(--header-height);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, rgba(86,224,255,0.08), rgba(139,124,255,0.08));
+            border-bottom: 1px solid var(--border);
+            font-size: 1.1rem;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            color: var(--text);
+            gap: 10px;
+            padding: 0 16px;
+        }
+
+        .sidebar-header i {
+            color: var(--accent);
+            font-size: 1.3rem;
+            filter: drop-shadow(0 0 6px rgba(86,224,255,0.5));
+        }
+
+        /* ─── Nav Container & Scrollbar ───────────────────────── */
+        .nav-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px 0;
+        }
+
+        .nav-container::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .nav-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .nav-container::-webkit-scrollbar-thumb {
+            background: rgba(86,224,255,0.2);
+            border-radius: 4px;
+        }
+
+        /* ─── Nav Category Labels ─────────────────────────────── */
+        .nav-category {
+            padding: 14px 20px 5px;
+            font-size: 0.68rem;
+            text-transform: uppercase;
+            color: var(--accent);
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            margin-top: 6px;
+            opacity: 0.7;
+        }
+
+        .nav-item { list-style: none; }
+
+        /* ─── Nav Link ────────────────────────────────────────── */
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 10px 18px;
+            color: var(--muted-strong);
+            text-decoration: none;
+            transition: var(--transition);
+            gap: 11px;
+            border-right: 3px solid transparent;
+            cursor: pointer;
+            font-size: 0.9rem;
+            border-radius: 0;
+        }
+
+        .nav-link:hover {
+            background: var(--glass);
+            color: var(--text);
+            border-right-color: var(--accent-3);
+        }
+
+        .nav-link.active {
+            background: linear-gradient(90deg, rgba(86,224,255,0.1), transparent);
+            color: var(--text);
+            border-right-color: var(--accent);
+        }
+
+        .nav-link i {
+            font-size: 1rem;
+            width: 22px;
+            text-align: center;
+            color: var(--accent);
+            transition: var(--transition);
+            flex-shrink: 0;
+        }
+
+        .nav-link:hover i { color: var(--accent-3); }
+        .nav-link.active i { color: var(--accent); filter: drop-shadow(0 0 5px rgba(86,224,255,0.6)); }
+
+        /* ─── Nav Parent (expandable) ─────────────────────────── */
+        .nav-parent {
+            display: flex;
+            align-items: center;
+            padding: 10px 18px;
+            color: var(--muted-strong);
+            text-decoration: none;
+            transition: var(--transition);
+            gap: 11px;
+            border-right: 3px solid transparent;
+            cursor: pointer;
+            user-select: none;
+            font-size: 0.9rem;
+        }
+        .nav-parent:hover {
+            background: var(--glass);
+            color: var(--text);
+            border-right-color: var(--accent-2);
+        }
+        .nav-parent i.nav-main-icon {
+            font-size: 1rem;
+            width: 22px;
+            text-align: center;
+            color: var(--accent);
+            transition: var(--transition);
+            flex-shrink: 0;
+        }
+        .nav-parent:hover i.nav-main-icon { color: var(--accent-3); }
+        .nav-parent .nav-chevron {
+            margin-right: auto;
+            font-size: 0.7rem;
+            color: rgba(255,255,255,0.25);
+            transition: transform 0.25s ease;
+        }
+        .nav-parent.open .nav-chevron { transform: rotate(180deg); }
+
+        .nav-sub-list {
+            list-style: none;
+            overflow: hidden;
+            max-height: 0;
+            transition: max-height 0.3s ease;
+        }
+        .nav-sub-list.open {
+            max-height: 3000px;
+            transition: max-height 0.5s ease;
+        }
+
+        /* ─── Level 2 sub-link ────────────────────────────────── */
+        .nav-sub-link {
+            display: flex;
+            align-items: center;
+            padding: 9px 18px;
+            padding-right: 46px;
+            color: var(--muted);
+            text-decoration: none;
+            transition: var(--transition);
+            gap: 9px;
+            border-right: 3px solid transparent;
+            cursor: pointer;
+            font-size: 0.87rem;
+        }
+        .nav-sub-link:hover,
+        .nav-sub-link.active {
+            background: var(--glass);
+            color: var(--text);
+            border-right-color: var(--accent-3);
+        }
+        .nav-sub-link i {
+            font-size: 0.88rem;
+            width: 18px;
+            text-align: center;
+            color: rgba(86,224,255,0.6);
+            transition: var(--transition);
+            flex-shrink: 0;
+        }
+        .nav-sub-link:hover i { color: var(--accent-3); }
+
+        /* ─── Level 3 sub-parent row ──────────────────────────── */
+        .nav-sub-parent-row {
+            display: flex;
+            align-items: center;
+            padding: 9px 18px;
+            padding-right: 46px;
+            color: rgba(183,196,214,0.75);
+            cursor: pointer;
+            gap: 9px;
+            border-right: 3px solid transparent;
+            transition: var(--transition);
+            font-size: 0.85rem;
+            font-weight: 600;
+            user-select: none;
+        }
+        .nav-sub-parent-row:hover {
+            background: var(--glass);
+            color: var(--text);
+            border-right-color: var(--accent-2);
+        }
+        .nav-sub-parent-row i.sub-icon {
+            font-size: 0.85rem;
+            width: 17px;
+            text-align: center;
+            color: rgba(139,124,255,0.7);
+            flex-shrink: 0;
+        }
+        .nav-sub-parent-row .sub-chevron {
+            margin-right: auto;
+            font-size: 0.6rem;
+            color: rgba(255,255,255,0.2);
+            transition: transform 0.22s ease;
+            flex-shrink: 0;
+        }
+        .nav-sub-parent-row.open .sub-chevron { transform: rotate(180deg); }
+
+        /* ─── Section divider label ───────────────────────────── */
+        .nav-sub-section-label {
+            padding: 8px 18px 2px;
+            padding-right: 58px;
+            font-size: 0.65rem;
+            color: rgba(255,255,255,0.22);
+            font-weight: 700;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            margin-top: 4px;
+        }
+
+        /* ─── Level 3 list ────────────────────────────────────── */
+        .nav-sub-sub-list {
+            list-style: none;
+            overflow: hidden;
+            max-height: 0;
+            transition: max-height 0.3s ease;
+        }
+        .nav-sub-sub-list.open { max-height: 1200px; }
+
+        /* ─── Level 3 link ────────────────────────────────────── */
+        .nav-sub-sub-link {
+            display: flex;
+            align-items: center;
+            padding: 7px 18px;
+            padding-right: 64px;
+            color: rgba(183,196,214,0.55);
+            cursor: pointer;
+            gap: 7px;
+            border-right: 3px solid transparent;
+            font-size: 0.8rem;
+            transition: var(--transition);
+            text-decoration: none;
+        }
+        .nav-sub-sub-link:hover {
+            background: rgba(139,124,255,0.06);
+            color: var(--text);
+            border-right-color: rgba(139,124,255,0.4);
+        }
+        .nav-sub-sub-link i {
+            font-size: 0.7rem;
+            width: 13px;
+            text-align: center;
+            color: rgba(139,124,255,0.5);
+            flex-shrink: 0;
+        }
+        .nav-sub-sub-link:hover i { color: var(--accent-3); }
+
+        /* ─── Main Content ───────────────────────────────────── */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            background: linear-gradient(160deg, #0c1c30 0%, var(--bg-1) 100%);
+        }
+
+        /* ─── Top Header ─────────────────────────────────────── */
+        .top-header {
+            height: var(--header-height);
+            background: var(--glass-header);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            z-index: 5;
+            gap: 10px;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .page-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+        }
+        .page-title i { color: var(--accent); flex-shrink: 0; }
+
+        /* ─── School pill ────────────────────────────────────── */
+        #activeSchoolDisplay {
+            background: rgba(30,230,168,0.09) !important;
+            border: 1px solid rgba(30,230,168,0.22) !important;
+            border-radius: 20px !important;
+            color: var(--accent-3) !important;
+            padding: 4px 12px !important;
+        }
+        #activeSchoolDisplay i { color: var(--accent-3) !important; }
+        #activeSchoolDisplay span { color: var(--accent-3) !important; }
+
+        /* ─── iframe container ───────────────────────────────── */
+        .iframe-container {
+            flex: 1;
+            padding: 14px;
+            overflow: hidden;
+            display: flex;
+            position: relative;
+        }
+
+        .app-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background-color: #fff;
+            border-radius: 14px;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.45), 0 0 0 1px var(--border);
+            transition: opacity 0.3s ease;
+            opacity: 0;
+            z-index: 3;
+        }
+
+        .app-iframe.loaded { opacity: 1; }
+
+        /* ─── Welcome screen ─────────────────────────────────── */
+        .welcome-screen {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background:
+                radial-gradient(ellipse at 50% 20%, rgba(86,224,255,0.06) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 80%, rgba(139,124,255,0.05) 0%, transparent 50%),
+                linear-gradient(160deg, rgba(13,27,42,0.98) 0%, rgba(7,17,31,1) 100%);
+            z-index: 2;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .welcome-icon {
+            font-size: 4.5rem;
+            color: var(--accent);
+            margin-bottom: 24px;
+            animation: float 3s ease-in-out infinite;
+            filter: drop-shadow(0 0 22px rgba(86,224,255,0.45));
+        }
+
+        .welcome-title {
+            font-size: 2.2rem;
+            color: var(--text);
+            margin-bottom: 14px;
+            font-weight: 800;
+        }
+
+        .welcome-subtitle {
+            font-size: 1.05rem;
+            color: var(--muted-strong);
+            max-width: 540px;
+            line-height: 1.7;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50%       { transform: translateY(-13px); }
+        }
+
+        /* ─── Loader ─────────────────────────────────────────── */
+        .loader-container {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1;
+            display: none;
+        }
+
+        .loader {
+            width: 46px;
+            height: 46px;
+            border: 4px solid rgba(86,224,255,0.12);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.85s linear infinite;
+            filter: drop-shadow(0 0 8px rgba(86,224,255,0.45));
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ─── Menu toggle ────────────────────────────────────── */
+        .menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 1.4rem;
+            color: var(--muted-strong);
+            cursor: pointer;
+            padding: 4px;
+        }
+        .menu-toggle:hover { color: var(--text); }
+
+        /* ─── Responsive ─────────────────────────────────────── */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: absolute;
+                left: 100%;
+                transform: translateX(100%);
+            }
+            .sidebar.open {
+                left: auto;
+                right: 0;
+                transform: translateX(0);
+            }
+            .menu-toggle { display: block; }
+            .top-header {
+                padding: 0 10px;
+                gap: 6px;
+                flex-wrap: nowrap;
+                overflow: visible;
+            }
+            .header-right { flex-shrink: 0; gap: 5px; }
+            .page-title {
+                font-size: 0.95rem;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+        }
+
+        /* ─── Reduced Motion ─────────────────────────────────── */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        /* ─── Toast Notifications ────────────────────────────── */
+        #portal-toast-container {
+            position: fixed;
+            top: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            pointer-events: none;
+        }
+        .portal-toast {
+            pointer-events: auto;
+            min-width: 320px;
+            max-width: 480px;
+            background: rgba(13,27,42,0.97);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px var(--border);
+            padding: 14px 18px;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            animation: toastIn 0.3s cubic-bezier(.25,.8,.25,1);
+            border-right: 4px solid var(--accent);
+            font-size: 0.92rem;
+            line-height: 1.55;
+            direction: rtl;
+        }
+        .portal-toast.toast-error   { border-color: var(--danger); }
+        .portal-toast.toast-success { border-color: var(--accent-3); }
+        .portal-toast.toast-warning { border-color: var(--warning); }
+        .portal-toast .toast-icon { font-size: 1.3rem; flex-shrink: 0; margin-top: 1px; }
+        .portal-toast.toast-error   .toast-icon { color: var(--danger); }
+        .portal-toast.toast-success .toast-icon { color: var(--accent-3); }
+        .portal-toast.toast-warning .toast-icon { color: var(--warning); }
+        .portal-toast.toast-info    .toast-icon { color: var(--accent); }
+        .portal-toast .toast-body { flex: 1; color: var(--text); white-space: pre-line; }
+        .portal-toast .toast-close {
+            background: none; border: none; cursor: pointer;
+            color: var(--muted); font-size: 1rem; margin-top: -2px; padding: 0 2px;
+            flex-shrink: 0;
+        }
+        .portal-toast .toast-close:hover { color: var(--text); }
+        @keyframes toastIn {
+            from { opacity: 0; transform: translateY(-16px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ─── Tool Cards (3-tool nav) ────────────────────────── */
+        .nav-tool-card {
+            flex-direction: column;
+            align-items: flex-start;
+            padding: 14px 14px 12px;
+            gap: 0;
+            border-right: none !important;
+            margin: 5px 10px;
+            border-radius: 12px;
+            background: var(--glass);
+            border: 1px solid var(--border) !important;
+            transition: all 0.22s ease;
+            text-decoration: none;
+            display: flex;
+        }
+        .nav-tool-card:hover {
+            background: var(--glass-strong);
+            border-color: var(--border-strong) !important;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-sm);
+        }
+        .nav-tool-card.active {
+            background: linear-gradient(135deg, rgba(86,224,255,0.12), rgba(139,124,255,0.08));
+            border-color: rgba(86,224,255,0.4) !important;
+            box-shadow: 0 4px 20px rgba(86,224,255,0.15);
+        }
+        .nav-tool-icon-wrap {
+            width: 42px;
+            height: 42px;
+            border-radius: 11px;
+            border: 1px solid transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 10px;
+            transition: transform 0.2s;
+            flex-shrink: 0;
+        }
+        .nav-tool-card:hover .nav-tool-icon-wrap { transform: scale(1.08); }
+        .nav-tool-icon-wrap i {
+            font-size: 1.2rem;
+            width: auto !important;
+            flex-shrink: 0;
+            color: inherit !important;
+        }
+        .nav-tool-label {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--text);
+            line-height: 1.3;
+        }
+        /* neutralise the generic nav-link i override inside tool card */
+        .nav-tool-card .nav-tool-icon-wrap i.fa-solid,
+        .nav-tool-card .nav-tool-icon-wrap i.fa-regular { color: inherit !important; }
+    </style>
+</head>
+
+<body>
+    <div id="portal-toast-container"></div>
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <i class="fa-solid fa-compass"></i>
+            <span>כלים דיגיטליים</span>
+        </div>
+
+        <div class="nav-container">
+            <div class="nav-category">כלים דיגיטליים</div>
+
+            <!-- ── כלי 1: סיור במוזיאון ── -->
+            <div class="nav-item">
+                <a class="nav-link nav-tool-card" data-src="סיור במוזיאון.html"
+                    data-title="סיור במוזיאון">
+                    <span class="nav-tool-icon-wrap" style="background:linear-gradient(135deg,rgba(139,124,255,0.25),rgba(86,224,255,0.12));border-color:rgba(139,124,255,0.35);">
+                        <i class="fa-solid fa-building-columns" style="color:#8b7cff;"></i>
+                    </span>
+                    <span class="nav-tool-label">סיור במוזיאון</span>
+                </a>
+            </div>
+
+            <!-- ── כלי 2: סיור בבית הספר ── -->
+            <div class="nav-item">
+                <a class="nav-link nav-tool-card" data-src="סיור בבית הספר.html"
+                    data-title="סיור בבית הספר">
+                    <span class="nav-tool-icon-wrap" style="background:linear-gradient(135deg,rgba(30,230,168,0.2),rgba(86,224,255,0.1));border-color:rgba(30,230,168,0.35);">
+                        <i class="fa-solid fa-school" style="color:#1ee6a8;"></i>
+                    </span>
+                    <span class="nav-tool-label">סיור בבית הספר</span>
+                </a>
+            </div>
+
+            <!-- ── כלי 3: לוח בחירה מסלול ── -->
+            <div class="nav-item">
+                <a class="nav-link nav-tool-card" data-src="לוח בחירה מסלול.html"
+                    data-title="לוח בחירה מסלול">
+                    <span class="nav-tool-icon-wrap" style="background:linear-gradient(135deg,rgba(255,180,84,0.2),rgba(255,107,107,0.1));border-color:rgba(255,180,84,0.35);">
+                        <i class="fa-solid fa-map-location-dot" style="color:#ffb454;"></i>
+                    </span>
+                    <span class="nav-tool-label">לוח בחירה מסלול</span>
+                </a>
+            </div>
+
+    </aside>
+
+    <main class="main-content">
+        <header class="top-header">
+            <div class="header-left">
+                <div class="page-title" id="pageTitle">
+                    <i class="fa-solid fa-house"></i>
+                    <span>מסך הבית</span>
+                </div>
+                <div id="activeSchoolDisplay"
+                    class="hidden items-center gap-2 px-4 py-1.5 rounded-full"
+                    style="background:rgba(30,230,168,0.09);border:1px solid rgba(30,230,168,0.22);">
+                    <i class="fa-solid fa-school" style="color:#1ee6a8;"></i>
+                    <span style="color:#1ee6a8;font-weight:700;font-size:0.88rem;">מוסד: <span id="activeSchoolName"></span></span>
+                </div>
+            </div>
+            <div class="header-right">
+                <!-- כפתור שיתוף — מוצג רק כשבית ספר טעון -->
+                <button id="shareViewBtn" onclick="window.copyViewLink()"
+                    title="העתק קישור לצפייה עבור מחוזית / מפקח / מנהל"
+                    style="display:none; align-items:center; gap:6px; padding:7px 14px;
+                    border-radius:8px; border:1px solid rgba(86,224,255,0.3);
+                    background:rgba(86,224,255,0.08); color:var(--accent);
+                    font-family:'Heebo',sans-serif; font-size:0.85rem; font-weight:600;
+                    cursor:pointer; transition:all 0.2s; white-space:nowrap;">
+                    <i class="fa-solid fa-share-nodes"></i> שתף לצפייה
+                </button>
+                <button onclick="window.resetPortal()"
+                    style="display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;
+                    border:1px solid rgba(255,107,107,0.35);background:rgba(255,107,107,0.08);
+                    color:#ff6b6b;cursor:pointer;font-family:'Heebo',sans-serif;font-weight:600;
+                    font-size:0.85rem;transition:all 0.2s;"
+                    onmouseover="this.style.background='rgba(255,107,107,0.18)'"
+                    onmouseout="this.style.background='rgba(255,107,107,0.08)'"
+                    title="חזרה למסך הפתיחה">
+                    <i class="fa-solid fa-house"></i> חזרה למסך הפתיחה
+                </button>
+                <button class="menu-toggle" id="menuToggle">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+            </div>
+        </header>
+
+        <div class="iframe-container">
+            <div class="welcome-screen" id="welcomeScreen">
+                <i class="fa-solid fa-compass welcome-icon"></i>
+                <h1 class="welcome-title">כלים דיגיטליים להוראה הכלה והשתלבות</h1>
+                <p class="welcome-subtitle">
+                    בחר כלי מהתפריט הימני כדי להתחיל.
+                </p>
+                <!-- כרטיסי כלים מהירים -->
+                <div style="display:flex;gap:16px;margin-top:36px;flex-wrap:wrap;justify-content:center;">
+                    <button onclick="document.querySelector('.nav-link[data-src=\"סיור במוזיאון.html\"]').click()"
+                        style="display:flex;flex-direction:column;align-items:center;gap:10px;
+                        padding:22px 28px;border-radius:14px;cursor:pointer;transition:all 0.22s;
+                        border:1px solid rgba(139,124,255,0.35);
+                        background:linear-gradient(135deg,rgba(139,124,255,0.14),rgba(86,224,255,0.07));
+                        color:#f4f7fb;font-family:'Heebo',sans-serif;min-width:150px;"
+                        onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 28px rgba(139,124,255,0.25)'"
+                        onmouseout="this.style.transform='';this.style.boxShadow=''">
+                        <i class="fa-solid fa-building-columns" style="font-size:2rem;color:#8b7cff;filter:drop-shadow(0 0 8px rgba(139,124,255,0.5));"></i>
+                        <span style="font-size:0.95rem;font-weight:700;">סיור במוזיאון</span>
+                    </button>
+                    <button onclick="document.querySelector('.nav-link[data-src=\"סיור בבית הספר.html\"]').click()"
+                        style="display:flex;flex-direction:column;align-items:center;gap:10px;
+                        padding:22px 28px;border-radius:14px;cursor:pointer;transition:all 0.22s;
+                        border:1px solid rgba(30,230,168,0.35);
+                        background:linear-gradient(135deg,rgba(30,230,168,0.12),rgba(86,224,255,0.07));
+                        color:#f4f7fb;font-family:'Heebo',sans-serif;min-width:150px;"
+                        onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 28px rgba(30,230,168,0.2)'"
+                        onmouseout="this.style.transform='';this.style.boxShadow=''">
+                        <i class="fa-solid fa-school" style="font-size:2rem;color:#1ee6a8;filter:drop-shadow(0 0 8px rgba(30,230,168,0.5));"></i>
+                        <span style="font-size:0.95rem;font-weight:700;">סיור בבית הספר</span>
+                    </button>
+                    <button onclick="document.querySelector('.nav-link[data-src=\"לוח בחירה מסלול.html\"]').click()"
+                        style="display:flex;flex-direction:column;align-items:center;gap:10px;
+                        padding:22px 28px;border-radius:14px;cursor:pointer;transition:all 0.22s;
+                        border:1px solid rgba(255,180,84,0.35);
+                        background:linear-gradient(135deg,rgba(255,180,84,0.12),rgba(255,107,107,0.07));
+                        color:#f4f7fb;font-family:'Heebo',sans-serif;min-width:150px;"
+                        onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 28px rgba(255,180,84,0.2)'"
+                        onmouseout="this.style.transform='';this.style.boxShadow=''">
+                        <i class="fa-solid fa-map-location-dot" style="font-size:2rem;color:#ffb454;filter:drop-shadow(0 0 8px rgba(255,180,84,0.5));"></i>
+                        <span style="font-size:0.95rem;font-weight:700;">לוח בחירה מסלול</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="loader-container" id="loader">
+                <div class="loader"></div>
+            </div>
+
+            <iframe src="about:blank" class="app-iframe" id="appIframe" title="Application View"></iframe>
+        </div>
+    </main>
+
+    <script>
+    // ═══════════════════════════════════════════════════════════════════
+    // OFFLINE DETECTION — warn if data_manager.js failed to load
+    // ═══════════════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════════════
+    // OFFLINE DETECTION — warn if data_manager.js failed to load
+    // ═══════════════════════════════════════════════════════════════════
+    (function checkDataManagerLoaded() {
+        if (typeof DataManager !== 'undefined') return; // all good
+        document.addEventListener('DOMContentLoaded', () => {
+            const banner = document.createElement('div');
+            banner.style.cssText =
+                'position:fixed;top:0;left:0;right:0;z-index:99999;' +
+                'background:rgba(255,107,107,0.95);backdrop-filter:blur(8px);color:#fff;text-align:center;direction:rtl;' +
+                'padding:13px 20px;font-family:Heebo,sans-serif;font-size:0.95rem;' +
+                'font-weight:600;box-shadow:0 3px 14px rgba(0,0,0,0.4);';
+            banner.innerHTML =
+                '⚠️ <strong>שגיאה:</strong> הקובץ <code style="background:rgba(0,0,0,0.25);padding:1px 5px;border-radius:3px;">data_manager.js</code> ' +
+                'לא נטען — שמירה לתיקייה לא תהיה זמינה. ודא שהקובץ נמצא באותה תיקייה כמו index.html ורענן.' +
+                '<button onclick="location.reload()" style="margin-right:14px;padding:5px 14px;' +
+                'border-radius:6px;border:1px solid rgba(255,255,255,0.7);background:rgba(255,255,255,0.15);' +
+                'color:#fff;cursor:pointer;font-family:Heebo,sans-serif;font-weight:600;">רענן</button>';
+            document.body.prepend(banner);
+        });
+    })();
+
+    // ═══════════════════════════════════════════════════════════════════
+    // SUPABASE — סנכרון ענן עבור hakala ו-yesodi בלבד
+    // ═══════════════════════════════════════════════════════════════════
+    // ⬇️ החלף את הערכים הבאים בפרטי הפרויקט שלך מ-Supabase Dashboard
+    const SUPABASE_URL       = 'https://skutmknvlbbmhnpcthpn.supabase.co';
+    const SUPABASE_ANON_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNrdXRta252bGJibWhucGN0aHBuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3NDM4NjYsImV4cCI6MjA4ODMxOTg2Nn0.VJoRL-abdhwMi3eaU7jXXA_va3Cx4Fxc7_1zKqwBdck';
+
+    // מרחבים שמסונכרנים לענן — שאר הנתונים (תלמידים וכו') נשארים מקומיים בלבד
+    const CLOUD_SYNC_TYPES = ['hakala', 'yesodi'];
+
+    // אתחול Supabase — רק אם ה-SDK נטען ו-config תקין
+    let _supabase = null;
+    try {
+        if (typeof window.supabase !== 'undefined' &&
+            !SUPABASE_URL.includes('REPLACE_ME') &&
+            !SUPABASE_ANON_KEY.includes('REPLACE_ME')) {
+            _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            if (window.DEBUG) console.log('☁️ Supabase מאותחל');
+        }
+    } catch(_e) {
+        console.warn('Supabase init failed:', _e.message);
+    }
+
+    // סנכרון לענן — non-fatal, לא מפריע לשמירה המקומית
+    async function syncToSupabase(schoolName, year, docType, payload) {
+        if (!_supabase)                              return; // לא מוגדר — דלג
+        if (!CLOUD_SYNC_TYPES.includes(docType))     return; // רק hakala + yesodi
+        try {
+            const { error } = await _supabase
+                .from('plans')
+                .upsert({
+                    school_name: schoolName,
+                    year:        year,
+                    doc_type:    docType,
+                    content:     payload,
+                    updated_at:  new Date().toISOString(),
+                    updated_by:  schoolName
+                }, { onConflict: 'school_name,year,doc_type' });
+
+            if (error) throw error;
+            if (window.DEBUG) console.log(`☁️ סונכרן לענן: ${docType} / ${schoolName}`);
+        } catch (err) {
+            // שגיאת ענן לא עוצרת את השמירה המקומית
+            console.warn('Cloud sync failed (non-fatal):', err.message);
+            showPortalToast(
+                '☁️ השמירה המקומית הצליחה. סנכרון הענן נכשל — ינסה שוב בשמירה הבאה.',
+                'warning', 5000
+            );
+        }
+    }
+
+    // העתקת קישור צפייה ללוח
+    window.copyViewLink = function () {
+        const school = window._unifiedState?.school;
+        const year   = window._unifiedState?.year;
+        if (!school) {
+            showPortalToast('טען קובץ קודם כדי לשתף.', 'warning', 4000);
+            return;
+        }
+        const base = window.location.origin + '/';
+        const url  = base + 'view.html?school=' + encodeURIComponent(school)
+                   + (year ? '&year=' + encodeURIComponent(year) : '');
+        navigator.clipboard.writeText(url).then(() => {
+            showPortalToast(`🔗 קישור הועתק:\n${school} — ${year || ''}`, 'success', 5000);
+        }).catch(() => {
+            // fallback אם clipboard לא זמין
+            prompt('העתק קישור זה:', url);
+        });
+    };
+
+    // ═══════════════════════════════════════════════════════════════════
+    // ARENA REGISTRY — maps every iframe src to a docType and label
+    // ═══════════════════════════════════════════════════════════════════
+    const ARENA_REGISTRY = {
+        'סיור במוזיאון.html':      { docType: 'museum',  label: 'סיור במוזיאון' },
+        'סיור בבית הספר.html':     { docType: 'school',  label: 'סיור בבית הספר' },
+        'לוח בחירה מסלול.html':   { docType: 'board',   label: 'לוח בחירה מסלול' }
+    };
+
+    // Reverse: docType → src
+    const DOCTYPE_TO_SRC = {};
+    Object.entries(ARENA_REGISTRY).forEach(([src, { docType }]) => {
+        DOCTYPE_TO_SRC[docType] = src;
+    });
+
+    // ═══════════════════════════════════════════════════════════════════
+    // UNIFIED STATE
+    // Each arena's latest payload is cached here the moment it is saved
+    // or loaded. This is the single source of truth for "שמור הכל".
+    // ═══════════════════════════════════════════════════════════════════
+    window._unifiedState = {
+        school: '',
+        year: 'תשפ"ו',
+        arenas: {}   // docType → payload
+    };
+
+    // ── Dirty State — tracks unsaved changes ────────────────────────────
+    let _isDirty          = false;
+    let _lastSaveSnapshot = '{}';  // JSON snapshot of arenas at last save
+
+    function markDirty() {
+        if (_isDirty) return;
+        _isDirty = true;
+        document.getElementById('saveAllBtn')?.classList.add('dirty');
+        updateSaveAllTooltip();
+    }
+    function markClean() {
+        _isDirty = false;
+        _lastSaveSnapshot = JSON.stringify(window._unifiedState.arenas);
+        document.getElementById('saveAllBtn')?.classList.remove('dirty');
+        updateSaveAllTooltip();
+        // שמור snapshot ב-sessionStorage לשחזור אם הדף נסגר בטעות
+        try {
+            sessionStorage.setItem('_portalStateSnapshot', JSON.stringify(window._unifiedState));
+        } catch(_e) {}
+        // הצג כפתור שיתוף כשיש בית ספר טעון עם תוכן מסונכרן
+        _updateShareBtn();
+    }
+
+    function _updateShareBtn() {
+        const btn    = document.getElementById('shareViewBtn');
+        if (!btn) return;
+        const school = window._unifiedState?.school;
+        const arenas = window._unifiedState?.arenas || {};
+        const hasSyncable = CLOUD_SYNC_TYPES.some(t => arenas[t]);
+        const show = !!(school && hasSyncable && _supabase);
+        btn.style.display = show ? 'flex' : 'none';
+    }
+
+    // ── Tooltip updater ──────────────────────────────────────────────────
+    function updateSaveAllTooltip() {
+        const btn    = document.getElementById('saveAllBtn');
+        if (!btn) return;
+        const count  = Object.keys(window._unifiedState.arenas).length;
+        const dirty  = _isDirty ? ' • ישנם שינויים שלא נשמרו' : '';
+        btn.title    = count > 0
+            ? `שמור את כל הזירות הפתוחות בתיק מוסד מאוחד (${count} זירות פעילות)${dirty}`
+            : `שמור את כל הזירות הפתוחות בתיק מוסד מאוחד${dirty}`;
+    }
+
+    // ── Save debounce — prevent double-saves from rapid save-request ─────
+    let _saveRequestDebounceTimer = null;
+    function debounced_saveRequest(fn) {
+        clearTimeout(_saveRequestDebounceTimer);
+        _saveRequestDebounceTimer = setTimeout(fn, 1000);
+    }
+
+    // ── Save history log (accessible from console) ───────────────────────
+    window.saveHistory = [];
+    function logSave(schoolName, arenaCount, mode) {
+        window.saveHistory.push({
+            timestamp:  new Date().toISOString(),
+            schoolName,
+            arenaCount,
+            mode
+        });
+        if (window.saveHistory.length > 50) window.saveHistory.shift(); // keep last 50
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // AUTO-BACKUP — keeps last 3 versions before overwriting a file
+    // ═══════════════════════════════════════════════════════════════════
+    const MAX_BACKUPS = 3;
+
+    async function saveWithBackup(school, year, docType, payload) {
+        try {
+            if (DataManager.isReady()) {
+                const docs = await DataManager.listDocuments(school, year);
+                const backupRe = new RegExp(`^${docType}_backup_(\\d+)\\.json$`);
+                const existing = docs
+                    .map(d => { const m = d.name.match(backupRe); return m ? { name: d.name, n: parseInt(m[1]) } : null; })
+                    .filter(Boolean)
+                    .sort((a, b) => b.n - a.n);
+
+                const currentDoc = docs.find(d => d.name === `${docType}.json`);
+                if (currentDoc) {
+                    const currentRaw = await DataManager.loadDocument(school, year, currentDoc.name);
+                    if (currentRaw) {
+                        // Shift old backups: backup_2→3, backup_1→2
+                        for (let i = Math.min(existing.length, MAX_BACKUPS - 1); i >= 1; i--) {
+                            const src = existing.find(e => e.n === i);
+                            if (src) {
+                                const old = await DataManager.loadDocument(school, year, src.name);
+                                if (old) await DataManager.saveDocument(school, year, `${docType}_backup_${i + 1}`, old);
+                            }
+                        }
+                        // Save current → backup_1
+                        await DataManager.saveDocument(school, year, `${docType}_backup_1`, currentRaw);
+                    }
+                }
+            }
+        } catch (backupErr) {
+            if (window.DEBUG) console.warn('Auto-backup error (non-fatal):', backupErr);
+        }
+        return DataManager.saveDocument(school, year, docType, payload);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // ZIP EXPORT — downloads all school data as a ZIP archive
+    // ═══════════════════════════════════════════════════════════════════
+    // ── ZIP School-Picker Modal ──────────────────────────────────────────
+    function _buildZipModal(schools) {
+        // Remove any existing modal
+        document.getElementById('zipModal')?.remove();
+
+        const overlay = document.createElement('div');
+        overlay.id = 'zipModal';
+        overlay.style.cssText =
+            'position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.55);' +
+            'display:flex;align-items:center;justify-content:center;direction:rtl;';
+
+        const box = document.createElement('div');
+        box.style.cssText =
+            'background:rgba(13,27,42,0.98);border:1px solid rgba(255,255,255,0.12);border-radius:16px;padding:28px 32px;min-width:340px;max-width:460px;' +
+            'box-shadow:0 20px 60px rgba(0,0,0,0.6);font-family:Heebo,sans-serif;color:#f4f7fb;';
+
+        const checkboxesHtml = schools.map(s => `
+            <label style="display:flex;align-items:center;gap:10px;padding:8px 10px;
+                border-radius:7px;cursor:pointer;transition:background 0.15s;"
+                onmouseover="this.style.background='rgba(86,224,255,0.07)'" onmouseout="this.style.background=''">
+                <input type="checkbox" value="${s}" checked
+                    style="width:16px;height:16px;accent-color:#56e0ff;cursor:pointer;">
+                <span style="font-size:0.95rem;color:#f4f7fb;">${s}</span>
+            </label>`).join('');
+
+        box.innerHTML = `
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;">
+                <i class="fa-solid fa-file-zipper" style="color:#56e0ff;font-size:1.4rem;"></i>
+                <h3 style="margin:0;font-size:1.15rem;font-weight:800;color:#f4f7fb;">ייצוא גיבוי ZIP</h3>
+            </div>
+            <p style="font-size:0.87rem;color:#8da4be;margin-bottom:14px;">
+                בחר את בתי הספר שברצונך לכלול בקובץ הגיבוי:
+            </p>
+            <div id="zipSchoolList" style="max-height:260px;overflow-y:auto;
+                border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:6px;background:rgba(0,0,0,0.2);">
+                ${checkboxesHtml}
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;margin-bottom:18px;">
+                <button onclick="document.querySelectorAll('#zipSchoolList input').forEach(c=>c.checked=true)"
+                    style="background:none;border:none;color:#56e0ff;cursor:pointer;font-family:Heebo,sans-serif;font-size:0.82rem;text-decoration:underline;">בחר הכל</button>
+                <button onclick="document.querySelectorAll('#zipSchoolList input').forEach(c=>c.checked=false)"
+                    style="background:none;border:none;color:#8da4be;cursor:pointer;font-family:Heebo,sans-serif;font-size:0.82rem;text-decoration:underline;">נקה הכל</button>
+            </div>
+            <div style="display:flex;gap:10px;justify-content:flex-end;">
+                <button onclick="document.getElementById('zipModal').remove()"
+                    style="padding:9px 20px;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);
+                    color:#b7c4d6;cursor:pointer;font-family:Heebo,sans-serif;font-weight:600;">ביטול</button>
+                <button id="zipConfirmBtn" onclick="window._doExportZip()"
+                    style="padding:9px 22px;border-radius:8px;border:1px solid rgba(86,224,255,0.35);
+                    background:linear-gradient(135deg,rgba(86,224,255,0.2),rgba(139,124,255,0.2));color:#56e0ff;
+                    cursor:pointer;font-family:Heebo,sans-serif;font-weight:700;
+                    box-shadow:0 3px 12px rgba(86,224,255,0.2);">
+                    <i class="fa-solid fa-download"></i> ייצא ZIP
+                </button>
+            </div>`;
+
+        overlay.appendChild(box);
+        // Close on backdrop click
+        overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+        document.body.appendChild(overlay);
+    }
+
+    async function handleExportZip() {
+        if (!DataManager.isReady()) {
+            showPortalToast('כדי לייצא ZIP יש לבחור תיקיית עבודה תחילה.', 'warning', 5000);
+            return;
+        }
+        if (typeof JSZip === 'undefined') {
+            showPortalToast('ספריית ZIP לא נטענה — ודא חיבור לאינטרנט ורענן.', 'error', 6000);
+            return;
+        }
+        try {
+            const schools = await DataManager.listSchools();
+            if (schools.length === 0) {
+                showPortalToast('אין נתונים לייצוא — התיקייה ריקה.', 'warning', 5000);
+                return;
+            }
+            _buildZipModal(schools);
+        } catch (err) {
+            showPortalToast('שגיאה בטעינת רשימת בתי הספר: ' + err.message, 'error', 6000);
+        }
+    }
+
+    // Called by the modal confirm button
+    window._doExportZip = async function () {
+        const checked = [...document.querySelectorAll('#zipSchoolList input:checked')].map(c => c.value);
+        if (checked.length === 0) {
+            showPortalToast('יש לבחור לפחות בית ספר אחד.', 'warning', 4000);
+            return;
+        }
+
+        const confirmBtn = document.getElementById('zipConfirmBtn');
+        confirmBtn.disabled = true;
+        confirmBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> מכין...';
+
+        try {
+            const zip = new JSZip();
+            let totalFiles = 0;
+
+            for (const school of checked) {
+                const years = await DataManager.listYears(school);
+                for (const year of years) {
+                    const docs = await DataManager.listDocuments(school, year);
+                    for (const doc of docs) {
+                        if (doc.name.includes('_backup_')) continue; // keep ZIP clean
+                        try {
+                            const raw = await DataManager.loadDocument(school, year, doc.name);
+                            if (raw) {
+                                zip.file(`${school}/${year}/${doc.name}`, JSON.stringify(raw, null, 2));
+                                totalFiles++;
+                            }
+                        } catch (e) {
+                            if (window.DEBUG) console.warn('ZIP: skip', doc.name, e);
+                        }
+                    }
+                }
+            }
+
+            if (totalFiles === 0) {
+                showPortalToast('לא נמצאו קבצים לייצוא עבור הבחירה שנעשתה.', 'warning', 5000);
+                return;
+            }
+
+            const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+            const url  = URL.createObjectURL(blob);
+            const a    = document.createElement('a');
+            const schoolLabel = checked.length === 1 ? checked[0] : `${checked.length}_בתי_ספר`;
+            a.href     = url;
+            a.download = `גיבוי_${schoolLabel}_${new Date().toISOString().slice(0, 10)}.zip`;
+            a.click();
+            setTimeout(() => URL.revokeObjectURL(url), 5000);
+
+            document.getElementById('zipModal')?.remove();
+            showPortalToast(`✅ ZIP יוצא — ${totalFiles} קבצים מ-${checked.length} בתי ספר.`, 'success', 6000);
+        } catch (err) {
+            console.error('ZIP export error:', err);
+            showPortalToast('שגיאה בייצוא ZIP: ' + err.message, 'error', 7000);
+            confirmBtn.disabled = false;
+            confirmBtn.innerHTML = '<i class="fa-solid fa-download"></i> ייצא ZIP';
+        }
+    };
+
+    // ── beforeunload — warn if there are unsaved changes ───────────────
+    window.addEventListener('beforeunload', (e) => {
+        if (_isDirty) {
+            e.preventDefault();
+            e.returnValue = 'ישנם שינויים שלא נשמרו. האם לעזוב את הדף?';
+        }
+    });
+
+    // ───────────────────────────────────────────────────────────────────
+    // Save the unified (all-arenas) file to disk
+    // ───────────────────────────────────────────────────────────────────
+    async function saveUnifiedFile() {
+        const { school, year, arenas } = window._unifiedState;
+        if (!school || Object.keys(arenas).length === 0) return null;
+
+        const payload = {
+            docType:   'unified',
+            version:   '1.0',
+            schoolName: school,
+            year,
+            savedAt:   new Date().toISOString(),
+            arenas     // { docType: payload, ... }
+        };
+
+        return saveWithBackup(school, year, 'unified', payload);
+    }
+
+    // ───────────────────────────────────────────────────────────────────
+    // "שמור הכל" — triggered manually by the button
+    // ───────────────────────────────────────────────────────────────────
+    // ═══════════════════════════════════════════════════════════════════
+    // TOAST NOTIFICATIONS (replaces browser alert)
+    // ═══════════════════════════════════════════════════════════════════
+    function showPortalToast(message, type = 'info', duration = 5000) {
+        const container = document.getElementById('portal-toast-container');
+        const icons = { error: '❌', success: '✅', warning: '⚠️', info: 'ℹ️' };
+        const toast = document.createElement('div');
+        toast.className = `portal-toast toast-${type}`;
+        toast.innerHTML = `
+            <span class="toast-icon">${icons[type] || 'ℹ️'}</span>
+            <span class="toast-body">${message}</span>
+            <button class="toast-close" title="סגור">✕</button>`;
+        toast.querySelector('.toast-close').onclick = () => toast.remove();
+        container.appendChild(toast);
+        if (duration > 0) setTimeout(() => toast.remove(), duration);
+    }
+
+    window.handleSaveAll = async function () {
+        const btn = document.getElementById('saveAllBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> אוסף נתונים...';
+
+        try {
+            // ── שלב 1: ודא שכל iframe רשום טעון ב-DOM ──────────────────
+            // דלג על מרחבים שכבר נטענו ויש להם נתונים ב-unifiedState
+            const container = document.querySelector('.iframe-container');
+            for (const src of Object.keys(ARENA_REGISTRY)) {
+                const { docType } = ARENA_REGISTRY[src];
+                const alreadyCached   = !!window._unifiedState.arenas[docType];
+                const alreadyInDOM    = !!container.querySelector(`iframe[data-url="${src}"]`);
+                if (!alreadyInDOM) {
+                    if (alreadyCached) continue; // נתונים קיימים — אין צורך לטעון
+                    await preloadIframe(src);
+                    await new Promise(r => setTimeout(r, 800)); // זמן טעינה ל-iframe חדש
+                }
+            }
+
+            // ── שלב 2: בקש נתונים מכל iframe ───────────────────────────
+            const iframes = Array.from(
+                container.querySelectorAll('iframe[data-url]')
+            );
+
+            const dataPromises = iframes.map(iframe => {
+                const src      = iframe.getAttribute('data-url');
+                const registry = ARENA_REGISTRY[src];
+                if (!registry) return Promise.resolve(null);
+
+                return new Promise(resolve => {
+                    let _resolved = false;
+                    const done = (value) => {
+                        if (_resolved) return;
+                        _resolved = true;
+                        clearTimeout(timeout);
+                        window.removeEventListener('message', handler); // always remove
+                        resolve(value);
+                    };
+
+                    const timeout = setTimeout(() => {
+                        done(null); // timeout — המשך בלי נתונים מזירה זו
+                    }, 6000);
+
+                    const handler = (e) => {
+                        if (e.data?.type === 'save-request' &&
+                            e.data?.docType === registry.docType) {
+                            const payload = e.data.payload || {};
+                            window._unifiedState.arenas[registry.docType] = payload;
+                            if (payload.schoolName && !window._unifiedState.school) {
+                                window._unifiedState.school = payload.schoolName;
+                            }
+                            done(payload);
+                        }
+                    };
+                    window.addEventListener('message', handler);
+                    try {
+                        iframe.contentWindow.postMessage({ type: 'request-data' }, '*');
+                    } catch(_e) {
+                        done(null);
+                    }
+                });
+            });
+
+            await Promise.all(dataPromises);
+
+            // ── שלב 3: וודא שיש שם מוסד ונתונים ───────────────────────
+            const school = window._unifiedState.school ||
+                           document.getElementById('activeSchoolName')?.textContent?.trim() || '';
+
+            if (!school || school === '---') {
+                showPortalToast('לא ניתן לשמור — שם המוסד עדיין לא הוזן.\n\nפתח אחת הזירות, הזן שם מוסד ולחץ שמירה, ואז לחץ שוב על שמור הכל.', 'warning', 8000);
+                return;
+            }
+
+            // סנן זירות ריקות (iframes שלא ענו או שאין בהם נתונים)
+            const nonEmptyArenas = Object.fromEntries(
+                Object.entries(window._unifiedState.arenas).filter(([, v]) => v && Object.keys(v).length > 0)
+            );
+            window._unifiedState.arenas = nonEmptyArenas;
+
+            const arenaCount = Object.keys(window._unifiedState.arenas).length;
+            if (arenaCount === 0) {
+                showPortalToast('אין נתונים לשמירה.\nפתח לפחות זירה אחת ובצע שמירה ממנה.', 'warning', 6000);
+                return;
+            }
+
+            // ── שלב 4: שמור ─────────────────────────────────────────────
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> שומר...';
+            window._unifiedState.school = school;
+
+            const result = await saveUnifiedFile();
+            let msg;
+            if (result?.mode === 'folder') {
+                const names = Object.keys(window._unifiedState.arenas)
+                    .map(dt => ARENA_REGISTRY[DOCTYPE_TO_SRC[dt]]?.label || dt)
+                    .join(', ');
+                msg = `✅ תיק מוסד שמור!\n\nמוסד: ${school}\nזירות: ${names}`;
+                markClean();
+                logSave(school, Object.keys(window._unifiedState.arenas).length, 'folder');
+                refreshTree();
+            } else if (result?.mode === 'error') {
+                msg = '⚠️ שגיאה בכתיבה לתיקייה — הקובץ הורד במקום.';
+                logSave(school, Object.keys(window._unifiedState.arenas).length, 'error');
+            } else {
+                msg = '⚠️ תיקיית עבודה לא הוגדרה — הקובץ הורד כ-JSON.\nכדי לשמור בתיקייה, לחץ "בחר תיקיית עבודה" בסרגל הצד.';
+                logSave(school, Object.keys(window._unifiedState.arenas).length, 'download');
+            }
+            showPortalToast(msg.replace(/^[^\w֐-׿]/, '').trim(), msg.startsWith('✅') ? 'success' : msg.startsWith('❌') ? 'error' : 'warning', 7000);
+        } catch (err) {
+            console.error('Save all error:', err);
+            showPortalToast('שגיאה בשמירה: ' + err.message, 'error', 8000);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> שמור הכל';
+        }
+    };
+
+    // ═══════════════════════════════════════════════════════════════════
+    // IFRAME MANAGEMENT
+    // ═══════════════════════════════════════════════════════════════════
+    function showIframe(src) {
+        return new Promise((resolve) => {
+            const container = document.querySelector('.iframe-container');
+            const welcomeScreen = document.getElementById('welcomeScreen');
+            const loader = document.getElementById('loader');
+            const sidebar = document.getElementById('sidebar');
+
+            welcomeScreen.style.display = 'none';
+            if (window.innerWidth <= 768) sidebar.classList.remove('open');
+
+            // Fade out + hide all iframes (שמור reference לפני שינוי target)
+            const iframesToHide = [...container.querySelectorAll('iframe')];
+            iframesToHide.forEach(f => {
+                f.removeAttribute('id');
+                f.style.transition = 'opacity 0.2s ease';
+                f.style.opacity = '0';
+            });
+
+            let targetIframe = container.querySelector(`iframe[data-url="${src}"]`);
+
+            // הסתר את הישנים אחרי האנימציה — אבל לא את ה-target החדש
+            setTimeout(() => {
+                iframesToHide.forEach(f => {
+                    if (f === targetIframe) return; // אל תסתיר את ה-target
+                    f.style.visibility = 'hidden';
+                    f.style.pointerEvents = 'none';
+                    f.style.zIndex = '1';
+                });
+            }, 200);
+
+            if (!targetIframe) {
+                loader.style.display = 'block';
+                targetIframe = document.createElement('iframe');
+                targetIframe.setAttribute('data-url', src);
+                targetIframe.src = src;
+                targetIframe.style.cssText =
+                    'position:absolute;top:0;left:0;width:100%;height:100%;' +
+                    'border:none;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,0.08);' +
+                    'transition:opacity 0.3s;opacity:0;visibility:hidden;pointer-events:none;';
+                targetIframe.onload = () => {
+                    loader.style.display = 'none';
+                    targetIframe.style.opacity = '1';
+                    targetIframe.style.visibility = 'visible';
+                    targetIframe.style.pointerEvents = 'auto';
+                    resolve(targetIframe);
+                };
+                container.appendChild(targetIframe);
+            } else {
+                targetIframe.style.opacity = '1';
+                targetIframe.style.visibility = 'visible';
+                targetIframe.style.pointerEvents = 'auto';
+                resolve(targetIframe);
+            }
+
+            targetIframe.id = 'appIframe';
+            targetIframe.style.zIndex = '10';
+        });
+    }
+
+    // Load an iframe in the background (invisible) and wait for it to be ready
+    function preloadIframe(src) {
+        return new Promise((resolve) => {
+            const container = document.querySelector('.iframe-container');
+            let iframe = container.querySelector(`iframe[data-url="${src}"]`);
+            if (iframe) { resolve(iframe); return; }
+
+            iframe = document.createElement('iframe');
+            iframe.setAttribute('data-url', src);
+            iframe.src = src;
+            iframe.style.cssText =
+                'position:absolute;top:0;left:0;width:100%;height:100%;' +
+                'border:none;border-radius:12px;opacity:0;visibility:hidden;pointer-events:none;z-index:1;';
+            const timeout = setTimeout(() => resolve(iframe), 15000);
+            iframe.onload = () => { clearTimeout(timeout); resolve(iframe); };
+            container.appendChild(iframe);
+        });
+    }
+
+    function loadApp(src) {
+        const pageTitle = document.getElementById('pageTitle');
+        document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+        pageTitle.innerHTML = `<i class="fa-solid fa-gear text-orange-400"></i><span class="text-orange-400">ניהול מערכת</span>`;
+        showIframe(src);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // LOAD A UNIFIED FILE — opens all arenas and injects their data
+    // ═══════════════════════════════════════════════════════════════════
+    async function loadUnifiedDoc(raw) {
+        // DataManager.loadDocument מחזיר:
+        // { schoolName, year, docType, savedAt, data: { arenas: { hakala:{...}, mtss:{...} } } }
+        // חלץ arenas מהמיקום הנכון
+        const inner  = raw.data || raw;
+        const arenas = inner.arenas || {};
+        const school = raw.schoolName || inner.schoolName || '';
+        const year   = raw.year       || inner.year       || 'תשפ"ו';
+
+        // Update portal state
+        window._unifiedState.school = school;
+        window._unifiedState.year   = year;
+        window._unifiedState.arenas = { ...arenas };
+
+        // Update header
+        const schoolDisplay = document.getElementById('activeSchoolDisplay');
+        const schoolNameSpan = document.getElementById('activeSchoolName');
+        if (school) {
+            schoolNameSpan.textContent = school;
+            schoolDisplay.style.display = 'flex';
+        }
+
+        const docTypeEntries = Object.entries(arenas).filter(([, v]) => v);
+        if (docTypeEntries.length === 0) {
+            showPortalToast('הקובץ שנטען אינו מכיל נתוני זירות — אנא בחר קובץ אחר.', 'error', 7000);
+            return;
+        }
+
+        document.getElementById('welcomeScreen').style.display = 'none';
+        document.getElementById('loader').style.display = 'block';
+        document.getElementById('pageTitle').innerHTML =
+            `<i class="fa-solid fa-spinner fa-spin"></i><span>טוען תיק מוסד...</span>`;
+
+        // Preload כל ה-iframes ושלח נתונים לכל אחד
+        // שיטה: מחכים לאירוע iframe-ready (DOM דינמי מוכן) לפני שליחת נתונים
+        const totalArenas = docTypeEntries.length;
+        let loadedCount = 0;
+
+        for (const [docType, arenaPayload] of docTypeEntries) {
+            const src = DOCTYPE_TO_SRC[docType];
+            if (!src || !arenaPayload) continue;
+
+            const payload4frame = { ...arenaPayload, docType, schoolName: school, year };
+
+            // בדוק אם כבר נטען בעבר — לפני רישום ה-listener
+            const alreadyLoaded = !!document.querySelector(
+                `.iframe-container iframe[data-url="${src}"][data-dom-ready="1"]`
+            );
+
+            // רשום listener רק אם עדיין לא נטען (מניעת race condition)
+            const readyPromise = alreadyLoaded ? Promise.resolve() : new Promise(resolve => {
+                const fallback = setTimeout(resolve, 10000);
+                const handler = (ev) => {
+                    if (ev.data?.type === 'iframe-ready' && ev.data?.docType === docType) {
+                        clearTimeout(fallback);
+                        window.removeEventListener('message', handler);
+                        resolve();
+                    }
+                };
+                window.addEventListener('message', handler);
+            });
+
+            const iframe = await preloadIframe(src);
+
+            // עדכן חיווי טעינה דינמי
+            loadedCount++;
+            const arenaLabel = ARENA_REGISTRY[src]?.label || docType;
+            document.getElementById('pageTitle').innerHTML =
+                `<i class="fa-solid fa-spinner fa-spin"></i>` +
+                `<span>טוען מרחב ${loadedCount} מתוך ${totalArenas} — ${arenaLabel}...</span>`;
+
+            if (!alreadyLoaded) {
+                await readyPromise;
+            }
+
+            // סמן את ה-iframe כ-"DOM מוכן" לביקורים עתידיים
+            iframe.setAttribute('data-dom-ready', '1');
+
+            DataManager.sendDataToFrame(iframe, payload4frame);
+            // שלח שוב אחרי 500ms כגיבוי
+            setTimeout(() => DataManager.sendDataToFrame(iframe, payload4frame), 500);
+            // retry שלישי אחרי 2s — מכסה iframes שבנו DOM לאט
+            setTimeout(() => DataManager.sendDataToFrame(iframe, payload4frame), 2000);
+        }
+
+        document.getElementById('loader').style.display = 'none';
+
+        // בחר איזה iframe להציג — לפי עדיפות (לא לפי סדר JSON)
+        const OPEN_PRIORITY = ['museum', 'school', 'board'];
+        let firstSrc = null;
+        for (const priorityType of OPEN_PRIORITY) {
+            if (arenas[priorityType] && DOCTYPE_TO_SRC[priorityType]) {
+                firstSrc = DOCTYPE_TO_SRC[priorityType];
+                break;
+            }
+        }
+        // fallback — הזירה הראשונה בכל סדר שהוא
+        if (!firstSrc && docTypeEntries.length > 0) {
+            firstSrc = DOCTYPE_TO_SRC[docTypeEntries[0][0]];
+        }
+
+        // הצג את הזירה הנבחרת
+        if (firstSrc) {
+            showIframe(firstSrc).then(() => {
+                const meta = ARENA_REGISTRY[firstSrc];
+                document.getElementById('pageTitle').innerHTML =
+                    `<i class="fa-solid fa-building-columns"></i>` +
+                    `<span>תיק מוסד: ${school} — ${meta?.label || ''}</span>`;
+                document.querySelectorAll('.nav-link').forEach(l => {
+                    l.classList.toggle('active', l.getAttribute('data-src') === firstSrc);
+                });
+            });
+        }
+
+        const arenaLabels = docTypeEntries
+            .map(([dt]) => ARENA_REGISTRY[DOCTYPE_TO_SRC[dt]]?.label || dt)
+            .join(', ');
+        if (window.DEBUG) console.log(`✅ תיק מוסד נטען: ${school} | זירות: ${arenaLabels}`);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // LOAD A SPECIFIC DOCUMENT (from file-tree click)
+    // ═══════════════════════════════════════════════════════════════════
+    async function loadSpecificDoc(school, year, filename) {
+        const raw = await DataManager.loadDocument(school, year, filename);
+        if (!raw) { showPortalToast('שגיאה בטעינת המסמך — הקובץ עלול להיות פגום.', 'error', 7000); return; }
+
+        // DataManager.loadDocument מחזיר { schoolName, year, docType, savedAt, data: {...} }
+        const docType = raw.docType;
+        // הנתונים האמיתיים נמצאים ב-raw.data
+        const data    = raw.data || raw;
+
+        // ── UNIFIED FILE ──────────────────────────────────────────────
+        if (docType === 'unified') {
+            await loadUnifiedDoc(raw);
+            return;
+        }
+
+        // ── SINGLE ARENA FILE ─────────────────────────────────────────
+        const srcMap = {
+            museum: 'סיור במוזיאון.html',
+            school: 'סיור בבית הספר.html',
+            board:  'לוח בחירה מסלול.html'
+        };
+        const src = srcMap[docType];
+        if (!src) { showPortalToast('סוג מסמך לא מוכר: ' + docType, 'error', 6000); return; }
+
+        // Cache in unified state (השתמש ב-schoolName מהרמה העליונה)
+        const schoolName = raw.schoolName || data.schoolName || '';
+        const yearVal    = raw.year       || data.year       || 'תשפ"ו';
+        if (schoolName) window._unifiedState.school = schoolName;
+        if (yearVal)    window._unifiedState.year   = yearVal;
+        window._unifiedState.arenas[docType] = data;
+
+        // הצג את ה-iframe וחכה שיהיה מוכן לפני שליחת נתונים
+        const payload4frame = { ...data, docType, schoolName, year: yearVal };
+
+        // האזן ל-iframe-ready לפני הטעינה
+        const alreadyLoaded2 = !!document.querySelector(
+            `.iframe-container iframe[data-url="${src}"][data-dom-ready="1"]`
+        );
+        const readyPromise2 = alreadyLoaded2 ? Promise.resolve() : new Promise(resolve => {
+            const fallback = setTimeout(resolve, 10000);
+            const handler = (ev) => {
+                if (ev.data?.type === 'iframe-ready' && ev.data?.docType === docType) {
+                    clearTimeout(fallback);
+                    window.removeEventListener('message', handler);
+                    resolve();
+                }
+            };
+            window.addEventListener('message', handler);
+        });
+
+        const iframe = await preloadIframe(src);
+        if (!alreadyLoaded2) await readyPromise2;
+        iframe.setAttribute('data-dom-ready', '1');
+
+        DataManager.sendDataToFrame(iframe, payload4frame);
+        setTimeout(() => DataManager.sendDataToFrame(iframe, payload4frame), 500);
+        // retry שלישי אחרי 2s — מכסה iframes שבנו DOM לאט
+        setTimeout(() => DataManager.sendDataToFrame(iframe, payload4frame), 2000);
+
+        // הצג
+        showIframe(src).then(() => {
+            document.getElementById('pageTitle').innerHTML =
+                `<i class="fa-solid fa-file-import"></i>` +
+                `<span>קובץ נטען: ${DataManager.getDocLabel(filename)}</span>`;
+            const schoolDisplay = document.getElementById('activeSchoolDisplay');
+            const schoolNameSpan = document.getElementById('activeSchoolName');
+            if (schoolName) {
+                schoolNameSpan.textContent = schoolName;
+                schoolDisplay.style.display = 'flex';
+            } else {
+                schoolDisplay.style.display = 'none';
+            }
+            document.querySelectorAll('.nav-link').forEach(l => {
+                l.classList.toggle('active', l.getAttribute('data-src') === src);
+            });
+        });
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // DATA MANAGER INIT
+    // ═══════════════════════════════════════════════════════════════════
+    async function initDataManager() {
+        // ── שחזור session אם הדף נסגר בטעות ────────────────────────
+        try {
+            const snap = sessionStorage.getItem('_portalStateSnapshot');
+            if (snap) {
+                const parsed = JSON.parse(snap);
+                if (parsed?.school && Object.keys(parsed.arenas || {}).length > 0) {
+                    window._unifiedState = parsed;
+                    const schoolDisplay  = document.getElementById('activeSchoolDisplay');
+                    const schoolNameSpan = document.getElementById('activeSchoolName');
+                    if (schoolNameSpan) schoolNameSpan.textContent = parsed.school;
+                    if (schoolDisplay)  schoolDisplay.style.display = 'flex';
+                    showPortalToast(
+                        `♻️ מצב קודם שוחזר: ${parsed.school} (${Object.keys(parsed.arenas).length} זירות)\nהנתונים בזיכרון — לחץ "שמור הכל" כדי לכתוב לקובץ.`,
+                        'info', 8000
+                    );
+                }
+            }
+        } catch(_e) {}
+
+        const restored = await DataManager.restoreDataFolder();
+        updateFolderStatus(restored);
+        if (restored) refreshTree();
+    }
+
+    function updateFolderStatus(ok) { /* data panel removed */ }
+
+    async function handleOpenFolder() { /* data panel removed */ }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // FILE TREE (disabled — data panel removed)
+    // ═══════════════════════════════════════════════════════════════════
+    async function refreshTree() { /* data panel removed */ }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // MESSAGE BUS — every postMessage from iframes comes through here
+    // ═══════════════════════════════════════════════════════════════════
+    window.addEventListener('message', async (e) => {
+        if (!e.data) return;
+
+        // ── אבטחה: קבל הודעות רק מאותו origin (iframes מקומיים) ───────
+        // e.origin הוא 'null' (מחרוזת) עבור iframes מקובץ מקומי (file://)
+        const isSameOrigin = e.origin === window.location.origin;
+        const isLocalFile  = e.origin === 'null' && window.location.protocol === 'file:';
+        const isLocalHost  = e.origin === 'null' || e.origin.startsWith('http://localhost') || e.origin.startsWith('http://127.');
+        if (!isSameOrigin && !isLocalFile && !isLocalHost) return;
+
+        // ── iframe-ready: iframe finished building its dynamic DOM ────
+        if (e.data.type === 'iframe-ready') {
+            const readyDocType = e.data.docType;
+            const readySrc     = DOCTYPE_TO_SRC[readyDocType];
+            const readyIframe  = readySrc
+                ? document.querySelector(`.iframe-container iframe[data-url="${readySrc}"]`)
+                : null;
+
+            // סמן את ה-iframe כ-"DOM דינמי מוכן"
+            if (readyIframe) readyIframe.setAttribute('data-dom-ready', '1');
+
+            // אם יש נתונים מאוחסנים ב-unifiedState — שלח אותם
+            const cachedPayload = window._unifiedState.arenas[readyDocType];
+            if (cachedPayload && readyIframe) {
+                const school = window._unifiedState.school || '';
+                const year   = window._unifiedState.year   || '';
+                DataManager.sendDataToFrame(readyIframe,
+                    { ...cachedPayload, docType: readyDocType, schoolName: school, year });
+            }
+            return;
+        }
+
+        // ── School name update ────────────────────────────────────────
+        if (e.data.type === 'school-changed') {
+            const schoolDisplay = document.getElementById('activeSchoolDisplay');
+            const schoolNameSpan = document.getElementById('activeSchoolName');
+            if (e.data.school) {
+                schoolNameSpan.textContent = e.data.school;
+                schoolDisplay.style.display = 'flex';
+                window._unifiedState.school = e.data.school;
+            } else {
+                schoolDisplay.style.display = 'none';
+            }
+            return;
+        }
+
+        // ── Save request from an individual arena ─────────────────────
+        if (e.data.type !== 'save-request') return;
+
+        // Debounce: ignore rapid duplicate save-requests (within 1s)
+        const _saveKey = `${e.data.docType}`;
+        if (window[`_saveDebounce_${_saveKey}`]) return;
+        window[`_saveDebounce_${_saveKey}`] = true;
+        setTimeout(() => { delete window[`_saveDebounce_${_saveKey}`]; }, 1000);
+
+        const payload        = e.data.payload || {};
+        // fallback לערכים קיימים אם ה-iframe לא שלח
+        const schoolFromData = payload.schoolName || window._unifiedState.school || 'כללי';
+        const yearFromData   = payload.year       || window._unifiedState.year   || 'תשפ"ו';
+        const docType        = e.data.docType;
+
+        // עדכן unifiedState רק אם הגיע ערך טוב
+        if (payload.schoolName && !window._unifiedState.school) window._unifiedState.school = payload.schoolName;
+        if (payload.year       && !window._unifiedState.year)   window._unifiedState.year   = payload.year;
+
+        // 1. Update header
+        const schoolDisplay = document.getElementById('activeSchoolDisplay');
+        const schoolNameSpan = document.getElementById('activeSchoolName');
+        schoolNameSpan.textContent = schoolFromData;
+        schoolDisplay.style.display = 'flex';
+
+        // 2. Cache this arena's data in the unified state
+        window._unifiedState.school           = schoolFromData;
+        window._unifiedState.year             = yearFromData;
+        window._unifiedState.arenas[docType]  = payload;
+        markDirty(); // data changed — mark as unsaved until write completes
+
+        // 3. Save the individual arena file (original behavior — keeps backward compat)
+        const individualResult = await saveWithBackup(
+            schoolFromData, yearFromData, docType, payload
+        );
+        // סנכרון לענן (hakala + yesodi בלבד, non-fatal)
+        syncToSupabase(schoolFromData, yearFromData, docType, payload);
+
+        // 4. ALSO save the unified file (all arenas together)
+        let unifiedResult = null;
+        if (Object.keys(window._unifiedState.arenas).length > 0) {
+            try {
+                unifiedResult = await saveUnifiedFile();
+            } catch (err) {
+                console.error('Unified save error:', err);
+            }
+        }
+
+        // 5. Compose confirmation message
+        let msg;
+        if (individualResult.mode === 'folder') {
+            msg = `✅ נשמר: ${schoolFromData} / ${yearFromData}`;
+            if (unifiedResult?.mode === 'folder') {
+                const arenaCount = Object.keys(window._unifiedState.arenas).length;
+                msg += `\n📦 תיק מוסד מאוחד עודכן (${arenaCount} זירות)`;
+            }
+            markClean();
+            logSave(schoolFromData, Object.keys(window._unifiedState.arenas).length, 'folder');
+        } else if (individualResult.mode === 'error') {
+            msg = '⚠️ שגיאה בכתיבה לתיקייה — הקובץ הורד במקום. נסה לבחור תיקייה מחדש.';
+            logSave(schoolFromData, Object.keys(window._unifiedState.arenas).length, 'error');
+        } else {
+            msg = '⚠️ תיקיית עבודה לא הוגדרה — הקובץ הורד כ-JSON.\nכדי לשמור בתיקייה, לחץ "בחר תיקיית עבודה" בסרגל הצד.';
+            logSave(schoolFromData, Object.keys(window._unifiedState.arenas).length, 'download');
+        }
+
+        // 6. Send confirmation back to the CORRECT iframe (by docType, not just the active one)
+        const confirmSrc = DOCTYPE_TO_SRC[docType];
+        const confirmTarget = confirmSrc
+            ? document.querySelector(`.iframe-container iframe[data-url="${confirmSrc}"]`)
+            : document.getElementById('appIframe'); // fallback לזירה הפעילה
+        if (confirmTarget && confirmTarget.contentWindow) {
+            confirmTarget.contentWindow.postMessage({ type: 'save-confirm', message: msg }, '*');
+        }
+
+        // 7. Refresh file tree
+        if (individualResult.mode === 'folder') refreshTree();
+    });
+
+    // ═══════════════════════════════════════════════════════════════════
+    // INIT
+    // ═══════════════════════════════════════════════════════════════════
+    document.addEventListener('DOMContentLoaded', () => {
+        initDataManager();
+        updateSaveAllTooltip();
+
+        const links      = document.querySelectorAll('.nav-link[data-src]');
+        const pageTitle  = document.getElementById('pageTitle');
+        const menuToggle = document.getElementById('menuToggle');
+        const sidebar    = document.getElementById('sidebar');
+
+        menuToggle.addEventListener('click', () => sidebar.classList.toggle('open'));
+
+        // ── System reset ──────────────────────────────────────────────
+        window.resetPortal = function () {
+            if (confirm('האם אתה בטוח שברצונך לאפס את המערכת? כל הנתונים שלא נשמרו יימחקו ותתחיל פרויקט חדש.')) {
+                // שלח reset לכל iframe לפני מחיקתו
+                document.querySelectorAll('.iframe-container iframe').forEach(f => {
+                    try { f.contentWindow.postMessage({ type: 'reset' }, '*'); } catch(e) {}
+                });
+
+                // נקה localStorage של כל הזירות הידועות
+                localStorage.removeItem('mtss-mapper-data');
+                localStorage.removeItem('sharedworkplandata');
+
+                // הסר iframes
+                document.querySelectorAll('.iframe-container iframe').forEach(f => f.remove());
+
+                const activeName    = document.getElementById('activeSchoolName');
+                const schoolDisplay = document.getElementById('activeSchoolDisplay');
+                if (activeName)    activeName.textContent = '---';
+                if (schoolDisplay) schoolDisplay.style.display = 'none';
+
+                window._unifiedState = { school: '', year: 'תשפ"ו', arenas: {} };
+
+                // נקה debounce ו-saveHistory כדי למנוע נעילות אחרי reset
+                window.saveHistory = [];
+                // איפוס ה-debounce — האובייקט המקונן בו משתמש message-bus
+                window.saveDebounce = {};
+                // נקה גם מפתחות שטוחים (פורמט ישן), למקרה שנשארו
+                Object.keys(window).filter(k => k.startsWith('_saveDebounce_')).forEach(k => delete window[k]);
+                // נקה dirty-state כדי שהנקודה הצהובה תיעלם
+                markClean();
+
+                document.getElementById('welcomeScreen').style.display = 'flex';
+                document.getElementById('pageTitle').innerHTML = '<i class="fa-solid fa-home"></i><span>ראשי</span>';
+                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                sessionStorage.clear();
+                // נקה גם את ה-snapshot של session restore
+                sessionStorage.removeItem('_portalStateSnapshot');
+            }
+        };
+
+        // ── Navigation — preserves iframe state between switches ──────
+        links.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const src       = link.getAttribute('data-src');
+                const titleText = link.getAttribute('data-title');
+                const iconClass = link.querySelector('i').className;
+                if (!src) return;
+
+                links.forEach(l => l.classList.remove('active'));
+                link.classList.add('active');
+                pageTitle.innerHTML = `<i class="${iconClass}"></i><span>${titleText}</span>`;
+
+                showIframe(src);
+            });
+        });
+    });
+
+
+    // ═══════════════════════════════════════════════════════════════════
+    // OGEN EXPANDABLE MENU
+    // ═══════════════════════════════════════════════════════════════════
+    window.toggleOgenMenu = function () {
+        const parent  = document.getElementById('ogenParent');
+        const subList = document.getElementById('ogenSubList');
+        parent.classList.toggle('open');
+        subList.classList.toggle('open');
+    };
+
+    window.toggleMtssMenu = function () {
+        const parent  = document.getElementById('mtssParent');
+        const subList = document.getElementById('mtssSubList');
+        parent.classList.toggle('open');
+        subList.classList.toggle('open');
+    };
+
+    window.loadMtssTab = function (tabKey, el) {
+        const MTSS_SRC = ''; // legacy stub — nav removed
+        const titleMap = {
+            learning:     'מיפוי MTSS — סביבות למידה',
+            support:      'מיפוי MTSS — רשתות תמיכה',
+            staffSupport: 'מיפוי MTSS — רשתות תמיכה לצוות',
+            populations:  'מיפוי MTSS — אוכלוסיות מיוחדות'
+        };
+
+        // Mark active
+        document.querySelectorAll('.nav-link, .nav-sub-link').forEach(l => l.classList.remove('active'));
+        el.classList.add('active');
+        document.getElementById('mtssParent').classList.add('open');
+        document.getElementById('mtssSubList').classList.add('open');
+
+        // Update page title
+        const iconClass = el.querySelector('i').className;
+        document.getElementById('pageTitle').innerHTML =
+            `<i class="${iconClass}"></i><span>${titleMap[tabKey]}</span>`;
+
+        // Load iframe then send switch-tab
+        showIframe(MTSS_SRC).then(iframe => {
+            // Small delay to make sure React has mounted
+            const send = () => {
+                try { iframe.contentWindow.postMessage({ type: 'switch-tab', tab: tabKey }, '*'); }
+                catch(e) {}
+            };
+            send();
+            setTimeout(send, 400);
+            setTimeout(send, 1200);
+        });
+    };
+
+    window.toggleSiteMenu = function () {
+        const parent  = document.getElementById('siteParent');
+        const subList = document.getElementById('siteSubList');
+        parent.classList.toggle('open');
+        subList.classList.toggle('open');
+    };
+
+    // Generic toggle for 3rd-level sub-parents
+    window.toggleNavSub = function (parentId, listId) {
+        const parent = document.getElementById(parentId);
+        const list   = document.getElementById(listId);
+        if (!parent || !list) return;
+        parent.classList.toggle('open');
+        list.classList.toggle('open');
+    };
+
+    // ═══════════════════════════════════════════════════════════════════
+    // EXTERNAL NAV — try iframe, fallback to overlay message
+    // ═══════════════════════════════════════════════════════════════════
+    window.handleExternalNav = function (el) {
+        const url       = el.getAttribute('data-external');
+        const titleText = el.getAttribute('data-title');
+        const icon      = el.querySelector('i').className;
+        const tryIframe = el.getAttribute('data-try-iframe') === 'true';
+
+        // Placeholder — link not yet assigned
+        if (!url || url === '#') return;
+
+        // Mark active
+        document.querySelectorAll('.nav-link, .nav-sub-link').forEach(l => l.classList.remove('active'));
+        el.classList.add('active');
+
+        // Update page title
+        const pageTitle = document.getElementById('pageTitle');
+        pageTitle.innerHTML = `<i class="${icon}"></i><span>${titleText}</span>`;
+
+        // Hide welcome screen
+        document.getElementById('welcomeScreen').style.display = 'none';
+
+        // Remove previous external overlay if exists
+        document.getElementById('_externalOverlay')?.remove();
+
+        const container = document.querySelector('.iframe-container');
+
+        // Hide all existing iframes
+        container.querySelectorAll('iframe').forEach(f => {
+            f.style.opacity = '0';
+            f.style.visibility = 'hidden';
+            f.style.pointerEvents = 'none';
+            f.style.zIndex = '1';
+            f.removeAttribute('id');
+        });
+
+        if (tryIframe) {
+            // ── Try to embed in iframe first ──────────────────────────
+            const loader = document.getElementById('loader');
+            loader.style.display = 'block';
+
+            const iframe = document.createElement('iframe');
+            iframe.src = url;
+            iframe.setAttribute('data-url', '_external_' + encodeURIComponent(url));
+            iframe.id = 'appIframe';
+            iframe.style.cssText =
+                'position:absolute;top:0;left:0;width:100%;height:100%;' +
+                'border:none;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,0.08);' +
+                'transition:opacity 0.3s;opacity:0;visibility:hidden;pointer-events:none;z-index:10;';
+
+            let loaded = false;
+            const timeout = setTimeout(() => {
+                if (!loaded) {
+                    iframe.remove();
+                    loader.style.display = 'none';
+                    _showExternalPanel(url, titleText, container, true);
+                }
+            }, 7000);
+
+            iframe.onload = () => {
+                loaded = true;
+                clearTimeout(timeout);
+                loader.style.display = 'none';
+                try {
+                    const doc = iframe.contentDocument || iframe.contentWindow?.document;
+                    if (!doc || !doc.body || doc.body.innerHTML.trim() === '') {
+                        iframe.remove();
+                        _showExternalPanel(url, titleText, container, true);
+                        return;
+                    }
+                } catch(e) {
+                    // cross-origin — can't read doc but iframe may render fine
+                }
+                iframe.style.opacity = '1';
+                iframe.style.visibility = 'visible';
+                iframe.style.pointerEvents = 'auto';
+            };
+
+            iframe.onerror = () => {
+                clearTimeout(timeout);
+                iframe.remove();
+                document.getElementById('loader').style.display = 'none';
+                _showExternalPanel(url, titleText, container, true);
+            };
+
+            container.appendChild(iframe);
+
+        } else {
+            // ── Open in new tab immediately ───────────────────────────
+            window.open(url, '_blank', 'noopener,noreferrer');
+            _showExternalPanel(url, titleText, container, false);
+        }
+    };
+
+    function _showExternalPanel(url, titleText, container, failed) {
+        document.getElementById('_externalOverlay')?.remove();
+        const loader = document.getElementById('loader');
+        if (loader) loader.style.display = 'none';
+
+        const note = failed
+            ? 'האתר אינו מאפשר הצגה בתוך הפורטל.<br><span style="font-size:0.82rem;color:#9aa5b4;">לחץ על הכפתור לפתיחה בלשונית חדשה.</span>'
+            : 'האתר נפתח בלשונית חדשה.<br><span style="font-size:0.82rem;color:#9aa5b4;">(אתרים ממשלתיים אינם מאפשרים הטמעה בתוך פורטל)</span>';
+
+        const overlay = document.createElement('div');
+        overlay.id = '_externalOverlay';
+        overlay.style.cssText =
+            'position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;' +
+            'justify-content:center;background:radial-gradient(ellipse at 50% 30%,rgba(86,224,255,0.04) 0%,transparent 60%),' +
+            'linear-gradient(160deg,rgba(13,27,42,0.99) 0%,rgba(7,17,31,1) 100%);' +
+            'border-radius:14px;gap:24px;padding:40px;direction:rtl;z-index:20;';
+        overlay.innerHTML = `
+            <div style="width:76px;height:76px;border-radius:50%;
+                background:linear-gradient(135deg,rgba(86,224,255,0.12),rgba(139,124,255,0.10));
+                display:flex;align-items:center;justify-content:center;
+                box-shadow:0 4px 24px rgba(86,224,255,0.15);">
+                <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:2rem;color:#56e0ff;filter:drop-shadow(0 0 8px rgba(86,224,255,0.5));"></i>
+            </div>
+            <div style="text-align:center;max-width:500px;">
+                <h2 style="font-size:1.2rem;font-weight:800;color:#f4f7fb;margin-bottom:10px;">${titleText}</h2>
+                <p style="font-size:0.92rem;color:#8da4be;line-height:1.8;">${note}</p>
+            </div>
+            <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;">
+                <a href="${url}" target="_blank" rel="noopener noreferrer"
+                    style="display:inline-flex;align-items:center;gap:9px;padding:12px 26px;
+                    border-radius:10px;border:1px solid rgba(86,224,255,0.35);
+                    background:linear-gradient(135deg,rgba(86,224,255,0.18),rgba(139,124,255,0.14));
+                    color:#f4f7fb;font-family:'Heebo',sans-serif;font-size:0.95rem;font-weight:700;
+                    text-decoration:none;box-shadow:0 5px 20px rgba(86,224,255,0.15);transition:all 0.2s;"
+                    onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 28px rgba(86,224,255,0.28)'"
+                    onmouseout="this.style.transform='';this.style.boxShadow='0 5px 20px rgba(86,224,255,0.15)'">
+                    <i class="fa-solid fa-arrow-up-right-from-square"></i> פתח בלשונית חדשה
+                </a>
+                <button onclick="document.getElementById('_externalOverlay').remove(); document.getElementById('welcomeScreen').style.display=''"
+                    style="display:inline-flex;align-items:center;gap:9px;padding:12px 22px;
+                    border-radius:10px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.05);
+                    color:#b7c4d6;font-family:'Heebo',sans-serif;font-size:0.95rem;font-weight:600;
+                    cursor:pointer;transition:all 0.2s;"
+                    onmouseover="this.style.background='rgba(255,255,255,0.1)'"
+                    onmouseout="this.style.background='rgba(255,255,255,0.05)'">
+                    <i class="fa-solid fa-house"></i> חזור למסך הבית
+                </button>
+            </div>`;
+        container.appendChild(overlay);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // BACKUP BROWSER — דפדפן גיבויים
+    // ═══════════════════════════════════════════════════════════════════
+
+    window.openBackupBrowser = async function (school, year, docType) {
+        if (!DataManager.isReady()) {
+            showPortalToast('יש לבחור תיקיית עבודה לפני צפייה בגיבויים.', 'warning', 4000);
+            return;
+        }
+        const backups = [];
+        for (let n = 1; n <= 3; n++) {
+            try {
+                const raw = await DataManager.loadDocument(school, year, `${docType}_backup_${n}.json`);
+                if (raw) backups.push({ n, raw });
+            } catch (_e) {}
+        }
+        document.getElementById('backupModal')?.remove();
+        const overlay = document.createElement('div');
+        overlay.id = 'backupModal';
+        overlay.style.cssText =
+            'position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.6);' +
+            'display:flex;align-items:center;justify-content:center;direction:rtl;padding:20px;';
+        const box = document.createElement('div');
+        box.style.cssText =
+            'background:rgba(13,27,42,0.99);border:1px solid rgba(255,255,255,0.12);border-radius:16px;width:100%;max-width:520px;max-height:85vh;' +
+            'overflow-y:auto;box-shadow:0 24px 70px rgba(0,0,0,0.6);' +
+            'font-family:Heebo,sans-serif;display:flex;flex-direction:column;color:#f4f7fb;';
+        const docLabel = (typeof DataManager.getDocLabel === 'function')
+            ? DataManager.getDocLabel(`${docType}.json`)
+            : docType;
+        const header = document.createElement('div');
+        header.style.cssText =
+            'background:linear-gradient(135deg,rgba(86,224,255,0.12),rgba(139,124,255,0.10));' +
+            'border-bottom:1px solid rgba(255,255,255,0.1);color:#f4f7fb;' +
+            'padding:20px 24px;border-radius:16px 16px 0 0;' +
+            'display:flex;align-items:center;justify-content:space-between;gap:12px;flex-shrink:0;';
+        header.innerHTML = `
+            <div style="display:flex;align-items:center;gap:12px;">
+                <div style="width:40px;height:40px;background:rgba(255,180,84,0.15);border-radius:10px;
+                    display:flex;align-items:center;justify-content:center;">
+                    <i class="fa-solid fa-clock-rotate-left" style="color:#ffb454;font-size:1.1rem;"></i>
+                </div>
+                <div>
+                    <div style="font-size:1.05rem;font-weight:800;color:#f4f7fb;">דפדפן גיבויים</div>
+                    <div style="font-size:0.78rem;color:#8da4be;margin-top:2px;">
+                        ${docLabel} — ${school} ${year}
+                    </div>
+                </div>
+            </div>
+            <button onclick="document.getElementById('backupModal').remove()"
+                style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);color:#b7c4d6;cursor:pointer;
+                width:32px;height:32px;border-radius:8px;font-size:1.1rem;
+                display:flex;align-items:center;justify-content:center;">✕</button>`;
+        box.appendChild(header);
+        const body = document.createElement('div');
+        body.style.cssText = 'padding:20px 24px;flex:1;';
+        if (backups.length === 0) {
+            body.innerHTML = `
+                <div style="text-align:center;padding:40px 20px;">
+                    <i class="fa-solid fa-box-open" style="font-size:2.5rem;margin-bottom:14px;display:block;color:#8da4be;"></i>
+                    <div style="font-size:1rem;font-weight:700;color:#8da4be;margin-bottom:6px;">אין גיבויים שמורים עדיין</div>
+                    <div style="font-size:0.83rem;color:#8da4be;line-height:1.6;opacity:0.7;">
+                        גיבויים נוצרים אוטומטית בכל שמירה.<br>לאחר שמירה ראשונה יופיעו כאן עד 3 גרסאות.
+                    </div>
+                </div>`;
+        } else {
+            const labels       = ['', 'גיבוי 1 (הכי עדכני)', 'גיבוי 2', 'גיבוי 3'];
+            const accentColors = ['', '#1ee6a8', '#56e0ff', '#8b7cff'];
+            const rgbColors    = ['', '30,230,168', '86,224,255', '139,124,255'];
+            backups.forEach(({ n, raw }) => {
+                const d = raw.data || raw;
+                const savedAt = raw.savedAt
+                    ? new Date(raw.savedAt).toLocaleString('he-IL', {
+                        day:'2-digit', month:'2-digit', year:'2-digit',
+                        hour:'2-digit', minute:'2-digit'
+                      })
+                    : 'לא ידוע';
+                const previewSchool = d.schoolName     || raw.schoolName || '—';
+                const previewInstr  = d.instructorName || '—';
+                const previewGoal   = d.annualTrainingGoal || '';
+                const schedCount    = Array.isArray(d._schedule)
+                    ? d._schedule.filter(s => s.date || s.notes).length
+                    : '—';
+                const previewId = `backupPreview_${n}`;
+                const card = document.createElement('div');
+                card.style.cssText =
+                    'border:1px solid rgba(255,255,255,0.1);border-radius:12px;margin-bottom:14px;overflow:hidden;';
+                card.innerHTML = `
+                    <div style="padding:14px 16px;display:flex;align-items:center;gap:12px;background:rgba(255,255,255,0.04);">
+                        <div style="width:34px;height:34px;border-radius:9px;flex-shrink:0;
+                            background:rgba(${rgbColors[n]},0.12);
+                            display:flex;align-items:center;justify-content:center;">
+                            <i class="fa-solid fa-clock-rotate-left" style="color:${accentColors[n]};font-size:0.9rem;"></i>
+                        </div>
+                        <div style="flex:1;min-width:0;">
+                            <div style="font-size:0.88rem;font-weight:700;color:#f4f7fb;">${labels[n]}</div>
+                            <div style="font-size:0.76rem;color:#8da4be;margin-top:2px;">
+                                <i class="fa-regular fa-clock"></i> ${savedAt}
+                            </div>
+                        </div>
+                        <div style="display:flex;gap:7px;flex-shrink:0;">
+                            <button onclick="window._toggleBackupPreview('${previewId}',${n})"
+                                id="prevBtn_${n}"
+                                style="padding:5px 12px;border-radius:7px;border:1px solid rgba(255,255,255,0.15);
+                                background:rgba(255,255,255,0.06);color:#b7c4d6;cursor:pointer;
+                                font-family:Heebo,sans-serif;font-size:0.78rem;font-weight:600;
+                                display:flex;align-items:center;gap:5px;">
+                                <i class="fa-solid fa-eye"></i> הצג תוכן
+                            </button>
+                            <button onclick="window._restoreBackup('${school}','${year}','${docType}',${n})"
+                                style="padding:5px 12px;border-radius:7px;border:1px solid rgba(255,180,84,0.35);
+                                background:rgba(255,180,84,0.12);color:#ffb454;
+                                cursor:pointer;font-family:Heebo,sans-serif;font-size:0.78rem;font-weight:700;
+                                display:flex;align-items:center;gap:5px;
+                                box-shadow:0 2px 8px rgba(255,180,84,0.15);">
+                                <i class="fa-solid fa-rotate-right"></i> שחזר גרסה
+                            </button>
+                        </div>
+                    </div>
+                    <div id="${previewId}" style="display:none;padding:14px 16px;
+                        border-top:1px solid rgba(255,255,255,0.08);background:rgba(0,0,0,0.15);">
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+                            <div>
+                                <div style="font-size:0.67rem;font-weight:700;text-transform:uppercase;
+                                    letter-spacing:.5px;color:#8da4be;margin-bottom:3px;">שם בית הספר</div>
+                                <div style="font-size:0.85rem;font-weight:600;color:#f4f7fb;
+                                    background:rgba(255,255,255,0.05);border-radius:6px;padding:5px 9px;border:1px solid rgba(255,255,255,0.1);">${previewSchool}</div>
+                            </div>
+                            <div>
+                                <div style="font-size:0.67rem;font-weight:700;text-transform:uppercase;
+                                    letter-spacing:.5px;color:#8da4be;margin-bottom:3px;">שם המדריכה</div>
+                                <div style="font-size:0.85rem;font-weight:600;color:#f4f7fb;
+                                    background:rgba(255,255,255,0.05);border-radius:6px;padding:5px 9px;border:1px solid rgba(255,255,255,0.1);">${previewInstr}</div>
+                            </div>
+                        </div>
+                        <div style="margin-bottom:10px;">
+                            <div style="font-size:0.67rem;font-weight:700;text-transform:uppercase;
+                                letter-spacing:.5px;color:#8da4be;margin-bottom:3px;">מטרת הדרכה שנתית</div>
+                            <div style="font-size:0.83rem;color:#b7c4d6;background:rgba(255,255,255,0.04);
+                                border-radius:6px;padding:7px 9px;border:1px solid rgba(255,255,255,0.08);
+                                white-space:pre-wrap;max-height:80px;overflow-y:auto;line-height:1.5;">
+                                ${previewGoal || '<span style=\'color:#8da4be;font-style:italic;\'>לא הוזן</span>'}
+                            </div>
+                        </div>
+                        <div style="font-size:0.78rem;color:#8da4be;">
+                            <i class="fa-regular fa-calendar-days"></i>
+                            מפגשים עם תוכן: <strong style="color:#f4f7fb;">${schedCount}</strong>
+                        </div>
+                    </div>`;
+                body.appendChild(card);
+            });
+        }
+        box.appendChild(body);
+        overlay.appendChild(box);
+        overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+        document.body.appendChild(overlay);
+    };
+
+    window._toggleBackupPreview = function (previewId, n) {
+        const el = document.getElementById(previewId);
+        if (!el) return;
+        const willShow = el.style.display === 'none';
+        el.style.display = willShow ? 'block' : 'none';
+        const btn = document.getElementById(`prevBtn_${n}`);
+        if (btn) btn.innerHTML = willShow
+            ? '<i class="fa-solid fa-eye-slash"></i> הסתר תוכן'
+            : '<i class="fa-solid fa-eye"></i> הצג תוכן';
+    };
+
+    window._restoreBackup = async function (school, year, docType, backupNum) {
+        const confirmed = confirm(
+            `שחזור גיבוי ${backupNum} של "${docType}"?\n\n` +
+            `הנתונים הנוכחיים יידחקו לגיבוי, והגרסה הנבחרת תיטען לזירה.\n\nהאם להמשיך?`
+        );
+        if (!confirmed) return;
+        try {
+            const backupRaw = await DataManager.loadDocument(school, year, `${docType}_backup_${backupNum}.json`);
+            if (!backupRaw) throw new Error(`גיבוי ${backupNum} לא נמצא`);
+            const payload = backupRaw.data || backupRaw;
+            await saveWithBackup(school, year, docType, payload);
+            if (window._unifiedState?.arenas) {
+                window._unifiedState.arenas[docType] = payload;
+            }
+            const src = DOCTYPE_TO_SRC[docType];
+            if (src && typeof DataManager.sendDataToFrame === 'function') {
+                const iframe = document.querySelector(`.iframe-container iframe[data-url="${src}"]`);
+                if (iframe) {
+                    const fp = { ...payload, docType, schoolName: school, year };
+                    DataManager.sendDataToFrame(iframe, fp);
+                    setTimeout(() => DataManager.sendDataToFrame(iframe, fp), 800);
+                }
+            }
+            const savedAt = backupRaw.savedAt
+                ? new Date(backupRaw.savedAt).toLocaleString('he-IL', {
+                    day:'2-digit', month:'2-digit', year:'2-digit',
+                    hour:'2-digit', minute:'2-digit'
+                  })
+                : `גיבוי ${backupNum}`;
+            showPortalToast(`✅ גרסה שוחזרה בהצלחה — ${savedAt}`, 'success', 6000);
+            document.getElementById('backupModal')?.remove();
+            refreshTree();
+            markDirty();
+        } catch (err) {
+            console.error('Restore backup error:', err);
+            showPortalToast(`❌ שחזור נכשל: ${err.message}`, 'error', 6000);
+        }
+    };
+
+    // ═══════════════════════════════════════════════════════════════
+    // PWA — רישום Service Worker
+    // ═══════════════════════════════════════════════════════════════
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js')
+                .then(registration => {
+                    if (window.DEBUG) console.log('[PWA] Service Worker רשום:', registration.scope);
+
+                    // האזן לעדכון זמין
+                    registration.addEventListener('updatefound', () => {
+                        const newWorker = registration.installing;
+                        if (!newWorker) return;
+
+                        newWorker.addEventListener('statechange', () => {
+                            // עדכון מוכן — Service Worker חדש ממתין
+                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                showUpdateToast(newWorker);
+                            }
+                        });
+                    });
+                })
+                .catch(err => {
+                    console.warn('[PWA] רישום Service Worker נכשל:', err.message);
+                });
+        });
+    }
+
+    // Toast עדכון גרסה עם כפתור "רענן עכשיו"
+    function showUpdateToast(newWorker) {
+        // הסר toast קיים אם יש
+        document.getElementById('_pwaUpdateToast')?.remove();
+
+        const toast = document.createElement('div');
+        toast.id = '_pwaUpdateToast';
+        toast.style.cssText =
+            'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);' +
+            'background:rgba(13,27,42,0.97);backdrop-filter:blur(14px);color:#f4f7fb;padding:14px 20px;border-radius:12px;' +
+            'box-shadow:0 8px 30px rgba(0,0,0,0.5),0 0 0 1px rgba(255,255,255,0.1);z-index:99999;' +
+            'display:flex;align-items:center;gap:14px;' +
+            'font-family:Heebo,sans-serif;font-size:0.9rem;direction:rtl;' +
+            'max-width:90vw;animation:fadeInUp .3s ease;border-right:4px solid #56e0ff;';
+        toast.innerHTML =
+            '<i class="fa-solid fa-rotate" style="color:#56e0ff;font-size:1.1rem"></i>' +
+            '<span>גרסה חדשה זמינה — רענן את הדף לעדכון</span>' +
+            '<button onclick="window._pwaDoUpdate()" style="' +
+            'padding:6px 14px;border-radius:8px;border:1px solid rgba(86,224,255,0.4);cursor:pointer;' +
+            'background:rgba(86,224,255,0.15);color:#56e0ff;font-family:Heebo,sans-serif;' +
+            'font-size:0.85rem;font-weight:700;white-space:nowrap;">רענן עכשיו</button>' +
+            '<button onclick="document.getElementById(\'_pwaUpdateToast\').remove()" style="' +
+            'background:none;border:none;color:rgba(255,255,255,0.4);cursor:pointer;' +
+            'font-size:1.1rem;padding:0 4px;">✕</button>';
+        document.body.appendChild(toast);
+
+        // פונקציה לביצוע העדכון
+        window._pwaDoUpdate = () => {
+            newWorker.postMessage({ type: 'SKIP_WAITING' });
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                window.location.reload();
+            });
+        };
+    }
+    </script>
+</body>
+
+</html>
