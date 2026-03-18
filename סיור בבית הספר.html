@@ -497,6 +497,10 @@ var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length
           <input type="text" id="new-station-desc" class="form-input" placeholder="תיאור קצר או תוכן העשרה...">
         </div>
         <div class="form-group">
+          <label for="new-station-link">🔗 קישור לתוכן (אופציונלי):</label>
+          <input type="url" id="new-station-link" class="form-input" placeholder="https://..." style="font-family:monospace;font-size:0.9rem;">
+        </div>
+        <div class="form-group">
           <label for="new-station-type">סוג התחנה:</label>
           <select id="new-station-type" class="form-input">
             <option value="normal">רגילה (נקודה)</option>
@@ -1088,11 +1092,17 @@ var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length
       if (isCircularReturn) icon = "🔄🚪";
 
       infoCardTitle.innerHTML = `${icon} ${currentStation.name}${isCircularReturn ? ' — חזרה לנקודת יציאה' : ''}`;
-      infoCardDesc.innerHTML = isCircularReturn
+      const descText = isCircularReturn
         ? (currentStation.desc
             ? currentStation.desc + '<br><br><em style="color:#059669;">✅ השלמת את המסלול המעגלי! חזרת לנקודת הפתיחה.</em>'
             : '<em style="color:#059669;">✅ השלמת את המסלול המעגלי! חזרת לנקודת הפתיחה.</em>')
         : (currentStation.desc || "אין תיאור זמין לתחנה זו.");
+
+      const linkHtml = currentStation.link
+        ? `<div style="margin-top:10px;"><a href="${currentStation.link}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:white;padding:8px 16px;border-radius:20px;text-decoration:none;font-weight:700;font-size:0.85rem;box-shadow:0 3px 10px rgba(59,130,246,0.35);">🔗 פתח קישור לתחנה זו ↗</a></div>`
+        : '';
+
+      infoCardDesc.innerHTML = descText + linkHtml;
 
       document.querySelectorAll('.station').forEach((el, idx) => {
         if (idx === currentIndex) el.classList.add('active');
@@ -1134,7 +1144,7 @@ var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length
           const payload = {
             action: 'save_tour',
             routeName: document.querySelector('.tour-title').textContent.trim(),
-            stations: stations.map(s => ({ id: s.id, name: s.name, desc: s.desc, type: s.type })),
+            stations: stations.map(s => ({ id: s.id, name: s.name, desc: s.desc, link: s.link || '', type: s.type })),
             isCircular: isCircularRoute
           };
 
@@ -1199,7 +1209,7 @@ var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length
         const projectData = {
           version: 1,
           title,
-          stations: stations.map(s => ({ id: s.id, name: s.name, desc: s.desc, type: s.type })),
+          stations: stations.map(s => ({ id: s.id, name: s.name, desc: s.desc, link: s.link || '', type: s.type })),
           isCircular: isCircularRoute,
           savedAt: new Date().toLocaleString('he-IL')
         };
@@ -1347,6 +1357,7 @@ var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length
     const formTitle = document.getElementById('form-title');
     const newStationName = document.getElementById('new-station-name');
     const newStationDesc = document.getElementById('new-station-desc');
+    const newStationLink = document.getElementById('new-station-link');
     const newStationType = document.getElementById('new-station-type');
     const addStationBtn = document.getElementById('add-station-btn');
     const cancelEditBtn = document.getElementById('cancel-edit-btn');
@@ -1375,6 +1386,7 @@ var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length
       editingStationId = null;
       newStationName.value = '';
       newStationDesc.value = '';
+      newStationLink.value = '';
       newStationType.value = 'normal';
       formTitle.innerHTML = '✨ הוספת תחנה חדשה';
       addStationBtn.innerHTML = '➕ הוסף למסלול';
@@ -1389,15 +1401,16 @@ var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length
       addStationBtn.addEventListener('click', () => {
         const name = newStationName.value.trim();
         const desc = newStationDesc.value.trim();
+        const link = newStationLink.value.trim();
         const type = newStationType.value;
 
         if (!name) { alert("נא להזין שם תחנה."); return; }
 
         if (editingStationId) {
           const idx = stations.findIndex(s => s.id === editingStationId);
-          if (idx !== -1) stations[idx] = { ...stations[idx], name, desc, type };
+          if (idx !== -1) stations[idx] = { ...stations[idx], name, desc, link, type };
         } else {
-          stations.push({ id: Date.now(), name, desc, type });
+          stations.push({ id: Date.now(), name, desc, link, type });
         }
 
         resetEditorForm();
@@ -1411,6 +1424,7 @@ var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length
       editingStationId = station.id;
       newStationName.value = station.name;
       newStationDesc.value = station.desc || '';
+      newStationLink.value = station.link || '';
       newStationType.value = station.type;
       formTitle.innerHTML = `✏️ עריכת תחנה: <span style="color:var(--color-primary)">${station.name}</span>`;
       addStationBtn.innerHTML = '💾 עדכן תחנה';
@@ -1446,7 +1460,7 @@ var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length
         item.innerHTML = `
           <div class="editor-station-info">
             <span class="editor-station-name">${index + 1}. ${station.name}${isCircularReturnItem ? ' 🚪↩' : ''}</span>
-            <span class="editor-station-type">סוג: ${typeName}</span>
+            <span class="editor-station-type">סוג: ${typeName}${station.link ? ' · 🔗 יש קישור' : ''}</span>
           </div>
           <div class="editor-station-actions">
             <button class="btn-small btn-edit" onclick="editStationById(${station.id})">✏️ ערוך</button>
