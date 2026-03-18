@@ -23,7 +23,6 @@
             }
         }
     </script>
-    <script src="data_manager.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/fuse.js@7/dist/fuse.min.js"></script>
@@ -804,31 +803,6 @@
     </main>
 
     <script>
-    // ═══════════════════════════════════════════════════════════════════
-    // OFFLINE DETECTION — warn if data_manager.js failed to load
-    // ═══════════════════════════════════════════════════════════════════
-    // ═══════════════════════════════════════════════════════════════════
-    // OFFLINE DETECTION — warn if data_manager.js failed to load
-    // ═══════════════════════════════════════════════════════════════════
-    (function checkDataManagerLoaded() {
-        if (typeof DataManager !== 'undefined') return; // all good
-        document.addEventListener('DOMContentLoaded', () => {
-            const banner = document.createElement('div');
-            banner.style.cssText =
-                'position:fixed;top:0;left:0;right:0;z-index:99999;' +
-                'background:rgba(255,107,107,0.95);backdrop-filter:blur(8px);color:#fff;text-align:center;direction:rtl;' +
-                'padding:13px 20px;font-family:Heebo,sans-serif;font-size:0.95rem;' +
-                'font-weight:600;box-shadow:0 3px 14px rgba(0,0,0,0.4);';
-            banner.innerHTML =
-                '⚠️ <strong>שגיאה:</strong> הקובץ <code style="background:rgba(0,0,0,0.25);padding:1px 5px;border-radius:3px;">data_manager.js</code> ' +
-                'לא נטען — שמירה לתיקייה לא תהיה זמינה. ודא שהקובץ נמצא באותה תיקייה כמו index.html ורענן.' +
-                '<button onclick="location.reload()" style="margin-right:14px;padding:5px 14px;' +
-                'border-radius:6px;border:1px solid rgba(255,255,255,0.7);background:rgba(255,255,255,0.15);' +
-                'color:#fff;cursor:pointer;font-family:Heebo,sans-serif;font-weight:600;">רענן</button>';
-            document.body.prepend(banner);
-        });
-    })();
-
     // ═══════════════════════════════════════════════════════════════════
     // SUPABASE — סנכרון ענן עבור hakala ו-yesodi בלבד
     // ═══════════════════════════════════════════════════════════════════
