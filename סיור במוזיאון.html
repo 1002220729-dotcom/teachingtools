@@ -1356,6 +1356,163 @@
             transform: translateY(-1px) scale(1.03);
         }
 
+        /* Share button — fixed top-right, visible only in visitor mode */
+        .share-view-btn {
+            position: fixed;
+            top: 25px;
+            right: 25px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            border: none;
+            padding: 14px 24px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 14px;
+            letter-spacing: 0.5px;
+            z-index: 1000;
+            box-shadow: 0 6px 20px rgba(102,126,234,0.45);
+            transition: all 0.3s ease;
+            display: none;
+        }
+        .share-view-btn:hover {
+            transform: translateY(-2px) scale(1.04);
+            box-shadow: 0 8px 26px rgba(102,126,234,0.6);
+        }
+        body.shared-mode .toggle-view-btn { display: none !important; }
+
+        /* Share Modal */
+        .share-modal-overlay {
+            display: none;
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.75);
+            z-index: 99999;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .share-modal-overlay.active { display: flex; }
+        .share-modal-box {
+            background: white;
+            border-radius: 24px;
+            padding: 40px;
+            max-width: 540px;
+            width: 100%;
+            box-shadow: 0 30px 80px rgba(0,0,0,0.35);
+            text-align: center;
+            font-family: 'Segoe UI', sans-serif;
+            direction: rtl;
+        }
+        .share-modal-box h2 { font-size: 1.6rem; font-weight: 800; color: #1a1a2e; margin-bottom: 8px; }
+        .share-modal-box p  { color: #666; margin-bottom: 20px; font-size: 0.97rem; }
+        .share-url-box {
+            background: #f0f4ff;
+            border: 2px solid #c7d2fe;
+            border-radius: 12px;
+            padding: 14px 18px;
+            margin-bottom: 12px;
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 0.82rem;
+            color: #3730a3;
+            text-align: left;
+            max-height: 80px;
+            overflow-y: auto;
+            direction: ltr;
+            min-height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: border-color 0.3s;
+        }
+        .share-url-box.loading { color: #888; font-family: 'Segoe UI', sans-serif; font-size: 0.9rem; direction: rtl; }
+        .share-url-box.shortened { border-color: #6ee7b7; background: #f0fdf4; color: #065f46; }
+        .share-url-box.failed    { border-color: #fcd34d; background: #fffbeb; color: #92400e; }
+        .share-status-badge {
+            display: none; align-items: center; gap: 6px;
+            font-size: 0.85rem; font-weight: 700;
+            padding: 6px 14px; border-radius: 20px;
+            margin: 0 auto 14px; width: fit-content;
+        }
+        .share-status-badge.success { display: flex; background: #d1fae5; color: #065f46; }
+        .share-status-badge.warning { display: flex; background: #fef3c7; color: #92400e; }
+        .share-spinner {
+            display: inline-block; width: 16px; height: 16px;
+            border: 2px solid #c7d2fe; border-top-color: #6C63FF;
+            border-radius: 50%; animation: spinShare 0.7s linear infinite;
+            vertical-align: middle; margin-left: 8px;
+        }
+        @keyframes spinShare { to { transform: rotate(360deg); } }
+        .share-btns { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+        .share-btn {
+            padding: 11px 20px; border: none; border-radius: 10px;
+            font-size: 0.95rem; font-weight: 700; cursor: pointer;
+            font-family: 'Segoe UI', sans-serif; transition: all 0.2s;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .share-btn:hover { transform: translateY(-2px); }
+        .share-btn-copy     { background: linear-gradient(135deg,#6C63FF,#5a52d5); color:white; }
+        .share-btn-whatsapp { background: #25D366; color:white; }
+        .share-btn-close    { background: #f0f0f0; color:#666; }
+        .copy-toast-museum {
+            position: fixed; bottom: 30px; left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #1a1a2e; color: white;
+            padding: 14px 28px; border-radius: 50px;
+            font-size: 1rem; font-weight: 600;
+            z-index: 999999;
+            transition: transform 0.4s cubic-bezier(.22,1,.36,1), opacity 0.4s;
+            opacity: 0; pointer-events: none; direction: rtl;
+        }
+        .copy-toast-museum.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+
+        /* Edit-share button inside admin header */
+        .admin-header-top {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .admin-header-text { flex: 1; min-width: 0; }
+        .share-edit-btn {
+            background: rgba(255,255,255,0.18);
+            color: #fff;
+            border: 2px solid rgba(255,255,255,0.5);
+            padding: 10px 20px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 0.92rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.25s;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .share-edit-btn:hover {
+            background: rgba(255,255,255,0.32);
+            border-color: rgba(255,255,255,0.8);
+            transform: translateY(-1px);
+        }
+
+        /* Edit-share modal — distinct teal accent */
+        #museumEditShareModal .share-modal-box { border-top: 5px solid #10b981; }
+        #museumEditShareModal .share-url-box   { background: #f0fdf4; border-color: #6ee7b7; color: #065f46; }
+        .edit-share-note {
+            background: #f0fdf4;
+            border: 1px solid #6ee7b7;
+            border-radius: 10px;
+            padding: 12px 16px;
+            font-size: 0.85rem;
+            color: #065f46;
+            margin-top: 14px;
+            text-align: right;
+            line-height: 1.6;
+        }
+
         /* Modal for detailed view */
         .modal {
             display: none;
@@ -1450,12 +1607,46 @@
             color: #555;
         }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
 </head>
 <body>
     <!-- Loading Overlay -->
     <div class="loading-overlay" id="loading-overlay">
         <div class="spinner"></div>
         <div class="loading-text" id="loading-text">טוען...</div>
+    </div>
+
+
+    <!-- Share button — visible in visitor mode only -->
+    <button class="share-view-btn" id="shareViewBtn" onclick="openMuseumShareModal()">🔗 שתף לתלמידים</button>
+
+    <!-- Copy toast -->
+    <div class="copy-toast-museum" id="copyToastMuseum">✓ הקישור הועתק ללוח!</div>
+
+    <!-- Share Modal -->
+    <div class="share-modal-overlay" id="museumShareModal">
+        <div class="share-modal-box">
+            <div style="font-size:2.8rem;margin-bottom:10px;">🏛️</div>
+            <h2>שתף את המוזיאון</h2>
+            <p>שלח את הקישור לתלמידים — הם יפתחו מיד את תצוגת הביקור, ללא ניהול.</p>
+            <div class="share-status-badge" id="museumShareStatusBadge"></div>
+            <div class="share-url-box" id="museumShareUrlDisplay">...</div>
+            <div class="share-btns">
+                <button class="share-btn share-btn-copy" onclick="copyMuseumShareLink()">📋 העתק קישור</button>
+                <button class="share-btn share-btn-whatsapp" onclick="whatsappMuseumShare()">💬 שלח בוואטסאפ</button>
+                <button class="share-btn share-btn-close" onclick="closeMuseumShareModal()">סגור</button>
+            </div>
+            <p style="font-size:0.8rem;color:#999;margin-top:14px;">
+                💡 הקישור מכיל את כל נתוני המוזיאון ונפתח ישירות במצב ביקור.
+            </p>
+            <div style="margin-top:12px;display:flex;align-items:center;justify-content:center;gap:10px;font-size:0.9rem;color:#555;">
+                <label for="museumAutoShortenToggle" style="cursor:pointer;display:flex;align-items:center;gap:8px;">
+                    <input type="checkbox" id="museumAutoShortenToggle" checked
+                        style="width:16px;height:16px;cursor:pointer;accent-color:#6C63FF;">
+                    קצר את הקישור אוטומטית
+                </label>
+            </div>
+        </div>
     </div>
 
     <button class="toggle-view-btn" onclick="toggleView()">
@@ -1510,12 +1701,50 @@
         </div>
     </div>
 
+
+    <!-- Edit Share Modal — for student projects -->
+    <div class="share-modal-overlay" id="museumEditShareModal">
+        <div class="share-modal-box">
+            <div style="font-size:2.8rem;margin-bottom:10px;">✏️</div>
+            <h2>שתף לפרויקט תלמידים</h2>
+            <p>התלמידים יפתחו ממשק ניהול ריק ויבנו מוזיאון משלהם.</p>
+            <div class="share-status-badge" id="museumEditShareStatusBadge"></div>
+            <div class="share-url-box" id="museumEditShareUrlDisplay">...</div>
+            <div class="share-btns">
+                <button class="share-btn share-btn-copy" onclick="copyMuseumEditLink()">📋 העתק קישור</button>
+                <button class="share-btn share-btn-whatsapp" onclick="whatsappMuseumEditShare()">💬 שלח בוואטסאפ</button>
+                <button class="share-btn share-btn-close" onclick="closeMuseumEditShareModal()">סגור</button>
+            </div>
+            <div class="edit-share-note">
+                📌 <strong>מה התלמיד יראה?</strong><br>
+                ממשק ניהול מוזיאון פתוח ועם נתוני ה<strong>מוזיאון הנוכחי שלך</strong> טעונים מראש —
+                התלמידים יוכלו לבנות מעליו, לשנות, למחוק ולהוסיף.<br><br>
+                רוצה לשלוח ממשק <strong>ריק לחלוטין</strong>?
+                <a href="#" onclick="event.preventDefault();openMuseumEditShareModal(true)" style="color:#065f46;font-weight:700;">לחץ כאן</a>
+            </div>
+            <div style="margin-top:12px;display:flex;align-items:center;justify-content:center;gap:10px;font-size:0.9rem;color:#555;">
+                <label for="museumEditAutoShortenToggle" style="cursor:pointer;display:flex;align-items:center;gap:8px;">
+                    <input type="checkbox" id="museumEditAutoShortenToggle" checked
+                        style="width:16px;height:16px;cursor:pointer;accent-color:#10b981;">
+                    קצר את הקישור אוטומטית
+                </label>
+            </div>
+        </div>
+    </div>
+
     <!-- Admin View -->
     <div id="admin-view">
         <div class="admin-header">
-            <h1>🎨 ניהול תצוגות המוזיאון</h1>
-            <p>העלה תמונות, סרטונים והסברים לתצוגות המוזיאון</p>
-            <div id="storage-indicator"></div>
+            <div class="admin-header-top">
+                <div class="admin-header-text">
+                    <h1>🎨 ניהול תצוגות המוזיאון</h1>
+                    <p>העלה תמונות, סרטונים והסברים לתצוגות המוזיאון</p>
+                    <div id="storage-indicator"></div>
+                </div>
+                <button class="share-edit-btn" onclick="openMuseumEditShareModal()" title="שתף קישור לעריכה עצמאית">
+                    ✏️ שתף לפרויקט תלמידים
+                </button>
+            </div>
         </div>
 
         <!-- Room Management -->
@@ -2868,11 +3097,289 @@
                 toggleText.textContent = 'מעבר לתצוגה';
                 renderAdminView();
             }
+            _updateShareBtnVisibility();
         }
+
+
+        // ═══════════════════════════════════════════════════════════
+        // SHARE / URL LOGIC
+        // ═══════════════════════════════════════════════════════════
+        let _museumShareUrl = '';
+        let _museumIsShared = false;
+
+        function generateMuseumShareURL() {
+            const json = JSON.stringify(museumData);
+            const compressed = LZString.compressToEncodedURIComponent(json);
+            const base = window.location.href.split('#')[0].split('?')[0];
+            // ?museum= stays intact through URL shorteners (unlike # fragments)
+            return base + '?museum=' + compressed;
+        }
+
+        function _museumGetAutoShorten() {
+            const t = document.getElementById('museumAutoShortenToggle');
+            return !!(t && t.checked);
+        }
+
+        async function _museumSafeFetch(url, opts = {}) {
+            try {
+                const res = await fetch(url, opts);
+                if (!res.ok) return null;
+                const text = await res.text();
+                try { return JSON.parse(text); } catch(e) { return null; }
+            } catch(e) { return null; }
+        }
+
+        async function _museumShorten(longUrl) {
+            const data = await _museumSafeFetch(
+                `/api/shorten?url=${encodeURIComponent(longUrl)}`,
+                { signal: AbortSignal.timeout(8000) }
+            );
+            if (data && data.ok && data.shortUrl) return data.shortUrl;
+            return null;
+        }
+
+        async function openMuseumShareModal() {
+            const modal  = document.getElementById('museumShareModal');
+            const urlBox = document.getElementById('museumShareUrlDisplay');
+            const badge  = document.getElementById('museumShareStatusBadge');
+
+            modal.classList.add('active');
+
+            // Loading state
+            urlBox.className = 'share-url-box loading';
+            urlBox.innerHTML = '<span class="share-spinner"></span>&nbsp;מכין קישור לשיתוף...';
+            badge.className  = 'share-status-badge';
+            badge.textContent = '';
+
+            const longUrl = generateMuseumShareURL();
+            _museumShareUrl = longUrl;
+
+            if (_museumGetAutoShorten()) {
+                const short = await _museumShorten(longUrl);
+                if (short) {
+                    _museumShareUrl = short;
+                    urlBox.textContent = short;
+                    urlBox.className   = 'share-url-box shortened';
+                    badge.innerHTML    = '✅ קישור מקוצר נוצר בהצלחה';
+                    badge.className    = 'share-status-badge success';
+                    return;
+                }
+                // fallback
+                urlBox.textContent = longUrl;
+                urlBox.className   = 'share-url-box failed';
+                badge.innerHTML    = '⚠️ לא ניתן לקצר כרגע — מוצג קישור מלא';
+                badge.className    = 'share-status-badge warning';
+            } else {
+                urlBox.textContent = longUrl;
+                urlBox.className   = 'share-url-box';
+            }
+        }
+
+        function closeMuseumShareModal() {
+            document.getElementById('museumShareModal').classList.remove('active');
+            _museumShareUrl = '';
+        }
+
+        async function copyMuseumShareLink() {
+            const url = _museumShareUrl || generateMuseumShareURL();
+            try {
+                await navigator.clipboard.writeText(url);
+            } catch(e) {
+                const ta = document.createElement('textarea');
+                ta.value = url; ta.style.position = 'fixed'; ta.style.opacity = '0';
+                document.body.appendChild(ta); ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+            }
+            const toast = document.getElementById('copyToastMuseum');
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2500);
+        }
+
+        async function whatsappMuseumShare() {
+            const url = _museumShareUrl || generateMuseumShareURL();
+            const msg = encodeURIComponent('🏛️ כנסו לסיור הווירטואלי במוזיאון: ' + url);
+            window.open('https://wa.me/?text=' + msg, '_blank');
+        }
+
+        // Detect shared mode on load — ?museum= param
+        let _museumIsEditMode = false;
+
+        function _checkMuseumSharedMode() {
+            const params = new URLSearchParams(window.location.search);
+
+            // ── Edit mode (?museum-edit=) ──
+            const editCompressed = params.get('museum-edit');
+            if (editCompressed) {
+                try {
+                    const json = LZString.decompressFromEncodedURIComponent(editCompressed);
+                    if (json) {
+                        const data = JSON.parse(json);
+                        museumData = normalizeMuseumData(data);
+                    }
+                } catch(e) {
+                    console.warn('Failed to decode museum-edit URL:', e);
+                    museumData = normalizeMuseumData(null);
+                }
+                _museumIsEditMode = true;
+                return 'edit'; // signal to load handler
+            }
+
+            // ── Visitor mode (?museum=) ──
+            const compressed = params.get('museum');
+            if (!compressed) return false;
+            try {
+                const json = LZString.decompressFromEncodedURIComponent(compressed);
+                if (!json) return false;
+                const data = JSON.parse(json);
+                museumData = normalizeMuseumData(data);
+                _museumIsShared = true;
+                document.body.classList.add('shared-mode');
+                return 'view';
+            } catch(e) {
+                console.warn('Failed to decode museum share URL:', e);
+                return false;
+            }
+        }
+
+        // Show/hide share button based on current view
+        function _updateShareBtnVisibility() {
+            const btn = document.getElementById('shareViewBtn');
+            if (!btn) return;
+            // Show share button in visitor view, hide in admin & shared mode
+            btn.style.display = (isVisitorView && !_museumIsShared) ? 'block' : 'none';
+        }
+
+        // Close share modal on overlay click
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('museumShareModal')?.addEventListener('click', function(e) {
+                if (e.target === this) closeMuseumShareModal();
+            });
+        });
+
+
+        // ── EDIT SHARE — student project mode ──────────────────────────
+        let _museumEditShareUrl = '';
+
+        function generateMuseumEditURL(empty = false) {
+            const data = empty ? { rooms: [] } : museumData;
+            const json = JSON.stringify(data);
+            const compressed = LZString.compressToEncodedURIComponent(json);
+            const base = window.location.href.split('#')[0].split('?')[0];
+            // ?museum-edit= → opens admin view (editable)
+            return base + '?museum-edit=' + compressed;
+        }
+
+        function _museumEditGetAutoShorten() {
+            const t = document.getElementById('museumEditAutoShortenToggle');
+            return !!(t && t.checked);
+        }
+
+        async function openMuseumEditShareModal(empty = false) {
+            const modal  = document.getElementById('museumEditShareModal');
+            const urlBox = document.getElementById('museumEditShareUrlDisplay');
+            const badge  = document.getElementById('museumEditShareStatusBadge');
+
+            modal.classList.add('active');
+
+            // Update note text based on empty vs loaded
+            const note = modal.querySelector('.edit-share-note');
+            if (note) {
+                if (empty) {
+                    note.innerHTML = '📌 <strong>ממשק ריק</strong> — התלמידים יפתחו מוזיאון חדש לגמרי ויבנו מאפס.<br><br>' +
+                        'רוצה לשלוח עם <strong>נתוני המוזיאון הנוכחי</strong>? ' +
+                        '<a href="#" onclick="event.preventDefault();openMuseumEditShareModal(false)" style="color:#065f46;font-weight:700;">לחץ כאן</a>';
+                } else {
+                    note.innerHTML = '📌 <strong>מה התלמיד יראה?</strong><br>' +
+                        'ממשק ניהול עם נתוני <strong>המוזיאון הנוכחי שלך</strong> טעונים — ' +
+                        'התלמידים יוכלו לבנות מעליו, לשנות, למחוק ולהוסיף.<br><br>' +
+                        'רוצה לשלוח ממשק <strong>ריק לחלוטין</strong>? ' +
+                        '<a href="#" onclick="event.preventDefault();openMuseumEditShareModal(true)" style="color:#065f46;font-weight:700;">לחץ כאן</a>';
+                }
+            }
+
+            // Loading state
+            urlBox.className = 'share-url-box loading';
+            urlBox.innerHTML = '<span class="share-spinner"></span>&nbsp;מכין קישור...';
+            badge.className  = 'share-status-badge';
+            badge.textContent = '';
+
+            const longUrl = generateMuseumEditURL(empty);
+            _museumEditShareUrl = longUrl;
+
+            if (_museumEditGetAutoShorten()) {
+                const short = await _museumShorten(longUrl);
+                if (short) {
+                    _museumEditShareUrl = short;
+                    urlBox.textContent = short;
+                    urlBox.className   = 'share-url-box shortened';
+                    badge.innerHTML    = '✅ קישור מקוצר נוצר בהצלחה';
+                    badge.className    = 'share-status-badge success';
+                    return;
+                }
+                urlBox.textContent = longUrl;
+                urlBox.className   = 'share-url-box failed';
+                badge.innerHTML    = '⚠️ לא ניתן לקצר — מוצג קישור מלא';
+                badge.className    = 'share-status-badge warning';
+            } else {
+                urlBox.textContent = longUrl;
+                urlBox.className   = 'share-url-box';
+            }
+        }
+
+        function closeMuseumEditShareModal() {
+            document.getElementById('museumEditShareModal').classList.remove('active');
+            _museumEditShareUrl = '';
+        }
+
+        async function copyMuseumEditLink() {
+            const url = _museumEditShareUrl || generateMuseumEditURL(false);
+            try {
+                await navigator.clipboard.writeText(url);
+            } catch(e) {
+                const ta = document.createElement('textarea');
+                ta.value = url; ta.style.position = 'fixed'; ta.style.opacity = '0';
+                document.body.appendChild(ta); ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+            }
+            const toast = document.getElementById('copyToastMuseum');
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2500);
+        }
+
+        async function whatsappMuseumEditShare() {
+            const url = _museumEditShareUrl || generateMuseumEditURL(false);
+            const msg = encodeURIComponent('🎨 בנו מוזיאון וירטואלי משלכם! כנסו לקישור: ' + url);
+            window.open('https://wa.me/?text=' + msg, '_blank');
+        }
+
+        // Close edit modal on overlay click
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('museumEditShareModal')?.addEventListener('click', function(e) {
+                if (e.target === this) closeMuseumEditShareModal();
+            });
+        });
 
         // Initialize on page load
         window.addEventListener('load', () => {
+            const shareMode = _checkMuseumSharedMode();
             initializeMuseum();
+            if (shareMode === 'view') {
+                // Visitor-only mode — hide admin toggle
+                isVisitorView = true;
+                document.getElementById('visitor-view').style.display = 'block';
+                document.getElementById('admin-view').style.display = 'none';
+                renderVisitorView();
+            } else if (shareMode === 'edit') {
+                // Edit / student project mode — open in admin
+                isVisitorView = false;
+                document.getElementById('visitor-view').style.display = 'none';
+                document.getElementById('admin-view').style.display = 'block';
+                document.getElementById('toggle-text').textContent = 'מעבר לתצוגה';
+                renderAdminView();
+            }
+            _updateShareBtnVisibility();
         });
 
         // Close modal when clicking outside
