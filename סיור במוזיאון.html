@@ -1381,6 +1381,30 @@
         }
         body.shared-mode .toggle-view-btn { display: none !important; }
 
+        /* Student share-view button — visible only in shared mode */
+        .share-student-view-btn {
+            position: fixed;
+            top: 25px;
+            right: 25px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: #fff;
+            border: none;
+            padding: 14px 24px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 14px;
+            letter-spacing: 0.5px;
+            z-index: 1000;
+            box-shadow: 0 6px 20px rgba(16,185,129,0.45);
+            transition: all 0.3s ease;
+            display: none;
+        }
+        .share-student-view-btn:hover {
+            transform: translateY(-2px) scale(1.04);
+            box-shadow: 0 8px 26px rgba(16,185,129,0.6);
+        }
+
         /* Share Modal */
         .share-modal-overlay {
             display: none;
@@ -1619,6 +1643,9 @@
 
     <!-- Share button — visible in visitor mode only -->
     <button class="share-view-btn" id="shareViewBtn" onclick="openMuseumShareModal()">🔗 שתף לתלמידים</button>
+
+    <!-- Student share view button — visible in shared/student mode only -->
+    <button class="share-student-view-btn" id="shareStudentViewBtn" onclick="shareStudentView()">🔗 שתף תצוגה</button>
 
     <!-- Copy toast -->
     <div class="copy-toast-museum" id="copyToastMuseum">✓ הקישור הועתק ללוח!</div>
@@ -3244,10 +3271,41 @@
 
         // Show/hide share button based on current view
         function _updateShareBtnVisibility() {
-            const btn = document.getElementById('shareViewBtn');
-            if (!btn) return;
-            // Show share button in visitor view, hide in admin & shared mode
-            btn.style.display = (isVisitorView && !_museumIsShared) ? 'block' : 'none';
+            const btn        = document.getElementById('shareViewBtn');
+            const studentBtn = document.getElementById('shareStudentViewBtn');
+            if (btn)        btn.style.display        = (isVisitorView && !_museumIsShared) ? 'block' : 'none';
+            if (studentBtn) studentBtn.style.display  = _museumIsShared ? 'block' : 'none';
+        }
+
+        // Student share current view (copy current URL with shortening)
+        async function shareStudentView() {
+            const btn = document.getElementById('shareStudentViewBtn');
+            if (btn) { btn.textContent = '⏳ מכין...'; btn.disabled = true; }
+
+            let shareUrl = window.location.href;
+
+            // Try to shorten
+            try {
+                const res = await fetch(`/api/shorten?url=${encodeURIComponent(shareUrl)}`, {
+                    signal: AbortSignal.timeout(6000)
+                });
+                if (res.ok) {
+                    const text = await res.text();
+                    try {
+                        const data = JSON.parse(text);
+                        if (data && data.ok && data.shortUrl) shareUrl = data.shortUrl;
+                    } catch(e) {}
+                }
+            } catch(e) {}
+
+            try {
+                await navigator.clipboard.writeText(shareUrl);
+                alert('✅ הקישור הועתק!\n\n' + shareUrl);
+            } catch(e) {
+                prompt('העתק את הקישור ושתף:', shareUrl);
+            }
+
+            if (btn) { btn.textContent = '🔗 שתף תצוגה'; btn.disabled = false; }
         }
 
         // Close share modal on overlay click
