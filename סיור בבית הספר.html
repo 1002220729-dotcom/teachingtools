@@ -1146,7 +1146,24 @@ var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length
 
           if (json.status === 'success') {
             const baseUrl = window.location.href.split('?')[0];
-            const shareUrl = `${baseUrl}?tour=${json.id}`;
+            let shareUrl = `${baseUrl}?tour=${json.id}`;
+
+            // נסה לקצר דרך Cloudflare Function
+            try {
+              const shortenRes = await fetch(`/api/shorten?url=${encodeURIComponent(shareUrl)}`, {
+                signal: AbortSignal.timeout(6000)
+              });
+              if (shortenRes.ok) {
+                const shortenText = await shortenRes.text();
+                try {
+                  const shortenData = JSON.parse(shortenText);
+                  if (shortenData && shortenData.ok && shortenData.shortUrl) {
+                    shareUrl = shortenData.shortUrl;
+                  }
+                } catch(e) { /* keep original */ }
+              }
+            } catch(e) { /* keep original */ }
+
             try {
               await navigator.clipboard.writeText(shareUrl);
               alert('✅ קישור הועתק ללוח!\n\n' + shareUrl + '\n\nהקישור תקף לכל זמן — גם אם תיצור מסלול חדש.');

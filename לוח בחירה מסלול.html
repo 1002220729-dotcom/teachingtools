@@ -1069,35 +1069,17 @@
     async function safeFetchJson(url, opts = {}) {
         try {
             const res = await fetch(url, opts);
-            const ct  = res.headers.get('content-type') || '(none)';
-            console.log(`[shorten] status=${res.status} content-type="${ct}" url=${url.slice(0,60)}`);
-            if (!res.ok) {
-                const body = await res.text();
-                console.warn(`[shorten] non-OK body (first 200): ${body.slice(0,200)}`);
-                return null;
-            }
+            if (!res.ok) return null;
             const text = await res.text();
-            console.log(`[shorten] raw body (first 200): ${text.slice(0,200)}`);
-            try {
-                return JSON.parse(text);
-            } catch(e) {
-                console.warn(`[shorten] body is not JSON:`, e.message);
-                return null;
-            }
-        } catch (e) {
-            console.warn(`[shorten] fetch threw:`, e.message);
-            return null;
-        }
+            try { return JSON.parse(text); } catch(e) { return null; }
+        } catch (e) { return null; }
     }
 
     async function shortenUrlIfNeeded(longUrl) {
-        console.log('[shorten] calling /api/shorten with url length:', longUrl.length);
         const data = await safeFetchJson(`/api/shorten?url=${encodeURIComponent(longUrl)}`, {
             signal: AbortSignal.timeout(8000)
         });
-        console.log('[shorten] /api/shorten response data:', JSON.stringify(data));
         if (data && data.ok && data.shortUrl) return data.shortUrl;
-        console.warn('Shortening failed via /api/shorten, using long URL');
         return null;
     }
 
