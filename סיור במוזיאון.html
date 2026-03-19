@@ -3546,21 +3546,29 @@
         // Initialize on page load
         window.addEventListener('load', () => {
             const shareMode = _checkMuseumSharedMode();
-            initializeMuseum();
             if (shareMode === 'view') {
-                // Visitor-only mode — hide admin toggle
+                // Shared visitor mode: use data from URL only
                 isVisitorView = true;
+                currentRoomIndex = 0;
                 document.getElementById('visitor-view').style.display = 'block';
                 document.getElementById('admin-view').style.display = 'none';
                 renderVisitorView();
-            } else if (shareMode === 'edit') {
-                // Edit / student project mode — open in admin
+                _updateShareBtnVisibility();
+                return;
+            }
+            if (shareMode === 'edit') {
+                // Shared edit mode: use data from URL only
                 isVisitorView = false;
+                currentRoomIndex = 0;
                 document.getElementById('visitor-view').style.display = 'none';
                 document.getElementById('admin-view').style.display = 'block';
-                document.getElementById('toggle-text').textContent = 'מעבר לתצוגה';
+                document.getElementById('toggle-text').textContent = '👁️ מצב תצוגה';
                 renderAdminView();
+                _updateShareBtnVisibility();
+                return;
             }
+            // Regular local mode
+            initializeMuseum();
             _updateShareBtnVisibility();
         });
 
