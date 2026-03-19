@@ -3266,6 +3266,9 @@
             return base + '?museum=' + compressed;
         }
 
+        const _MUSEUM_APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbyTqtlER6anUxGa06iVHo2zp4xlNO7GhKADk59peoVqV7aswrhrFR8x4PAwMZZ2t65h/exec';
+        const _SHORT_URL_THRESHOLD = 2000; // תווים — גבול לשירותי קיצור רגילים
+
         function _museumGetAutoShorten() {
             const t = document.getElementById('museumAutoShortenToggle');
             return !!(t && t.checked);
@@ -3280,7 +3283,8 @@
             } catch(e) { return null; }
         }
 
-        async function _museumShorten(longUrl) {
+        // נתיב 1: URL קצר (≤2000 תווים) — קיצור דרך /api/shorten (is.gd)
+        async function _museumShortenViaIsGd(longUrl) {
             const data = await _museumSafeFetch(
                 `/api/shorten?url=${encodeURIComponent(longUrl)}`,
                 { signal: AbortSignal.timeout(8000) }
@@ -3289,21 +3293,58 @@
             return null;
         }
 
+        // נתיב 2: URL ארוך (>2000 תווים) — שמירה ב-Apps Script וקבלת ID קצר
+        async function _museumSaveViaAppsScript() {
+            try {
+                const payload = {
+                    action: 'save_museum',
+                    museumData: museumData
+                };
+                const res = await fetch(_MUSEUM_APPS_SCRIPT, {
+                    method: 'POST',
+                    body: JSON.stringify(payload),
+                    signal: AbortSignal.timeout(15000)
+                });
+                if (!res.ok) return null;
+                const text = await res.text();
+                const json = JSON.parse(text);
+                if (json.status === 'success' && json.id) {
+                    const base = window.location.href.split('#')[0].split('?')[0];
+                    return base + '?museum-id=' + json.id;
+                }
+                return null;
+            } catch(e) {
+                console.warn('[museum] Apps Script save failed:', e.message);
+                return null;
+            }
+        }
+
+        // בוחר נתיב אוטומטית לפי אורך ה-URL
+        async function _museumShorten(longUrl) {
+            if (longUrl.length <= _SHORT_URL_THRESHOLD) {
+                // נתיב 1: קצר — שירות קיצור רגיל
+                return await _museumShortenViaIsGd(longUrl);
+            } else {
+                // נתיב 2: ארוך — שמירה ב-Apps Script
+                return await _museumSaveViaAppsScript();
+            }
+        }
+
         async function openMuseumShareModal() {
             const modal  = document.getElementById('museumShareModal');
             const urlBox = document.getElementById('museumShareUrlDisplay');
-            const badge  = document.getElementById('museumShareStatusBadge');
+            const badge  = document.getElementById('shareStatusBadge') || document.getElementById('museumShareStatusBadge');
 
             modal.classList.add('active');
 
-            // Loading state
-            urlBox.className = 'share-url-box loading';
-            urlBox.innerHTML = '<span class="share-spinner"></span>&nbsp;מכין קישור לשיתוף...';
-            badge.className  = 'share-status-badge';
-            badge.textContent = '';
-
+            // Loading state — הודעה בהתאם לאורך הצפוי
             const longUrl = generateMuseumShareURL();
             _museumShareUrl = longUrl;
+
+            const isLong = longUrl.length > _SHORT_URL_THRESHOLD;
+            urlBox.className = 'share-url-box loading';
+            urlBox.innerHTML = `<span class="share-spinner"></span>&nbsp;${isLong ? 'שומר מוזיאון בענן...' : 'מכין קישור לשיתוף...'}`;
+            if (badge) { badge.className = 'share-status-badge'; badge.textContent = ''; }
 
             if (_museumGetAutoShorten()) {
                 const short = await _museumShorten(longUrl);
@@ -3311,15 +3352,21 @@
                     _museumShareUrl = short;
                     urlBox.textContent = short;
                     urlBox.className   = 'share-url-box shortened';
-                    badge.innerHTML    = '✅ קישור מקוצר נוצר בהצלחה';
-                    badge.className    = 'share-status-badge success';
+                    if (badge) {
+                        badge.innerHTML = isLong
+                            ? '✅ המוזיאון נשמר בענן — קישור קצר נוצר בהצלחה'
+                            : '✅ קישור מקוצר נוצר בהצלחה';
+                        badge.className = 'share-status-badge success';
+                    }
                     return;
                 }
-                // fallback
+                // fallback — שני הנתיבות נכשלו
                 urlBox.textContent = longUrl;
                 urlBox.className   = 'share-url-box failed';
-                badge.innerHTML    = '⚠️ לא ניתן לקצר כרגע — מוצג קישור מלא';
-                badge.className    = 'share-status-badge warning';
+                if (badge) {
+                    badge.innerHTML = '⚠️ לא ניתן לקצר כרגע — מוצג קישור מלא';
+                    badge.className = 'share-status-badge warning';
+                }
             } else {
                 urlBox.textContent = longUrl;
                 urlBox.className   = 'share-url-box';
@@ -3353,10 +3400,10 @@
             window.open('https://wa.me/?text=' + msg, '_blank');
         }
 
-        // Detect shared mode on load — ?museum= param
+        // Detect shared mode on load — ?museum= or ?museum-id= param
         let _museumIsEditMode = false;
 
-        function _checkMuseumSharedMode() {
+        async function _checkMuseumSharedMode() {
             const params = new URLSearchParams(window.location.search);
 
             // ── Edit mode (?museum-edit=) ──
@@ -3373,10 +3420,33 @@
                     museumData = normalizeMuseumData(null);
                 }
                 _museumIsEditMode = true;
-                return 'edit'; // signal to load handler
+                return 'edit';
             }
 
-            // ── Visitor mode (?museum=) ──
+            // ── Visitor mode via Apps Script ID (?museum-id=) ──
+            const museumId = params.get('museum-id');
+            if (museumId) {
+                try {
+                    const res = await fetch(_MUSEUM_APPS_SCRIPT + '?museum-id=' + encodeURIComponent(museumId), {
+                        signal: AbortSignal.timeout(10000)
+                    });
+                    if (res.ok) {
+                        const text = await res.text();
+                        const json = JSON.parse(text);
+                        if (json.status === 'success' && json.museumData) {
+                            museumData = normalizeMuseumData(json.museumData);
+                            _museumIsShared = true;
+                            document.body.classList.add('shared-mode');
+                            return 'view';
+                        }
+                    }
+                } catch(e) {
+                    console.warn('Failed to load museum from Apps Script:', e);
+                }
+                return false;
+            }
+
+            // ── Visitor mode via compressed URL (?museum=) ──
             const compressed = params.get('museum');
             if (!compressed) return false;
             try {
@@ -3544,8 +3614,8 @@
         });
 
         // Initialize on page load
-        window.addEventListener('load', () => {
-            const shareMode = _checkMuseumSharedMode();
+        window.addEventListener('load', async () => {
+            const shareMode = await _checkMuseumSharedMode();
             if (shareMode === 'view') {
                 // Shared visitor mode: use data from URL only
                 isVisitorView = true;
