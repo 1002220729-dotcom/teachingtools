@@ -1381,6 +1381,90 @@
         }
         body.shared-mode .toggle-view-btn { display: none !important; }
 
+        /* ── Notebook button & panel ── */
+        .notebook-btn {
+            position: fixed;
+            top: 80px;
+            left: 20px;
+            background: rgba(255,193,7,0.95);
+            color: #333;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .notebook-btn:hover { background: rgba(255,213,79,0.95); transform: translateY(-2px); }
+
+        .notebook-panel {
+            position: fixed;
+            top: 145px; left: 20px;
+            width: 350px; max-height: 70vh;
+            background: rgba(255,248,220,0.98);
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            backdrop-filter: blur(10px);
+            z-index: 1001;
+            display: none;
+            flex-direction: column;
+            border: 3px solid rgba(139,115,85,0.3);
+        }
+        .notebook-panel.open { display: flex; animation: nbSlideIn 0.3s ease; }
+        @keyframes nbSlideIn { from { opacity:0; transform:translateX(-20px); } to { opacity:1; transform:translateX(0); } }
+
+        .notebook-header {
+            padding: 20px;
+            background: linear-gradient(135deg,#D2B48C,#C9A875);
+            border-radius: 12px 12px 0 0;
+            border-bottom: 2px solid #8B7355;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .notebook-header h3 { color:#4a3f35; font-size:18px; margin:0; display:flex; align-items:center; gap:8px; }
+        .notebook-close {
+            background: rgba(255,255,255,0.7); border:none; width:32px; height:32px;
+            border-radius:50%; cursor:pointer; font-size:18px;
+            display:flex; align-items:center; justify-content:center; transition:all 0.3s;
+        }
+        .notebook-close:hover { background:rgba(255,255,255,0.9); transform:rotate(90deg); }
+
+        .notebook-content { padding:15px; flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:10px; }
+        .notebook-textarea {
+            width:100%; min-height:220px; padding:12px;
+            border:2px solid #D2B48C; border-radius:8px;
+            font-family:'Segoe UI',sans-serif; font-size:14px; line-height:1.6;
+            resize:vertical; background:rgba(255,255,255,0.9); color:#333; box-sizing:border-box;
+        }
+        .notebook-textarea:focus { outline:none; border-color:#C9A875; box-shadow:0 0 10px rgba(201,168,117,0.3); }
+        .notebook-info { font-size:12px; color:#666; text-align:center; padding:8px; background:rgba(255,255,255,0.5); border-radius:8px; }
+
+        .notebook-footer {
+            padding: 12px 15px;
+            background: rgba(210,180,140,0.3);
+            border-top: 2px solid #D2B48C;
+            border-radius: 0 0 12px 12px;
+            display: flex; flex-direction:column; gap:8px;
+        }
+        .notebook-buttons-row { display:flex; gap:8px; }
+        .nb-btn {
+            flex:1; padding:9px 6px; border:none; border-radius:8px;
+            font-weight:bold; cursor:pointer; transition:all 0.3s;
+            font-size:12px; display:flex; align-items:center; justify-content:center; gap:4px;
+        }
+        .nb-btn:hover { transform:translateY(-2px); }
+        .nb-dl-txt  { background:#667eea; color:white; }
+        .nb-dl-word { background:#2b579a; color:white; }
+        .nb-dl-pdf  { background:#dc3545; color:white; }
+        .nb-clear   { background:#ffc107; color:#333; }
+        .nb-close   { background:#6c757d; color:white; width:100%; }
+
         /* Student share-view button — visible only in shared mode */
         .share-student-view-btn {
             position: fixed;
@@ -1646,6 +1730,46 @@
 
     <!-- Student share view button — visible in shared/student mode only -->
     <button class="share-student-view-btn" id="shareStudentViewBtn" onclick="shareStudentView()">🔗 שתף תצוגה</button>
+
+    <!-- Notebook button — visible in shared/student mode -->
+    <button class="notebook-btn" id="notebookBtn" onclick="toggleNotebook()">
+        <span>📓</span><span>מחברת סיור</span>
+    </button>
+
+    <!-- Notebook Panel -->
+    <div class="notebook-panel" id="notebook-panel">
+        <div class="notebook-header">
+            <h3>📓 מחברת הסיור שלי</h3>
+            <button class="notebook-close" onclick="toggleNotebook()">✕</button>
+        </div>
+        <div class="notebook-content">
+            <textarea class="notebook-textarea" id="notebook-textarea"
+                placeholder="כתוב כאן את ההערות, התובנות והרשמים שלך מהסיור במוזיאון...
+
+אפשר לכתוב על:
+• מה למדתי מכל תצוגה
+• מה עניין אותי במיוחד
+• שאלות שעלו לי
+• חיבורים בין תצוגות שונות
+• מחשבות ורגשות
+
+המחברת נשמרת אוטומטית."></textarea>
+            <div class="notebook-info">💡 הטקסט נשמר אוטומטית בזמן שאתה כותב</div>
+        </div>
+        <div class="notebook-footer">
+            <div class="notebook-buttons-row">
+                <button class="nb-btn nb-dl-txt"  onclick="nbDownloadTxt()">📄 הורדה (טקסט)</button>
+                <button class="nb-btn nb-dl-word" onclick="nbDownloadWord()">📘 הורדה (Word)</button>
+            </div>
+            <div class="notebook-buttons-row">
+                <button class="nb-btn nb-dl-pdf"  onclick="nbDownloadPDF()">📕 הורדה (PDF)</button>
+                <button class="nb-btn nb-clear"   onclick="nbClear()">🗑️ נקה</button>
+            </div>
+            <div class="notebook-buttons-row">
+                <button class="nb-btn nb-close"   onclick="toggleNotebook()">✅ סגור ושמור</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Copy toast -->
     <div class="copy-toast-museum" id="copyToastMuseum">✓ הקישור הועתק ללוח!</div>
@@ -3460,5 +3584,89 @@
             השימוש בכלי הינו באחריות המשתמש בלבד
         </div>
     </div>
+<script>
+    // ── מחברת סיור ──────────────────────────────────────────
+    let _nbContent = '';
+
+    function toggleNotebook() {
+        document.getElementById('notebook-panel').classList.toggle('open');
+    }
+
+    function _nbSave() {
+        const ta = document.getElementById('notebook-textarea');
+        if (!ta) return;
+        _nbContent = ta.value;
+        localStorage.setItem('museum-notebook', _nbContent);
+    }
+
+    function _nbLoad() {
+        const saved = localStorage.getItem('museum-notebook');
+        if (saved) {
+            _nbContent = saved;
+            const ta = document.getElementById('notebook-textarea');
+            if (ta) ta.value = _nbContent;
+        }
+    }
+
+    function nbDownloadTxt() {
+        const content = document.getElementById('notebook-textarea').value;
+        if (!content.trim()) { alert('המחברת ריקה - אין מה להוריד'); return; }
+        const blob = new Blob([content], { type:'text/plain;charset=utf-8' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'מחברת-סיור-מוזיאון-' + new Date().toLocaleDateString('he-IL') + '.txt';
+        a.click();
+    }
+
+    function nbDownloadWord() {
+        const content = document.getElementById('notebook-textarea').value;
+        if (!content.trim()) { alert('המחברת ריקה - אין מה להוריד'); return; }
+        const date = new Date().toLocaleDateString('he-IL', { year:'numeric', month:'long', day:'numeric' });
+        const html = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+<head><meta charset='utf-8'><style>body{font-family:Arial;direction:rtl;text-align:right;line-height:1.8;padding:40px}
+.hdr{text-align:center;padding:25px;background:#8B7355;color:#F5E6D3;border-radius:10px;margin-bottom:25px}
+.cnt{background:white;padding:25px;border:2px solid #D2B48C;white-space:pre-wrap;font-size:14px}</style></head>
+<body><div class="hdr"><h1>📓 מחברת סיור במוזיאון וירטואלי</h1><p>תאריך: ${date}</p></div>
+<div class="cnt">${content.replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>')}</div></body></html>`;
+        const blob = new Blob(['\ufeff', html], { type:'application/msword' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'מחברת-סיור-מוזיאון-' + new Date().toLocaleDateString('he-IL') + '.doc';
+        a.click();
+    }
+
+    function nbDownloadPDF() {
+        const content = document.getElementById('notebook-textarea').value;
+        if (!content.trim()) { alert('המחברת ריקה - אין מה להוריד'); return; }
+        const date = new Date().toLocaleDateString('he-IL', { year:'numeric', month:'long', day:'numeric' });
+        const html = `<!DOCTYPE html><html dir="rtl"><head><meta charset="utf-8"><style>
+body{font-family:Arial;direction:rtl;text-align:right;line-height:1.8;padding:40px;margin:0}
+.hdr{text-align:center;padding:25px;background:#8B7355;color:#F5E6D3;border-radius:10px;margin-bottom:25px}
+.cnt{background:white;padding:25px;border:2px solid #D2B48C;white-space:pre-wrap;font-size:14px}
+</style></head><body>
+<div class="hdr"><h1>📓 מחברת סיור במוזיאון וירטואלי</h1><p>תאריך: ${date}</p></div>
+<div class="cnt">${content.replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>')}</div>
+</body></html>`;
+        const pw = window.open('','_blank');
+        pw.document.write(html);
+        pw.document.close();
+        setTimeout(() => { pw.print(); }, 500);
+    }
+
+    function nbClear() {
+        if (confirm('האם אתה בטוח שברצונך למחוק את כל התוכן במחברת?')) {
+            document.getElementById('notebook-textarea').value = '';
+            _nbContent = '';
+            localStorage.removeItem('museum-notebook');
+        }
+    }
+
+    // Init notebook on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        _nbLoad();
+        const ta = document.getElementById('notebook-textarea');
+        if (ta) ta.addEventListener('input', _nbSave);
+    });
+</script>
 </body>
 </html>
