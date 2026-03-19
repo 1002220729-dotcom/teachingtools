@@ -1398,10 +1398,12 @@
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
             backdrop-filter: blur(10px);
             z-index: 1000;
-            display: flex;
+            display: none;
             align-items: center;
             gap: 8px;
         }
+        /* מוצג רק במצב תצוגה (visitor) — לא בעריכה */
+        body.visitor-mode .notebook-btn { display: flex; }
         .notebook-btn:hover { background: rgba(255,213,79,0.95); transform: translateY(-2px); }
 
         .notebook-panel {
@@ -3241,11 +3243,13 @@
                 visitorView.style.display = 'block';
                 adminView.style.display = 'none';
                 toggleText.textContent = 'מעבר לממשק ניהול';
+                document.body.classList.add('visitor-mode');
                 renderVisitorView();
             } else {
                 visitorView.style.display = 'none';
                 adminView.style.display = 'block';
                 toggleText.textContent = 'מעבר לתצוגה';
+                document.body.classList.remove('visitor-mode');
                 renderAdminView();
             }
             _updateShareBtnVisibility();
@@ -3253,28 +3257,26 @@
 
 
         // ═══════════════════════════════════════════════════════════
-        // SHARE / URL LOGIC
+        // SHARE / URL LOGIC  — KV-based (Cloudflare Pages Functions)
         // ═══════════════════════════════════════════════════════════
         let _museumShareUrl = '';
         let _museumIsShared = false;
+
+        const _SHORT_URL_THRESHOLD = 2000; // תווים — גבול לשירותי קיצור חיצוניים
 
         function generateMuseumShareURL() {
             const json = JSON.stringify(museumData);
             const compressed = LZString.compressToEncodedURIComponent(json);
             const base = window.location.href.split('#')[0].split('?')[0];
-            // ?museum= stays intact through URL shorteners (unlike # fragments)
-            return base + '?museum=' + compressed;
+            return base + '?museum=' + compressed; // fallback legacy URL
         }
-
-        const _MUSEUM_APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbyTqtlER6anUxGa06iVHo2zp4xlNO7GhKADk59peoVqV7aswrhrFR8x4PAwMZZ2t65h/exec';
-        const _SHORT_URL_THRESHOLD = 2000; // תווים — גבול לשירותי קיצור רגילים
 
         function _museumGetAutoShorten() {
             const t = document.getElementById('museumAutoShortenToggle');
             return !!(t && t.checked);
         }
 
-        async function _museumSafeFetch(url, opts = {}) {
+        async function _safeFetch(url, opts = {}) {
             try {
                 const res = await fetch(url, opts);
                 if (!res.ok) return null;
@@ -3283,9 +3285,9 @@
             } catch(e) { return null; }
         }
 
-        // נתיב 1: URL קצר (≤2000 תווים) — קיצור דרך /api/shorten (is.gd)
+        // נתיב 1: URL קצר (≤2000 תווים) — קיצור is.gd דרך CF Function
         async function _museumShortenViaIsGd(longUrl) {
-            const data = await _museumSafeFetch(
+            const data = await _safeFetch(
                 `/api/shorten?url=${encodeURIComponent(longUrl)}`,
                 { signal: AbortSignal.timeout(8000) }
             );
@@ -3293,40 +3295,49 @@
             return null;
         }
 
-        // נתיב 2: URL ארוך (>2000 תווים) — שמירה ב-Apps Script וקבלת ID קצר
-        async function _museumSaveViaAppsScript() {
-            try {
-                const payload = {
-                    action: 'save_museum',
-                    museumData: museumData
-                };
-                const res = await fetch(_MUSEUM_APPS_SCRIPT, {
-                    method: 'POST',
-                    body: JSON.stringify(payload),
-                    signal: AbortSignal.timeout(15000)
-                });
-                if (!res.ok) return null;
-                const text = await res.text();
-                const json = JSON.parse(text);
-                if (json.status === 'success' && json.id) {
-                    const base = window.location.href.split('#')[0].split('?')[0];
-                    return base + '?museum-id=' + json.id;
-                }
-                return null;
-            } catch(e) {
-                console.warn('[museum] Apps Script save failed:', e.message);
-                return null;
+        // נתיב 2: שמירה ב-KV → קישור ?museum-id=SHORT_ID (visitor)
+        async function _museumSaveToKV() {
+            const data = await _safeFetch('/api/museum/share', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ museumData }),
+                signal: AbortSignal.timeout(15000)
+            });
+            if (data && data.ok && data.id) {
+                const base = window.location.href.split('#')[0].split('?')[0];
+                return base + '?museum-id=' + data.id;
             }
+            return null;
+        }
+
+        // נתיב 2b: שמירה ב-KV → קישור ?museum-edit-id=SHORT_ID (edit)
+        async function _museumEditSaveToKV(empty = false) {
+            const payload = empty ? { rooms: [] } : museumData;
+            const data = await _safeFetch('/api/museum/edit-share', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ museumData: payload }),
+                signal: AbortSignal.timeout(15000)
+            });
+            if (data && data.ok && data.id) {
+                const base = window.location.href.split('#')[0].split('?')[0];
+                return base + '?museum-edit-id=' + data.id;
+            }
+            return null;
         }
 
         // בוחר נתיב אוטומטית לפי אורך ה-URL
-        async function _museumShorten(longUrl) {
+        async function _museumShorten(longUrl, mode = 'view', empty = false) {
             if (longUrl.length <= _SHORT_URL_THRESHOLD) {
-                // נתיב 1: קצר — שירות קיצור רגיל
-                return await _museumShortenViaIsGd(longUrl);
+                // URL קצר מספיק — נסה is.gd קודם
+                const short = await _museumShortenViaIsGd(longUrl);
+                if (short) return short;
+            }
+            // URL ארוך (או is.gd נכשל) — שמור ב-KV
+            if (mode === 'edit') {
+                return await _museumEditSaveToKV(empty);
             } else {
-                // נתיב 2: ארוך — שמירה ב-Apps Script
-                return await _museumSaveViaAppsScript();
+                return await _museumSaveToKV();
             }
         }
 
@@ -3337,7 +3348,6 @@
 
             modal.classList.add('active');
 
-            // Loading state — הודעה בהתאם לאורך הצפוי
             const longUrl = generateMuseumShareURL();
             _museumShareUrl = longUrl;
 
@@ -3347,7 +3357,7 @@
             if (badge) { badge.className = 'share-status-badge'; badge.textContent = ''; }
 
             if (_museumGetAutoShorten()) {
-                const short = await _museumShorten(longUrl);
+                const short = await _museumShorten(longUrl, 'view');
                 if (short) {
                     _museumShareUrl = short;
                     urlBox.textContent = short;
@@ -3360,7 +3370,6 @@
                     }
                     return;
                 }
-                // fallback — שני הנתיבות נכשלו
                 urlBox.textContent = longUrl;
                 urlBox.className   = 'share-url-box failed';
                 if (badge) {
@@ -3400,21 +3409,49 @@
             window.open('https://wa.me/?text=' + msg, '_blank');
         }
 
-        // Detect shared mode on load — ?museum= or ?museum-id= param
+        // Detect shared mode on load
+        // Supports: ?museum-id= (KV visitor), ?museum-edit-id= (KV edit),
+        //           ?museum= (legacy compressed visitor), ?museum-edit= (legacy compressed edit)
         let _museumIsEditMode = false;
 
         async function _checkMuseumSharedMode() {
             const params = new URLSearchParams(window.location.search);
 
-            // ── Edit mode (?museum-edit=) ──
+            // ── NEW: KV edit (?museum-edit-id=) ──
+            const editId = params.get('museum-edit-id');
+            if (editId) {
+                const data = await _safeFetch(`/api/museum/${encodeURIComponent(editId)}`,
+                    { signal: AbortSignal.timeout(10000) });
+                if (data && data.ok && data.museumData) {
+                    museumData = normalizeMuseumData(data.museumData);
+                    _museumIsEditMode = true;
+                    return 'edit';
+                }
+                console.warn('Failed to load museum-edit-id from KV:', editId);
+                return false;
+            }
+
+            // ── NEW: KV visitor (?museum-id=) ──
+            const museumId = params.get('museum-id');
+            if (museumId) {
+                const data = await _safeFetch(`/api/museum/${encodeURIComponent(museumId)}`,
+                    { signal: AbortSignal.timeout(10000) });
+                if (data && data.ok && data.museumData) {
+                    museumData = normalizeMuseumData(data.museumData);
+                    _museumIsShared = true;
+                    document.body.classList.add('shared-mode');
+                    return 'view';
+                }
+                console.warn('Failed to load museum-id from KV:', museumId);
+                return false;
+            }
+
+            // ── LEGACY: compressed edit (?museum-edit=) ──
             const editCompressed = params.get('museum-edit');
             if (editCompressed) {
                 try {
                     const json = LZString.decompressFromEncodedURIComponent(editCompressed);
-                    if (json) {
-                        const data = JSON.parse(json);
-                        museumData = normalizeMuseumData(data);
-                    }
+                    if (json) museumData = normalizeMuseumData(JSON.parse(json));
                 } catch(e) {
                     console.warn('Failed to decode museum-edit URL:', e);
                     museumData = normalizeMuseumData(null);
@@ -3423,42 +3460,18 @@
                 return 'edit';
             }
 
-            // ── Visitor mode via Apps Script ID (?museum-id=) ──
-            const museumId = params.get('museum-id');
-            if (museumId) {
-                try {
-                    const res = await fetch(_MUSEUM_APPS_SCRIPT + '?museum-id=' + encodeURIComponent(museumId), {
-                        signal: AbortSignal.timeout(10000)
-                    });
-                    if (res.ok) {
-                        const text = await res.text();
-                        const json = JSON.parse(text);
-                        if (json.status === 'success' && json.museumData) {
-                            museumData = normalizeMuseumData(json.museumData);
-                            _museumIsShared = true;
-                            document.body.classList.add('shared-mode');
-                            return 'view';
-                        }
-                    }
-                } catch(e) {
-                    console.warn('Failed to load museum from Apps Script:', e);
-                }
-                return false;
-            }
-
-            // ── Visitor mode via compressed URL (?museum=) ──
+            // ── LEGACY: compressed visitor (?museum=) ──
             const compressed = params.get('museum');
             if (!compressed) return false;
             try {
                 const json = LZString.decompressFromEncodedURIComponent(compressed);
                 if (!json) return false;
-                const data = JSON.parse(json);
-                museumData = normalizeMuseumData(data);
+                museumData = normalizeMuseumData(JSON.parse(json));
                 _museumIsShared = true;
                 document.body.classList.add('shared-mode');
                 return 'view';
             } catch(e) {
-                console.warn('Failed to decode museum share URL:', e);
+                console.warn('Failed to decode museum URL:', e);
                 return false;
             }
         }
@@ -3560,7 +3573,7 @@
             _museumEditShareUrl = longUrl;
 
             if (_museumEditGetAutoShorten()) {
-                const short = await _museumShorten(longUrl);
+                const short = await _museumShorten(longUrl, 'edit', empty);
                 if (short) {
                     _museumEditShareUrl = short;
                     urlBox.textContent = short;
@@ -3622,6 +3635,7 @@
                 currentRoomIndex = 0;
                 document.getElementById('visitor-view').style.display = 'block';
                 document.getElementById('admin-view').style.display = 'none';
+                document.body.classList.add('visitor-mode');
                 renderVisitorView();
                 _updateShareBtnVisibility();
                 return;
