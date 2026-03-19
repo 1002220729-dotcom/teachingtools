@@ -3306,7 +3306,8 @@
             return !!(t && t.checked);
         }
 
-        const _MUSEUM_APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbyTqtlER6anUxGa06iVHo2zp4xlNO7GhKADk59peoVqV7aswrhrFR8x4PAwMZZ2t65h/exec';
+        const _MUSEUM_APPS_SCRIPT     = 'https://script.google.com/macros/s/AKfycbyTqtlER6anUxGa06iVHo2zp4xlNO7GhKADk59peoVqV7aswrhrFR8x4PAwMZZ2t65h/exec';
+        const _MUSEUM_APPS_SCRIPT_OLD = 'https://script.google.com/macros/s/AKfycbwXex7v8vvZ8oxMxI1OKhg2t_bNMA6BOiPSoNQgrQYnV3W4jrNdQ-PpAyp9X4pA2XbcQQ/exec';
         const _SHORT_URL_THRESHOLD = 2000;
 
         async function _museumSafeFetch(url, opts = {}) {
@@ -3430,10 +3431,10 @@
         let _museumIsEditMode = false;
 
         async function _loadMuseumFromId(id) {
-            // IDs starting with M_ were saved via Apps Script
+            // IDs starting with M_ were saved via the OLD Apps Script
             if (/^M_/.test(id)) {
                 const d = await _museumSafeFetch(
-                    `${_MUSEUM_APPS_SCRIPT}?museum-id=${encodeURIComponent(id)}`,
+                    `${_MUSEUM_APPS_SCRIPT_OLD}?museum-id=${encodeURIComponent(id)}`,
                     { signal: AbortSignal.timeout(10000) }
                 );
                 return (d && d.status === 'success' && d.museumData) ? d.museumData : null;
