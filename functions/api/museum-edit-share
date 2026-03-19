@@ -1,0 +1,45 @@
+/**
+ * POST /api/museum/edit-share
+ * Body: { museumData: {...} }
+ * Returns: { ok: true, id: "edt_XXXXXXXX" }
+ *
+ * KV binding required: MUSEUM_KV
+ * TTL: 90 days
+ */
+export async function onRequestPost(context) {
+  try {
+    const body = await context.request.json();
+    const data = body.museumData;
+
+    if (!data && data !== null) return jsonErr('Missing museumData', 400);
+
+    const json = JSON.stringify(data || { rooms: [] });
+    if (json.length > 5_000_000) return jsonErr('Museum data too large (max 5MB)', 413);
+
+    const id = 'edt_' + randomId(10);
+    const kv = context.env.MUSEUM_KV;
+
+    await kv.put(id, json, { expirationTtl: 7_776_000 });
+
+    return jsonOk({ ok: true, id });
+  } catch (e) {
+    return jsonErr(e.message || 'Internal error', 500);
+  }
+}
+
+function randomId(n) {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  let s = '';
+  const arr = crypto.getRandomValues(new Uint8Array(n));
+  for (const b of arr) s += chars[b % chars.length];
+  return s;
+}
+
+function jsonOk(data)         { return json(data, 200); }
+function jsonErr(msg, status) { return json({ ok: false, error: msg }, status); }
+function json(data, status)   {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }
+  });
+}
