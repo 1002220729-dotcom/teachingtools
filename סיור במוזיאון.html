@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="מוזיאון וירטואלי אינטראקטיבי — בנה, נהל ושתף תצוגות אמנות ותרבות">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏛️</text></svg>">
     <title>ניהול מוזיאון וירטואלי</title>
     <style>
         * {
@@ -1402,10 +1404,8 @@
             align-items: center;
             gap: 8px;
         }
-        /* מוצג רק במצב תצוגה (visitor) — לא בעריכה */
-        body.visitor-mode .notebook-btn { display: flex; }
         .notebook-btn:hover { background: rgba(255,213,79,0.95); transform: translateY(-2px); }
-
+        body.visitor-mode .notebook-btn { display: flex; }
         .notebook-panel {
             position: fixed;
             top: 145px; left: 20px;
@@ -1933,6 +1933,33 @@
 
     <script>
         // Museum Data Structure
+        // ── Security: HTML escape to prevent XSS ──────────────────────────
+        function escapeHTML(str) {
+            if (str == null) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        // ── Security: validate URL scheme ─────────────────────────────────
+        function isSafeUrl(url) {
+            if (!url) return false;
+            try {
+                const u = new URL(url);
+                return u.protocol === 'https:' || u.protocol === 'http:';
+            } catch (e) { return false; }
+        }
+
+        // ── Performance: debounce for localStorage writes ─────────────────
+        let _saveTimer = null;
+        function saveMuseumDataDebounced() {
+            clearTimeout(_saveTimer);
+            _saveTimer = setTimeout(saveMuseumData, 300);
+        }
+
         let museumData = {
             rooms: []
         };
@@ -1956,7 +1983,7 @@
 
         function normalizeRoom(room = {}, index = 0) {
             return {
-                id: room?.id || Date.now() + index,
+                id: room?.id || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now() + '_' + index + '_' + Math.random().toString(36).slice(2)),
                 name: room?.name || `אולם ${index + 1}`,
                 exhibits: Array.isArray(room?.exhibits)
                     ? room.exhibits.filter(Boolean).map(normalizeExhibit)
@@ -2406,12 +2433,12 @@
             const roomName = prompt('הזן שם לאולם החדש:');
             if (roomName) {
                 const newRoom = {
-                    id: Date.now(),
+                    id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now() + '_' + Math.random().toString(36).slice(2),
                     name: roomName,
                     exhibits: []
                 };
                 museumData.rooms.push(newRoom);
-                saveMuseumData();
+                saveMuseumDataDebounced();
                 currentRoomIndex = museumData.rooms.length - 1;
                 renderAdminView();
                 renderVisitorView();
@@ -2422,7 +2449,7 @@
             const newName = prompt('שם אולם חדש:', museumData.rooms[index].name);
             if (newName && newName.trim()) {
                 museumData.rooms[index].name = newName;
-                saveMuseumData();
+                saveMuseumDataDebounced();
                 renderAdminView();
                 renderVisitorView();
             }
@@ -2436,7 +2463,7 @@
                 if (museumData.rooms.length === 0) {
                     museumData.rooms = [
                         {
-                            id: Date.now(),
+                            id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now() + '_' + Math.random().toString(36).slice(2),
                             name: 'אולם 1 - תצוגה ראשית',
                             exhibits: []
                         }
@@ -2447,7 +2474,7 @@
                 if (currentRoomIndex >= museumData.rooms.length) {
                     currentRoomIndex = museumData.rooms.length - 1;
                 }
-                saveMuseumData();
+                saveMuseumDataDebounced();
                 renderAdminView();
                 renderVisitorView();
             }
@@ -2476,7 +2503,7 @@
                             <input type="checkbox" value="${index}" class="merge-room-checkbox" 
                                    style="width: 20px; height: 20px; margin-left: 10px;">
                             <div>
-                                <strong>${room.name}</strong><br>
+                                <strong>${escapeHTML(room.name)}</strong><br>
                                 <small>${(room.exhibits || []).length} תצוגות</small>
                             </div>
                         </label>
@@ -2550,7 +2577,7 @@
 
             // Create new merged room
             const newRoom = {
-                id: Date.now(),
+                id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now() + '_' + Math.random().toString(36).slice(2),
                 name: newRoomName,
                 exhibits: mergedExhibits
             };
@@ -2566,7 +2593,7 @@
             // Update current room index
             currentRoomIndex = museumData.rooms.length - 1;
 
-            saveMuseumData();
+            saveMuseumDataDebounced();
             renderAdminView();
             renderVisitorView();
             closeModal();
@@ -2596,7 +2623,7 @@
                 currentRoomIndex = index;
             }
             
-            saveMuseumData();
+            saveMuseumDataDebounced();
             renderAdminView();
             renderVisitorView();
         }
@@ -2632,16 +2659,16 @@
 
                 card.innerHTML = `
                     <div class="exhibit-card-header">
-                        <h3>${exhibit.title || 'ללא כותרת'}</h3>
+                        <h3>${escapeHTML(exhibit.title) || 'ללא כותרת'}</h3>
                         <div style="display: flex; gap: 5px;">
                             <button class="delete-exhibit-btn" onclick="moveExhibitToRoom(${index})" title="העבר לאולם אחר">🔄</button>
                             <button class="delete-exhibit-btn" onclick="deleteExhibit(${index})" title="מחק">🗑️</button>
                         </div>
                     </div>
                     ${moveButtons}
-                    <p><strong>סוג:</strong> ${exhibit.type || 'לא מוגדר'}</p>
-                    ${exhibit.url ? `<p><strong>URL:</strong> ${exhibit.url.substring(0, 50)}...</p>` : ''}
-                    ${exhibit.description ? `<p><strong>תיאור:</strong> ${exhibit.description.substring(0, 100)}...</p>` : ''}
+                    <p><strong>סוג:</strong> ${escapeHTML(exhibit.type) || 'לא מוגדר'}</p>
+                    ${exhibit.url ? `<p><strong>URL:</strong> ${escapeHTML(exhibit.url.substring(0, 50))}...</p>` : ''}
+                    ${exhibit.description ? `<p><strong>תיאור:</strong> ${escapeHTML(exhibit.description.substring(0, 100))}...</p>` : ''}
                     <button class="save-btn" onclick="editExhibit(${index})" style="background: #667eea; margin-top: 10px;">ערוך</button>
                 `;
 
@@ -2773,7 +2800,7 @@
                     
                     <div class="form-group">
                         <label>כותרת *</label>
-                        <input type="text" id="exhibit-title" value="${exhibit.title || ''}" placeholder="כותרת התצוגה">
+                        <input type="text" id="exhibit-title" value="${escapeHTML(exhibit.title)}" placeholder="כותרת התצוגה">
                     </div>
 
                     <div class="form-group">
@@ -2798,7 +2825,7 @@
 
                     <div class="form-group" id="text-content-group" style="display: none;">
                         <label>תוכן הטקסט *</label>
-                        <textarea id="exhibit-text-content" rows="8" placeholder="הקלד כאן את הטקסט שיוצג על הקיר...">${exhibit.textContent || ''}</textarea>
+                        <textarea id="exhibit-text-content" rows="8" placeholder="הקלד כאן את הטקסט שיוצג על הקיר...">${escapeHTML(exhibit.textContent)}</textarea>
                         <small style="display: block; margin-top: 5px; color: #666;">
                             💡 טקסט זה יוצג על לוח מעוצב בסגנון מוזהב על הקיר
                         </small>
@@ -2807,17 +2834,17 @@
                     <div class="form-group" id="drive-subtype-group" style="display: none;">
                         <label>סוג קובץ ב-Google Drive</label>
                         <select id="drive-subtype">
-                            <option value="video">סרטון</option>
-                            <option value="image">תמונה</option>
-                            <option value="document">מסמך</option>
-                            <option value="presentation">מצגת</option>
-                            <option value="spreadsheet">גיליון חישוב</option>
+                            <option value="video" ${exhibit.driveSubtype === 'video' ? 'selected' : ''}>סרטון</option>
+                            <option value="image" ${exhibit.driveSubtype === 'image' ? 'selected' : ''}>תמונה</option>
+                            <option value="document" ${exhibit.driveSubtype === 'document' ? 'selected' : ''}>מסמך</option>
+                            <option value="presentation" ${exhibit.driveSubtype === 'presentation' ? 'selected' : ''}>מצגת</option>
+                            <option value="spreadsheet" ${exhibit.driveSubtype === 'spreadsheet' ? 'selected' : ''}>גיליון חישוב</option>
                         </select>
                     </div>
 
                     <div class="form-group" id="url-field-group">
                         <label id="url-label">URL</label>
-                        <input type="url" id="exhibit-url" value="${exhibit.url || ''}" placeholder="https://example.com/image.jpg או https://www.example.com">
+                        <input type="url" id="exhibit-url" value="${escapeHTML(exhibit.url)}" placeholder="https://example.com/image.jpg או https://www.example.com">
                         <small style="display: block; margin-top: 5px; color: #666;">
                             💡 <strong>עצה ל-Google Drive:</strong> לחץ שמאלה וברר את קטגוריית הקובץ בחזרה
                         </small>
@@ -2825,7 +2852,7 @@
 
                     <div class="form-group">
                         <label>תיאור</label>
-                        <textarea id="exhibit-description" placeholder="תיאור התצוגה">${exhibit.description || ''}</textarea>
+                        <textarea id="exhibit-description" placeholder="תיאור התצוגה">${escapeHTML(exhibit.description)}</textarea>
                     </div>
 
                     <div style="display: flex; gap: 10px;">
@@ -2884,6 +2911,10 @@
                     alert('אנא מלא את שדה ה-URL');
                     return;
                 }
+                if (!isSafeUrl(url)) {
+                    alert('כתובת ה-URL אינה תקינה. יש להשתמש בכתובות שמתחילות ב-https:// או http://');
+                    return;
+                }
             }
 
             const room = museumData.rooms[currentRoomIndex];
@@ -2905,7 +2936,7 @@
                 room.exhibits.push(exhibit);
             }
 
-            saveMuseumData();
+            saveMuseumDataDebounced();
             closeExhibitForm();
             renderExhibitsGrid();
             renderVisitorView();
@@ -2915,7 +2946,7 @@
             if (confirm('האם אתה בטוח שברצונך למחוק תצוגה זו?')) {
                 const room = museumData.rooms[currentRoomIndex];
                 room.exhibits.splice(index, 1);
-                saveMuseumData();
+                saveMuseumDataDebounced();
                 renderExhibitsGrid();
                 renderVisitorView();
             }
@@ -2947,7 +2978,7 @@
                         onmouseover="this.style.background='#e9ecef'; this.style.borderColor='#667eea';"
                         onmouseout="this.style.background='#f8f9fa'; this.style.borderColor='#ddd';"
                         onclick="confirmMoveExhibit(${exhibitIndex}, ${index})">
-                            <strong>${room.name}</strong><br>
+                            <strong>${escapeHTML(room.name)}</strong><br>
                             <small>${(room.exhibits || []).length} תצוגות</small>
                         </div>
                     `;
@@ -2961,8 +2992,8 @@
             modalBody.innerHTML = `
                 <h2 style="color: #667eea; margin-bottom: 20px;">🔄 העבר תצוגה לאולם אחר</h2>
                 <p style="margin-bottom: 20px;">
-                    <strong>תצוגה:</strong> ${exhibit.title || 'ללא כותרת'}<br>
-                    <strong>מאולם:</strong> ${currentRoom.name}
+                    <strong>תצוגה:</strong> ${escapeHTML(exhibit.title) || 'ללא כותרת'}<br>
+                    <strong>מאולם:</strong> ${escapeHTML(currentRoom.name)}
                 </p>
                 <p style="margin-bottom: 15px;"><strong>בחר אולם יעד:</strong></p>
                 ${roomsHTML}
@@ -2983,7 +3014,7 @@
                 // Add to target
                 targetRoom.exhibits.push(exhibit);
                 
-                saveMuseumData();
+                saveMuseumDataDebounced();
                 renderExhibitsGrid();
                 renderVisitorView();
                 closeModal();
@@ -3006,7 +3037,7 @@
             room.exhibits[index] = room.exhibits[newIndex];
             room.exhibits[newIndex] = temp;
             
-            saveMuseumData();
+            saveMuseumDataDebounced();
             renderExhibitsGrid();
             renderVisitorView();
         }
@@ -3216,7 +3247,7 @@
                     museumData = {
                         rooms: [
                             {
-                                id: Date.now(),
+                                id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now() + '_' + Math.random().toString(36).slice(2),
                                 name: 'אולם 1 - תצוגה ראשית',
                                 exhibits: []
                             }
@@ -3257,18 +3288,17 @@
 
 
         // ═══════════════════════════════════════════════════════════
-        // SHARE / URL LOGIC  — KV-based (Cloudflare Pages Functions)
+        // SHARE / URL LOGIC
         // ═══════════════════════════════════════════════════════════
         let _museumShareUrl = '';
         let _museumIsShared = false;
-
-        const _SHORT_URL_THRESHOLD = 2000; // תווים — גבול לשירותי קיצור חיצוניים
 
         function generateMuseumShareURL() {
             const json = JSON.stringify(museumData);
             const compressed = LZString.compressToEncodedURIComponent(json);
             const base = window.location.href.split('#')[0].split('?')[0];
-            return base + '?museum=' + compressed; // fallback legacy URL
+            // ?museum= stays intact through URL shorteners (unlike # fragments)
+            return base + '?museum=' + compressed;
         }
 
         function _museumGetAutoShorten() {
@@ -3276,7 +3306,10 @@
             return !!(t && t.checked);
         }
 
-        async function _safeFetch(url, opts = {}) {
+        const _MUSEUM_APPS_SCRIPT = 'https://script.google.com/macros/s/AKfycbyTqtlER6anUxGa06iVHo2zp4xlNO7GhKADk59peoVqV7aswrhrFR8x4PAwMZZ2t65h/exec';
+        const _SHORT_URL_THRESHOLD = 2000;
+
+        async function _museumSafeFetch(url, opts = {}) {
             try {
                 const res = await fetch(url, opts);
                 if (!res.ok) return null;
@@ -3285,97 +3318,65 @@
             } catch(e) { return null; }
         }
 
-        // נתיב 1: URL קצר (≤2000 תווים) — קיצור is.gd דרך CF Function
-        async function _museumShortenViaIsGd(longUrl) {
-            const data = await _safeFetch(
-                `/api/shorten?url=${encodeURIComponent(longUrl)}`,
-                { signal: AbortSignal.timeout(8000) }
-            );
-            if (data && data.ok && data.shortUrl) return data.shortUrl;
-            return null;
-        }
-
-        // נתיב 2: שמירה ב-KV → קישור ?museum-id=SHORT_ID (visitor)
-        async function _museumSaveToKV() {
-            const data = await _safeFetch('/api/museum/share', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ museumData }),
-                signal: AbortSignal.timeout(15000)
-            });
-            if (data && data.ok && data.id) {
-                const base = window.location.href.split('#')[0].split('?')[0];
-                return base + '?museum-id=' + data.id;
-            }
-            return null;
-        }
-
-        // נתיב 2b: שמירה ב-KV → קישור ?museum-edit-id=SHORT_ID (edit)
-        async function _museumEditSaveToKV(empty = false) {
-            const payload = empty ? { rooms: [] } : museumData;
-            const data = await _safeFetch('/api/museum/edit-share', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ museumData: payload }),
-                signal: AbortSignal.timeout(15000)
-            });
-            if (data && data.ok && data.id) {
-                const base = window.location.href.split('#')[0].split('?')[0];
-                return base + '?museum-edit-id=' + data.id;
-            }
-            return null;
-        }
-
-        // בוחר נתיב אוטומטית לפי אורך ה-URL
         async function _museumShorten(longUrl, mode = 'view', empty = false) {
+            // נתיב 1: URL קצר — is.gd
             if (longUrl.length <= _SHORT_URL_THRESHOLD) {
-                // URL קצר מספיק — נסה is.gd קודם
-                const short = await _museumShortenViaIsGd(longUrl);
-                if (short) return short;
+                const data = await _museumSafeFetch(
+                    `/api/shorten?url=${encodeURIComponent(longUrl)}`,
+                    { signal: AbortSignal.timeout(8000) }
+                );
+                if (data && data.ok && data.shortUrl) return data.shortUrl;
             }
-            // URL ארוך (או is.gd נכשל) — שמור ב-KV
-            if (mode === 'edit') {
-                return await _museumEditSaveToKV(empty);
-            } else {
-                return await _museumSaveToKV();
+            // נתיב 2: URL ארוך — שמירה ב-KV
+            const endpoint = mode === 'edit' ? '/api/museum/edit-share' : '/api/museum/share';
+            const payload  = mode === 'edit'
+                ? { museumData: empty ? { rooms: [] } : museumData }
+                : { museumData };
+            const resp = await _museumSafeFetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+                signal: AbortSignal.timeout(15000)
+            });
+            if (resp && resp.ok && resp.id) {
+                const base = window.location.href.split('#')[0].split('?')[0];
+                const param = mode === 'edit' ? 'museum-edit-id' : 'museum-id';
+                return `${base}?${param}=${resp.id}`;
             }
+            return null;
         }
 
         async function openMuseumShareModal() {
             const modal  = document.getElementById('museumShareModal');
             const urlBox = document.getElementById('museumShareUrlDisplay');
-            const badge  = document.getElementById('shareStatusBadge') || document.getElementById('museumShareStatusBadge');
+            const badge  = document.getElementById('museumShareStatusBadge');
 
             modal.classList.add('active');
+
+            // Loading state
+            urlBox.className = 'share-url-box loading';
+            urlBox.innerHTML = '<span class="share-spinner"></span>&nbsp;מכין קישור לשיתוף...';
+            badge.className  = 'share-status-badge';
+            badge.textContent = '';
 
             const longUrl = generateMuseumShareURL();
             _museumShareUrl = longUrl;
 
-            const isLong = longUrl.length > _SHORT_URL_THRESHOLD;
-            urlBox.className = 'share-url-box loading';
-            urlBox.innerHTML = `<span class="share-spinner"></span>&nbsp;${isLong ? 'שומר מוזיאון בענן...' : 'מכין קישור לשיתוף...'}`;
-            if (badge) { badge.className = 'share-status-badge'; badge.textContent = ''; }
-
             if (_museumGetAutoShorten()) {
-                const short = await _museumShorten(longUrl, 'view');
+                const short = await _museumShorten(longUrl);
                 if (short) {
                     _museumShareUrl = short;
                     urlBox.textContent = short;
                     urlBox.className   = 'share-url-box shortened';
-                    if (badge) {
-                        badge.innerHTML = isLong
-                            ? '✅ המוזיאון נשמר בענן — קישור קצר נוצר בהצלחה'
-                            : '✅ קישור מקוצר נוצר בהצלחה';
-                        badge.className = 'share-status-badge success';
-                    }
+                    badge.innerHTML    = '✅ קישור מקוצר נוצר בהצלחה';
+                    badge.className    = 'share-status-badge success';
                     return;
                 }
+                // fallback
                 urlBox.textContent = longUrl;
                 urlBox.className   = 'share-url-box failed';
-                if (badge) {
-                    badge.innerHTML = '⚠️ לא ניתן לקצר כרגע — מוצג קישור מלא';
-                    badge.className = 'share-status-badge warning';
-                }
+                badge.innerHTML    = '⚠️ לא ניתן לקצר כרגע — מוצג קישור מלא';
+                badge.className    = 'share-status-badge warning';
             } else {
                 urlBox.textContent = longUrl;
                 urlBox.className   = 'share-url-box';
@@ -3392,11 +3393,22 @@
             try {
                 await navigator.clipboard.writeText(url);
             } catch(e) {
-                const ta = document.createElement('textarea');
-                ta.value = url; ta.style.position = 'fixed'; ta.style.opacity = '0';
-                document.body.appendChild(ta); ta.select();
-                document.execCommand('copy');
-                document.body.removeChild(ta);
+                // Fallback for older browsers / non-secure contexts
+                try {
+                    const ta = document.createElement('textarea');
+                    ta.value = url;
+                    ta.setAttribute('readonly', '');
+                    ta.style.cssText = 'position:fixed;opacity:0;pointer-events:none';
+                    document.body.appendChild(ta);
+                    ta.focus();
+                    ta.select();
+                    const ok = document.execCommand('copy');
+                    document.body.removeChild(ta);
+                    if (!ok) throw new Error('execCommand failed');
+                } catch(e2) {
+                    alert('לא ניתן להעתיק אוטומטית. אנא העתק ידנית:\n' + url);
+                    return;
+                }
             }
             const toast = document.getElementById('copyToastMuseum');
             toast.classList.add('show');
@@ -3406,61 +3418,72 @@
         async function whatsappMuseumShare() {
             const url = _museumShareUrl || generateMuseumShareURL();
             const msg = encodeURIComponent('🏛️ כנסו לסיור הווירטואלי במוזיאון: ' + url);
-            window.open('https://wa.me/?text=' + msg, '_blank');
+            window.open('https://wa.me/?text=' + msg, '_blank', 'noopener,noreferrer');
         }
 
         // Detect shared mode on load
-        // Supports: ?museum-id= (KV visitor), ?museum-edit-id= (KV edit),
-        //           ?museum= (legacy compressed visitor), ?museum-edit= (legacy compressed edit)
+        // Supports (priority order):
+        //   ?museum-id=      → KV (mus_) or Apps Script fallback (M_)
+        //   ?museum-edit-id= → KV (edt_)
+        //   ?museum=         → legacy compressed visitor
+        //   ?museum-edit=    → legacy compressed edit
         let _museumIsEditMode = false;
+
+        async function _loadMuseumFromId(id) {
+            // IDs starting with M_ were saved via Apps Script
+            if (/^M_/.test(id)) {
+                const d = await _museumSafeFetch(
+                    `${_MUSEUM_APPS_SCRIPT}?museum-id=${encodeURIComponent(id)}`,
+                    { signal: AbortSignal.timeout(10000) }
+                );
+                return (d && d.status === 'success' && d.museumData) ? d.museumData : null;
+            }
+            // KV-based IDs (mus_ / edt_)
+            const d = await _museumSafeFetch(
+                `/api/museum/${encodeURIComponent(id)}`,
+                { signal: AbortSignal.timeout(10000) }
+            );
+            return (d && d.ok && d.museumData) ? d.museumData : null;
+        }
 
         async function _checkMuseumSharedMode() {
             const params = new URLSearchParams(window.location.search);
 
-            // ── NEW: KV edit (?museum-edit-id=) ──
+            // ── ?museum-edit-id= (KV edit) ──
             const editId = params.get('museum-edit-id');
             if (editId) {
-                const data = await _safeFetch(`/api/museum/${encodeURIComponent(editId)}`,
-                    { signal: AbortSignal.timeout(10000) });
-                if (data && data.ok && data.museumData) {
-                    museumData = normalizeMuseumData(data.museumData);
-                    _museumIsEditMode = true;
-                    return 'edit';
-                }
-                console.warn('Failed to load museum-edit-id from KV:', editId);
+                const mData = await _loadMuseumFromId(editId);
+                if (mData) { museumData = normalizeMuseumData(mData); _museumIsEditMode = true; return 'edit'; }
+                console.warn('Failed to load museum-edit-id:', editId);
                 return false;
             }
 
-            // ── NEW: KV visitor (?museum-id=) ──
+            // ── ?museum-id= (KV visitor or Apps Script) ──
             const museumId = params.get('museum-id');
             if (museumId) {
-                const data = await _safeFetch(`/api/museum/${encodeURIComponent(museumId)}`,
-                    { signal: AbortSignal.timeout(10000) });
-                if (data && data.ok && data.museumData) {
-                    museumData = normalizeMuseumData(data.museumData);
+                const mData = await _loadMuseumFromId(museumId);
+                if (mData) {
+                    museumData = normalizeMuseumData(mData);
                     _museumIsShared = true;
                     document.body.classList.add('shared-mode');
                     return 'view';
                 }
-                console.warn('Failed to load museum-id from KV:', museumId);
+                console.warn('Failed to load museum-id:', museumId);
                 return false;
             }
 
-            // ── LEGACY: compressed edit (?museum-edit=) ──
+            // ── Legacy: ?museum-edit= (compressed) ──
             const editCompressed = params.get('museum-edit');
             if (editCompressed) {
                 try {
                     const json = LZString.decompressFromEncodedURIComponent(editCompressed);
                     if (json) museumData = normalizeMuseumData(JSON.parse(json));
-                } catch(e) {
-                    console.warn('Failed to decode museum-edit URL:', e);
-                    museumData = normalizeMuseumData(null);
-                }
+                } catch(e) { console.warn('Failed to decode museum-edit:', e); museumData = normalizeMuseumData(null); }
                 _museumIsEditMode = true;
                 return 'edit';
             }
 
-            // ── LEGACY: compressed visitor (?museum=) ──
+            // ── Legacy: ?museum= (compressed) ──
             const compressed = params.get('museum');
             if (!compressed) return false;
             try {
@@ -3470,10 +3493,7 @@
                 _museumIsShared = true;
                 document.body.classList.add('shared-mode');
                 return 'view';
-            } catch(e) {
-                console.warn('Failed to decode museum URL:', e);
-                return false;
-            }
+            } catch(e) { console.warn('Failed to decode museum:', e); return false; }
         }
 
         // Show/hide share button based on current view
@@ -3602,11 +3622,21 @@
             try {
                 await navigator.clipboard.writeText(url);
             } catch(e) {
-                const ta = document.createElement('textarea');
-                ta.value = url; ta.style.position = 'fixed'; ta.style.opacity = '0';
-                document.body.appendChild(ta); ta.select();
-                document.execCommand('copy');
-                document.body.removeChild(ta);
+                try {
+                    const ta = document.createElement('textarea');
+                    ta.value = url;
+                    ta.setAttribute('readonly', '');
+                    ta.style.cssText = 'position:fixed;opacity:0;pointer-events:none';
+                    document.body.appendChild(ta);
+                    ta.focus();
+                    ta.select();
+                    const ok = document.execCommand('copy');
+                    document.body.removeChild(ta);
+                    if (!ok) throw new Error('execCommand failed');
+                } catch(e2) {
+                    alert('לא ניתן להעתיק אוטומטית. אנא העתק ידנית:\n' + url);
+                    return;
+                }
             }
             const toast = document.getElementById('copyToastMuseum');
             toast.classList.add('show');
@@ -3616,7 +3646,7 @@
         async function whatsappMuseumEditShare() {
             const url = _museumEditShareUrl || generateMuseumEditURL(false);
             const msg = encodeURIComponent('🎨 בנו מוזיאון וירטואלי משלכם! כנסו לקישור: ' + url);
-            window.open('https://wa.me/?text=' + msg, '_blank');
+            window.open('https://wa.me/?text=' + msg, '_blank', 'noopener,noreferrer');
         }
 
         // Close edit modal on overlay click
@@ -3704,10 +3734,12 @@
         const content = document.getElementById('notebook-textarea').value;
         if (!content.trim()) { alert('המחברת ריקה - אין מה להוריד'); return; }
         const blob = new Blob([content], { type:'text/plain;charset=utf-8' });
+        const objectUrl = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
+        a.href = objectUrl;
         a.download = 'מחברת-סיור-מוזיאון-' + new Date().toLocaleDateString('he-IL') + '.txt';
         a.click();
+        setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
     }
 
     function nbDownloadWord() {
@@ -3721,10 +3753,12 @@
 <body><div class="hdr"><h1>📓 מחברת סיור במוזיאון וירטואלי</h1><p>תאריך: ${date}</p></div>
 <div class="cnt">${content.replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>')}</div></body></html>`;
         const blob = new Blob(['\ufeff', html], { type:'application/msword' });
+        const objectUrl = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
+        a.href = objectUrl;
         a.download = 'מחברת-סיור-מוזיאון-' + new Date().toLocaleDateString('he-IL') + '.doc';
         a.click();
+        setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
     }
 
     function nbDownloadPDF() {
@@ -3737,12 +3771,21 @@ body{font-family:Arial;direction:rtl;text-align:right;line-height:1.8;padding:40
 .cnt{background:white;padding:25px;border:2px solid #D2B48C;white-space:pre-wrap;font-size:14px}
 </style></head><body>
 <div class="hdr"><h1>📓 מחברת סיור במוזיאון וירטואלי</h1><p>תאריך: ${date}</p></div>
-<div class="cnt">${content.replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>')}</div>
+<div class="cnt">${content.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>')}</div>
 </body></html>`;
-        const pw = window.open('','_blank');
-        pw.document.write(html);
-        pw.document.close();
-        setTimeout(() => { pw.print(); }, 500);
+        const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+        const objectUrl = URL.createObjectURL(blob);
+        const pw = window.open(objectUrl, '_blank', 'noopener,noreferrer');
+        if (pw) {
+            pw.onload = function() {
+                pw.print();
+                setTimeout(() => URL.revokeObjectURL(objectUrl), 2000);
+            };
+        } else {
+            // Popup blocked fallback
+            URL.revokeObjectURL(objectUrl);
+            alert('הדפדפן חסם את החלון. אנא אפשר חלונות קופצים עבור אתר זה ונסה שוב.');
+        }
     }
 
     function nbClear() {
