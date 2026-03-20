@@ -957,7 +957,7 @@
                 <button class="admin-vis-toggle visible" onclick="smToggleCat('nav-cat-guides',this)" title="הסתר/הצג כותרת"><i class="fa-solid fa-eye"></i></button>
             </div>
             <div class="nav-item" id="nav-item-guides">
-                <div class="nav-parent" id="guidesParent" onclick="toggleGuidesMenu()">
+                <div class="nav-parent" id="guidesParent" onclick="toggleGuidesMenu(event)">
                     <i class="fa-solid fa-book-open-reader nav-main-icon"></i>
                     <span>מדריך לשימוש</span>
                     <i class="fa-solid fa-chevron-down nav-chevron" id="guidesChevron"></i>
@@ -968,9 +968,8 @@
                 <ul class="nav-sub-list" id="guidesList">
 
                     <li class="nav-item" id="nav-item-guide-museum-a">
-                        <a class="nav-sub-link guide-link"
-                           data-src="מדריך_סיור_אפשרות_א_מורים.html"
-                           data-title="מדריך – סיור במוזיאון (מורים)">
+                        <a href="javascript:void(0)" class="nav-sub-link guide-link"
+                           onclick="openGuide(event,'מדריך_סיור_אפשרות_א_מורים.html','מדריך – סיור במוזיאון (מורים)')">
                             <i class="fa-solid fa-chalkboard-user"></i>
                             <span>סיור במוזיאון – למורים</span>
                         </a>
@@ -978,9 +977,8 @@
                     </li>
 
                     <li class="nav-item" id="nav-item-guide-museum-b">
-                        <a class="nav-sub-link guide-link"
-                           data-src="מדריך_סיור_אפשרות_ב_תלמידים.html"
-                           data-title="מדריך – סיור במוזיאון (תלמידים)">
+                        <a href="javascript:void(0)" class="nav-sub-link guide-link"
+                           onclick="openGuide(event,'מדריך_סיור_אפשרות_ב_תלמידים.html','מדריך – סיור במוזיאון (תלמידים)')">
                             <i class="fa-solid fa-children"></i>
                             <span>סיור במוזיאון – לתלמידים</span>
                         </a>
@@ -988,9 +986,8 @@
                     </li>
 
                     <li class="nav-item" id="nav-item-guide-board">
-                        <a class="nav-sub-link guide-link"
-                           data-src="מדריך_לוח_בחירה_לרכזות.html"
-                           data-title="מדריך – לוח הבחירה הדיגיטלי">
+                        <a href="javascript:void(0)" class="nav-sub-link guide-link"
+                           onclick="openGuide(event,'מדריך_לוח_בחירה_לרכזות.html','מדריך – לוח הבחירה הדיגיטלי')">
                             <i class="fa-solid fa-map-location-dot" style="color:rgba(255,180,84,0.7);"></i>
                             <span>לוח הבחירה הדיגיטלי</span>
                         </a>
@@ -998,9 +995,8 @@
                     </li>
 
                     <li class="nav-item" id="nav-item-guide-school">
-                        <a class="nav-sub-link guide-link"
-                           data-src="מדריך_סיור_בית_ספר_לרכזות.html"
-                           data-title="מדריך – סיור בבית הספר">
+                        <a href="javascript:void(0)" class="nav-sub-link guide-link"
+                           onclick="openGuide(event,'מדריך_סיור_בית_ספר_לרכזות.html','מדריך – סיור בבית הספר')">
                             <i class="fa-solid fa-school" style="color:rgba(30,230,168,0.7);"></i>
                             <span>סיור בבית הספר</span>
                         </a>
@@ -1008,9 +1004,8 @@
                     </li>
 
                     <li class="nav-item" id="nav-item-guide-museum-all">
-                        <a class="nav-sub-link guide-link"
-                           data-src="מדריך_סיור_במוזיאון_לרכזות.html"
-                           data-title="מדריך כולל – סיור במוזיאון">
+                        <a href="javascript:void(0)" class="nav-sub-link guide-link"
+                           onclick="openGuide(event,'מדריך_סיור_במוזיאון_לרכזות.html','מדריך כולל – סיור במוזיאון')">
                             <i class="fa-solid fa-building-columns" style="color:rgba(139,124,255,0.7);"></i>
                             <span>מדריך כולל – המוזיאון</span>
                         </a>
@@ -2643,7 +2638,8 @@
     // ═══════════════════════════════════════════════════════════════
     // GUIDES MENU — פתיחה/סגירה + ניווט למדריכים
     // ═══════════════════════════════════════════════════════════════
-    window.toggleGuidesMenu = function () {
+    window.toggleGuidesMenu = function (e) {
+        if (e) { e.stopPropagation(); e.preventDefault(); }
         const parent  = document.getElementById('guidesParent');
         const list    = document.getElementById('guidesList');
         if (!parent || !list) return;
@@ -2652,21 +2648,24 @@
         parent.classList.toggle('open', !isOpen);
     };
 
-    document.addEventListener('DOMContentLoaded', () => {
-        document.querySelectorAll('.guide-link').forEach(link => {
-            link.addEventListener('click', () => {
-                const src   = link.getAttribute('data-src');
-                const title = link.getAttribute('data-title') || src;
-                document.querySelectorAll('.nav-link, .nav-sub-link').forEach(l => l.classList.remove('active'));
-                link.classList.add('active');
-                if (typeof showIframe === 'function') {
-                    showIframe(src, title);
-                    const ws = document.getElementById('welcomeScreen');
-                    if (ws) ws.style.display = 'none';
-                }
-            });
-        });
-    });
+    // ── openGuide — called directly via inline onclick on each guide link ──
+    window.openGuide = function (e, src, title) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        // הסר active מכל הלינקים
+        document.querySelectorAll('.nav-link, .nav-sub-link').forEach(l => l.classList.remove('active'));
+        if (e.currentTarget) e.currentTarget.classList.add('active');
+        // הסתר מסך פתיחה
+        var ws = document.getElementById('welcomeScreen');
+        if (ws) ws.style.display = 'none';
+        // עדכן כותרת
+        var pt = document.getElementById('pageTitle');
+        if (pt) pt.innerHTML = '<i class="fa-solid fa-book-open-reader" style="color:var(--accent-3)"></i><span>' + title + '</span>';
+        // טען iframe
+        if (typeof showIframe === 'function') {
+            showIframe(src);
+        }
+    };
 
     // ═══════════════════════════════════════════════════════════════
     // SM ADMIN MODE — password + visibility management
