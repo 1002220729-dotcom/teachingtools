@@ -663,22 +663,254 @@
         /* neutralise the generic nav-link i override inside tool card */
         .nav-tool-card .nav-tool-icon-wrap i.fa-solid,
         .nav-tool-card .nav-tool-icon-wrap i.fa-regular { color: inherit !important; }
+
+        /* ─── SM Admin Button ────────────────────────────────────── */
+        #sm-trigger-zone {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 52px;
+            height: 52px;
+            z-index: 9990;
+        }
+        #sm-admin-btn {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            border: 1px solid rgba(255,255,255,0.12);
+            background: rgba(13,27,42,0.85);
+            backdrop-filter: blur(10px);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+            box-shadow: none;
+            font-family: 'Heebo', sans-serif;
+        }
+        #sm-trigger-zone:hover #sm-admin-btn {
+            opacity: 1;
+            box-shadow: 0 0 14px rgba(86,224,255,0.25);
+            border-color: rgba(86,224,255,0.3);
+        }
+        #sm-admin-btn .sm-letters {
+            font-size: 0.62rem;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            background: linear-gradient(135deg, #56e0ff, #8b7cff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1;
+        }
+        #sm-admin-btn.active {
+            opacity: 1;
+            border-color: rgba(86,224,255,0.6);
+            box-shadow: 0 0 18px rgba(86,224,255,0.4), 0 0 0 2px rgba(86,224,255,0.15);
+            background: rgba(86,224,255,0.1);
+        }
+
+        /* ─── Admin Mode — visibility toggles beside each nav item ─ */
+        .admin-vis-toggle {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            width: 22px;
+            height: 22px;
+            border-radius: 6px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.05);
+            cursor: pointer;
+            flex-shrink: 0;
+            margin-right: auto;
+            color: rgba(255,255,255,0.35);
+            font-size: 0.75rem;
+            transition: all 0.18s;
+        }
+        .admin-vis-toggle:hover {
+            background: rgba(255,107,107,0.18);
+            border-color: rgba(255,107,107,0.4);
+            color: #ff6b6b;
+        }
+        .admin-vis-toggle.visible {
+            color: #1ee6a8;
+            border-color: rgba(30,230,168,0.35);
+            background: rgba(30,230,168,0.08);
+        }
+        .admin-vis-toggle.visible:hover {
+            background: rgba(255,107,107,0.15);
+            border-color: rgba(255,107,107,0.35);
+            color: #ff6b6b;
+        }
+        body.admin-mode .admin-vis-toggle { display: flex; }
+
+        /* ─── Nav category row with admin toggle ─────────────────── */
+        .nav-cat-row {
+            display: flex;
+            align-items: center;
+            padding-left: 10px;
+        }
+        .nav-cat-row .nav-category { flex: 1; padding-left: 0; }
+        .nav-cat-row .admin-vis-toggle { margin-right: 0; }
+        /* hidden category label */
+        .nav-cat-row.sm-hidden .nav-category { opacity: 0.25; }
+        body:not(.admin-mode) .nav-cat-row.sm-hidden { display: none; }
+
+        /* hidden nav items */
+        .nav-item.sm-hidden > .nav-link,
+        .nav-item.sm-hidden > .nav-parent,
+        .nav-item.sm-hidden > .nav-sub-link,
+        .nav-item.sm-hidden > a.nav-sub-link { opacity: 0.28; }
+        body:not(.admin-mode) .nav-item.sm-hidden { display: none; }
+
+        /* admin mode border on sidebar */
+        body.admin-mode .sidebar {
+            border-left-color: rgba(86,224,255,0.35);
+            box-shadow: -4px 0 30px rgba(0,0,0,0.4), inset -1px 0 0 rgba(86,224,255,0.08);
+        }
+        /* subtle admin badge in sidebar header */
+        #sm-admin-badge {
+            display: none;
+            font-size: 0.6rem;
+            font-weight: 700;
+            color: #56e0ff;
+            background: rgba(86,224,255,0.1);
+            border: 1px solid rgba(86,224,255,0.25);
+            border-radius: 4px;
+            padding: 1px 5px;
+            letter-spacing: 0.5px;
+            position: absolute;
+            bottom: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            white-space: nowrap;
+        }
+        body.admin-mode #sm-admin-badge { display: block; }
+
+        /* ─── SM Password Modal ──────────────────────────────────── */
+        #sm-pwd-overlay {
+            display: none;
+            position: fixed; inset: 0;
+            z-index: 99998;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(6px);
+            align-items: center;
+            justify-content: center;
+        }
+        #sm-pwd-overlay.open { display: flex; }
+        #sm-pwd-box {
+            background: rgba(13,27,42,0.98);
+            border: 1px solid rgba(86,224,255,0.2);
+            border-radius: 18px;
+            padding: 32px 28px 26px;
+            width: 300px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(86,224,255,0.08);
+            text-align: center;
+            font-family: 'Heebo', sans-serif;
+            animation: smPwdIn .25s ease;
+        }
+        @keyframes smPwdIn {
+            from { opacity: 0; transform: scale(0.92) translateY(10px); }
+            to   { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        #sm-pwd-box .sm-pwd-icon {
+            font-size: 2rem;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, #56e0ff, #8b7cff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        #sm-pwd-box h3 {
+            font-size: 1rem; font-weight: 700; color: #f4f7fb;
+            margin-bottom: 6px;
+        }
+        #sm-pwd-box p { font-size: 0.8rem; color: var(--muted); margin-bottom: 18px; }
+        #sm-pwd-input {
+            width: 100%; padding: 11px 14px; border-radius: 10px;
+            border: 1px solid rgba(86,224,255,0.25);
+            background: rgba(255,255,255,0.05); color: #f4f7fb;
+            font-family: 'Heebo', sans-serif; font-size: 1rem;
+            letter-spacing: 3px; text-align: center;
+            outline: none; transition: border-color .2s;
+        }
+        #sm-pwd-input:focus { border-color: rgba(86,224,255,0.55); }
+        #sm-pwd-input.error { border-color: rgba(255,107,107,0.7); animation: smShake .3s ease; }
+        @keyframes smShake {
+            0%,100% { transform: translateX(0); }
+            25%      { transform: translateX(-6px); }
+            75%      { transform: translateX(6px); }
+        }
+        #sm-pwd-err {
+            font-size: 0.78rem; color: #ff6b6b; margin-top: 8px;
+            min-height: 18px; transition: opacity .2s;
+        }
+        .sm-pwd-btns { display: flex; gap: 10px; margin-top: 16px; }
+        .sm-pwd-btns button {
+            flex: 1; padding: 9px; border-radius: 9px;
+            font-family: 'Heebo', sans-serif; font-weight: 700;
+            font-size: 0.88rem; cursor: pointer; transition: all .2s;
+        }
+        #sm-pwd-confirm {
+            background: linear-gradient(135deg,rgba(86,224,255,0.2),rgba(139,124,255,0.2));
+            border: 1px solid rgba(86,224,255,0.4); color: #56e0ff;
+        }
+        #sm-pwd-confirm:hover { background: linear-gradient(135deg,rgba(86,224,255,0.32),rgba(139,124,255,0.32)); }
+        #sm-pwd-cancel {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1); color: var(--muted);
+        }
+        #sm-pwd-cancel:hover { background: rgba(255,255,255,0.1); color: var(--text); }
     </style>
 </head>
 
 <body>
     <div id="portal-toast-container"></div>
+
+    <!-- ── SM Password Modal ── -->
+    <div id="sm-pwd-overlay">
+        <div id="sm-pwd-box">
+            <div class="sm-pwd-icon">S.M</div>
+            <h3>גישת מנהל מערכת</h3>
+            <p>הזן סיסמה להפעלת מצב ניהול</p>
+            <input type="password" id="sm-pwd-input" placeholder="••••••••"
+                onkeydown="if(event.key==='Enter')smPwdConfirm()"
+                oninput="document.getElementById('sm-pwd-err').textContent=''">
+            <div id="sm-pwd-err"></div>
+            <div class="sm-pwd-btns">
+                <button id="sm-pwd-confirm" onclick="smPwdConfirm()">כניסה</button>
+                <button id="sm-pwd-cancel"  onclick="smPwdClose()">ביטול</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── SM Admin trigger zone (bottom-left) ── -->
+    <div id="sm-trigger-zone">
+        <button id="sm-admin-btn" onclick="smPwdOpen()" title="מצב ניהול">
+            <span class="sm-letters">S.M</span>
+        </button>
+    </div>
+
     <aside class="sidebar" id="sidebar">
-        <div class="sidebar-header">
+        <div class="sidebar-header" style="position:relative;">
             <i class="fa-solid fa-compass"></i>
             <span>כלים דיגיטליים</span>
+            <span id="sm-admin-badge">ניהול</span>
         </div>
 
         <div class="nav-container">
-            <div class="nav-category">כלים דיגיטליים</div>
+            <!-- כותרת קטגוריה: כלים דיגיטליים -->
+            <div class="nav-cat-row" id="nav-cat-tools">
+                <div class="nav-category">כלים דיגיטליים</div>
+                <button class="admin-vis-toggle visible" onclick="smToggleCat('nav-cat-tools',this)" title="הסתר/הצג כותרת"><i class="fa-solid fa-eye"></i></button>
+            </div>
 
             <!-- ── כלי 1: סיור במוזיאון ── -->
-            <div class="nav-item">
+            <div class="nav-item" id="nav-item-museum">
                 <a class="nav-link nav-tool-card" data-src="סיור במוזיאון.html"
                     data-title="סיור במוזיאון">
                     <span class="nav-tool-icon-wrap" style="background:linear-gradient(135deg,rgba(139,124,255,0.25),rgba(86,224,255,0.12));border-color:rgba(139,124,255,0.35);">
@@ -686,10 +918,13 @@
                     </span>
                     <span class="nav-tool-label">סיור במוזיאון</span>
                 </a>
+                <button class="admin-vis-toggle visible" onclick="smToggleItem('nav-item-museum',this)" title="הסתר/הצג">
+                    <i class="fa-solid fa-eye"></i>
+                </button>
             </div>
 
             <!-- ── כלי 2: סיור בבית הספר ── -->
-            <div class="nav-item">
+            <div class="nav-item" id="nav-item-school">
                 <a class="nav-link nav-tool-card" data-src="סיור בבית הספר.html"
                     data-title="סיור בבית הספר">
                     <span class="nav-tool-icon-wrap" style="background:linear-gradient(135deg,rgba(30,230,168,0.2),rgba(86,224,255,0.1));border-color:rgba(30,230,168,0.35);">
@@ -697,10 +932,13 @@
                     </span>
                     <span class="nav-tool-label">סיור בבית הספר</span>
                 </a>
+                <button class="admin-vis-toggle visible" onclick="smToggleItem('nav-item-school',this)" title="הסתר/הצג">
+                    <i class="fa-solid fa-eye"></i>
+                </button>
             </div>
 
             <!-- ── כלי 3: לוח בחירה מסלול ── -->
-            <div class="nav-item">
+            <div class="nav-item" id="nav-item-board">
                 <a class="nav-link nav-tool-card" data-src="לוח בחירה מסלול.html"
                     data-title="לוח בחירה מסלול">
                     <span class="nav-tool-icon-wrap" style="background:linear-gradient(135deg,rgba(255,180,84,0.2),rgba(255,107,107,0.1));border-color:rgba(255,180,84,0.35);">
@@ -708,8 +946,81 @@
                     </span>
                     <span class="nav-tool-label">לוח בחירה מסלול</span>
                 </a>
+                <button class="admin-vis-toggle visible" onclick="smToggleItem('nav-item-board',this)" title="הסתר/הצג">
+                    <i class="fa-solid fa-eye"></i>
+                </button>
             </div>
 
+            <!-- כותרת קטגוריה: מדריכים -->
+            <div class="nav-cat-row" id="nav-cat-guides" style="margin-top:10px;">
+                <div class="nav-category">מדריכים</div>
+                <button class="admin-vis-toggle visible" onclick="smToggleCat('nav-cat-guides',this)" title="הסתר/הצג כותרת"><i class="fa-solid fa-eye"></i></button>
+            </div>
+            <div class="nav-item" id="nav-item-guides">
+                <div class="nav-parent" id="guidesParent" onclick="toggleGuidesMenu()">
+                    <i class="fa-solid fa-book-open-reader nav-main-icon"></i>
+                    <span>מדריך לשימוש</span>
+                    <i class="fa-solid fa-chevron-down nav-chevron" id="guidesChevron"></i>
+                </div>
+                <button class="admin-vis-toggle visible" onclick="smToggleItem('nav-item-guides',this)" title="הסתר/הצג">
+                    <i class="fa-solid fa-eye"></i>
+                </button>
+                <ul class="nav-sub-list" id="guidesList">
+
+                    <li class="nav-item" id="nav-item-guide-museum-a">
+                        <a class="nav-sub-link guide-link"
+                           data-src="מדריך_סיור_אפשרות_א_מורים.html"
+                           data-title="מדריך – סיור במוזיאון (מורים)">
+                            <i class="fa-solid fa-chalkboard-user"></i>
+                            <span>סיור במוזיאון – למורים</span>
+                        </a>
+                        <button class="admin-vis-toggle visible" onclick="smToggleItem('nav-item-guide-museum-a',this)" title="הסתר/הצג"><i class="fa-solid fa-eye"></i></button>
+                    </li>
+
+                    <li class="nav-item" id="nav-item-guide-museum-b">
+                        <a class="nav-sub-link guide-link"
+                           data-src="מדריך_סיור_אפשרות_ב_תלמידים.html"
+                           data-title="מדריך – סיור במוזיאון (תלמידים)">
+                            <i class="fa-solid fa-children"></i>
+                            <span>סיור במוזיאון – לתלמידים</span>
+                        </a>
+                        <button class="admin-vis-toggle visible" onclick="smToggleItem('nav-item-guide-museum-b',this)" title="הסתר/הצג"><i class="fa-solid fa-eye"></i></button>
+                    </li>
+
+                    <li class="nav-item" id="nav-item-guide-board">
+                        <a class="nav-sub-link guide-link"
+                           data-src="מדריך_לוח_בחירה_לרכזות.html"
+                           data-title="מדריך – לוח הבחירה הדיגיטלי">
+                            <i class="fa-solid fa-map-location-dot" style="color:rgba(255,180,84,0.7);"></i>
+                            <span>לוח הבחירה הדיגיטלי</span>
+                        </a>
+                        <button class="admin-vis-toggle visible" onclick="smToggleItem('nav-item-guide-board',this)" title="הסתר/הצג"><i class="fa-solid fa-eye"></i></button>
+                    </li>
+
+                    <li class="nav-item" id="nav-item-guide-school">
+                        <a class="nav-sub-link guide-link"
+                           data-src="מדריך_סיור_בית_ספר_לרכזות.html"
+                           data-title="מדריך – סיור בבית הספר">
+                            <i class="fa-solid fa-school" style="color:rgba(30,230,168,0.7);"></i>
+                            <span>סיור בבית הספר</span>
+                        </a>
+                        <button class="admin-vis-toggle visible" onclick="smToggleItem('nav-item-guide-school',this)" title="הסתר/הצג"><i class="fa-solid fa-eye"></i></button>
+                    </li>
+
+                    <li class="nav-item" id="nav-item-guide-museum-all">
+                        <a class="nav-sub-link guide-link"
+                           data-src="מדריך_סיור_במוזיאון_לרכזות.html"
+                           data-title="מדריך כולל – סיור במוזיאון">
+                            <i class="fa-solid fa-building-columns" style="color:rgba(139,124,255,0.7);"></i>
+                            <span>מדריך כולל – המוזיאון</span>
+                        </a>
+                        <button class="admin-vis-toggle visible" onclick="smToggleItem('nav-item-guide-museum-all',this)" title="הסתר/הצג"><i class="fa-solid fa-eye"></i></button>
+                    </li>
+
+                </ul>
+            </div>
+
+        </div><!-- /nav-container -->
     </aside>
 
     <main class="main-content">
@@ -762,7 +1073,7 @@
                 </p>
                 <!-- כרטיסי כלים מהירים -->
                 <div style="display:flex;gap:16px;margin-top:36px;flex-wrap:wrap;justify-content:center;">
-                    <button onclick="openTool(this)"
+                    <button id="welcome-btn-museum" onclick="openTool(this)"
                         data-tool="סיור במוזיאון.html"
                         style="display:flex;flex-direction:column;align-items:center;gap:10px;
                         padding:22px 28px;border-radius:14px;cursor:pointer;transition:all 0.22s;
@@ -774,7 +1085,7 @@
                         <i class="fa-solid fa-building-columns" style="font-size:2rem;color:#8b7cff;filter:drop-shadow(0 0 8px rgba(139,124,255,0.5));"></i>
                         <span style="font-size:0.95rem;font-weight:700;">סיור במוזיאון</span>
                     </button>
-                    <button onclick="openTool(this)"
+                    <button id="welcome-btn-school" onclick="openTool(this)"
                         data-tool="סיור בבית הספר.html"
                         style="display:flex;flex-direction:column;align-items:center;gap:10px;
                         padding:22px 28px;border-radius:14px;cursor:pointer;transition:all 0.22s;
@@ -786,7 +1097,7 @@
                         <i class="fa-solid fa-school" style="font-size:2rem;color:#1ee6a8;filter:drop-shadow(0 0 8px rgba(30,230,168,0.5));"></i>
                         <span style="font-size:0.95rem;font-weight:700;">סיור בבית הספר</span>
                     </button>
-                    <button onclick="openTool(this)"
+                    <button id="welcome-btn-board" onclick="openTool(this)"
                         data-tool="לוח בחירה מסלול.html"
                         style="display:flex;flex-direction:column;align-items:center;gap:10px;
                         padding:22px 28px;border-radius:14px;cursor:pointer;transition:all 0.22s;
@@ -2329,6 +2640,156 @@
             });
         };
     }
+    // ═══════════════════════════════════════════════════════════════
+    // GUIDES MENU — פתיחה/סגירה + ניווט למדריכים
+    // ═══════════════════════════════════════════════════════════════
+    window.toggleGuidesMenu = function () {
+        const parent  = document.getElementById('guidesParent');
+        const list    = document.getElementById('guidesList');
+        if (!parent || !list) return;
+        const isOpen  = list.classList.contains('open');
+        list.classList.toggle('open', !isOpen);
+        parent.classList.toggle('open', !isOpen);
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.guide-link').forEach(link => {
+            link.addEventListener('click', () => {
+                const src   = link.getAttribute('data-src');
+                const title = link.getAttribute('data-title') || src;
+                document.querySelectorAll('.nav-link, .nav-sub-link').forEach(l => l.classList.remove('active'));
+                link.classList.add('active');
+                if (typeof showIframe === 'function') {
+                    showIframe(src, title);
+                    const ws = document.getElementById('welcomeScreen');
+                    if (ws) ws.style.display = 'none';
+                }
+            });
+        });
+    });
+
+    // ═══════════════════════════════════════════════════════════════
+    // SM ADMIN MODE — password + visibility management
+    // ═══════════════════════════════════════════════════════════════
+    const SM_STORAGE_KEY  = 'sm_hidden_items';
+    const SM_STORAGE_CATS = 'sm_hidden_cats';
+    const SM_PASSWORD     = 'open03964';
+
+    // ── Mapping: nav-item-id → welcome-screen-button-id ──────────
+    const SM_WELCOME_MAP = {
+        'nav-item-museum': 'welcome-btn-museum',
+        'nav-item-school': 'welcome-btn-school',
+        'nav-item-board':  'welcome-btn-board'
+    };
+
+    function smLoadHidden()     { try { return JSON.parse(localStorage.getItem(SM_STORAGE_KEY)  || '[]'); } catch { return []; } }
+    function smLoadHiddenCats() { try { return JSON.parse(localStorage.getItem(SM_STORAGE_CATS) || '[]'); } catch { return []; } }
+
+    // Apply hidden state to all nav-items (and sync welcome buttons)
+    function smApplyHidden(hiddenIds) {
+        document.querySelectorAll('.nav-item[id]').forEach(item => {
+            const isHidden = hiddenIds.includes(item.id);
+            item.classList.toggle('sm-hidden', isHidden);
+            const btn = item.querySelector(':scope > .admin-vis-toggle');
+            if (btn) {
+                btn.classList.toggle('visible', !isHidden);
+                btn.innerHTML = isHidden ? '<i class="fa-solid fa-eye-slash"></i>' : '<i class="fa-solid fa-eye"></i>';
+            }
+            // Sync matching welcome screen button
+            const welcomeId = SM_WELCOME_MAP[item.id];
+            if (welcomeId) {
+                const wb = document.getElementById(welcomeId);
+                if (wb) wb.style.display = isHidden ? 'none' : '';
+            }
+        });
+        try { localStorage.setItem(SM_STORAGE_KEY, JSON.stringify(hiddenIds)); } catch {}
+    }
+
+    // Apply hidden state to category label rows
+    function smApplyHiddenCats(hiddenCats) {
+        document.querySelectorAll('.nav-cat-row[id]').forEach(row => {
+            const isHidden = hiddenCats.includes(row.id);
+            row.classList.toggle('sm-hidden', isHidden);
+            const btn = row.querySelector('.admin-vis-toggle');
+            if (btn) {
+                btn.classList.toggle('visible', !isHidden);
+                btn.innerHTML = isHidden ? '<i class="fa-solid fa-eye-slash"></i>' : '<i class="fa-solid fa-eye"></i>';
+            }
+        });
+        try { localStorage.setItem(SM_STORAGE_CATS, JSON.stringify(hiddenCats)); } catch {}
+    }
+
+    window.smToggleItem = function (itemId) {
+        const hidden = smLoadHidden();
+        const idx = hidden.indexOf(itemId);
+        if (idx === -1) hidden.push(itemId); else hidden.splice(idx, 1);
+        smApplyHidden(hidden);
+    };
+
+    window.smToggleCat = function (catId) {
+        const hidden = smLoadHiddenCats();
+        const idx = hidden.indexOf(catId);
+        if (idx === -1) hidden.push(catId); else hidden.splice(idx, 1);
+        smApplyHiddenCats(hidden);
+    };
+
+    window.toggleAdminMode = function () {
+        const isActive = document.body.classList.toggle('admin-mode');
+        document.getElementById('sm-admin-btn').classList.toggle('active', isActive);
+        if (!isActive) {
+            smApplyHidden(smLoadHidden());
+            smApplyHiddenCats(smLoadHiddenCats());
+        }
+    };
+
+    // ── Password Modal ────────────────────────────────────────────
+    window.smPwdOpen = function () {
+        // אם כבר במצב ניהול — כיבוי ישיר ללא סיסמה
+        if (document.body.classList.contains('admin-mode')) {
+            toggleAdminMode();
+            return;
+        }
+        const overlay = document.getElementById('sm-pwd-overlay');
+        const input   = document.getElementById('sm-pwd-input');
+        overlay.classList.add('open');
+        input.value = '';
+        document.getElementById('sm-pwd-err').textContent = '';
+        input.classList.remove('error');
+        setTimeout(() => input.focus(), 50);
+    };
+
+    window.smPwdClose = function () {
+        document.getElementById('sm-pwd-overlay').classList.remove('open');
+    };
+
+    window.smPwdConfirm = function () {
+        const input = document.getElementById('sm-pwd-input');
+        const err   = document.getElementById('sm-pwd-err');
+        if (input.value === SM_PASSWORD) {
+            smPwdClose();
+            toggleAdminMode();
+        } else {
+            err.textContent = 'סיסמה שגויה — נסה שוב';
+            input.classList.remove('error');
+            void input.offsetWidth; // reflow for animation restart
+            input.classList.add('error');
+            input.value = '';
+            setTimeout(() => input.classList.remove('error'), 500);
+        }
+    };
+
+    // Close password modal on overlay click
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('sm-pwd-overlay').addEventListener('click', e => {
+            if (e.target === document.getElementById('sm-pwd-overlay')) smPwdClose();
+        });
+    });
+
+    // Initial apply on page load
+    document.addEventListener('DOMContentLoaded', () => {
+        smApplyHidden(smLoadHidden());
+        smApplyHiddenCats(smLoadHiddenCats());
+    });
     </script>
 <script>
     // כפתורי מסך הפתיחה — פותחים את הכלי המתאים
