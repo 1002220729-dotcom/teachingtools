@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>מדריך הדרכה – עורך לוח הבחירה</title>
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@300;400;700;900&family=Heebo:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --purple:     #6C63FF;
+    --purple-dk:  #4a42cc;
+    --purple-lt:  #EEF;
+    --teal:       #4ECDC4;
+    --pink:       #FF6B9D;
+    --gold:       #FFB64D;
+    --mand:       #667eea;   /* mandatory blue-purple */
+    --choice:     #4ECDC4;   /* choice teal */
+    --opt:        #f9c74f;   /* optional yellow */
+    --bg:         #F4F2FF;
+    --card-bg:    #FFFEFF;
+    --border:     rgba(108,99,255,0.15);
+    --shadow:     0 4px 22px rgba(80,60,180,0.10);
+    --dark:       #1a1a2e;
+    --warm:       #3C3060;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Heebo', sans-serif;
+    background: var(--bg);
+    color: var(--dark);
+    min-height: 100vh;
+    padding-bottom: 60px;
+  }
+
+  /* ── HERO ── */
+  .hero {
+    background: linear-gradient(155deg, #1a1a2e 0%, #16213e 40%, #0f3460 75%, #6C63FF 100%);
+    padding: 52px 24px 48px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse 300px 200px at 20% 50%, rgba(78,205,196,0.12) 0%, transparent 70%),
+      radial-gradient(ellipse 200px 300px at 80% 30%, rgba(255,107,157,0.1) 0%, transparent 70%),
+      repeating-linear-gradient(60deg, transparent, transparent 40px, rgba(255,255,255,0.02) 40px, rgba(255,255,255,0.02) 41px);
+  }
+  .hero-icon { font-size: 52px; display: block; margin-bottom: 14px; position: relative; filter: drop-shadow(0 4px 12px rgba(0,0,0,0.3)); }
+  .hero h1 {
+    font-family: 'Frank Ruhl Libre', serif;
+    font-size: clamp(1.6rem, 4vw, 2.4rem);
+    color: #fff;
+    font-weight: 900;
+    line-height: 1.25;
+    margin-bottom: 10px;
+    position: relative;
+  }
+  .hero h1 span { color: #a5b4fc; }
+  .hero p {
+    color: rgba(200,210,255,0.82);
+    font-size: 1rem;
+    font-weight: 300;
+    max-width: 480px;
+    margin: 0 auto;
+    position: relative;
+    line-height: 1.65;
+  }
+  .time-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    background: rgba(108,99,255,0.3);
+    border: 1px solid rgba(108,99,255,0.6);
+    color: #c7d2fe;
+    padding: 7px 18px;
+    border-radius: 50px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-top: 18px;
+    position: relative;
+  }
+
+  /* ── WRAP ── */
+  .wrap { max-width: 820px; margin: 0 auto; padding: 0 16px; }
+
+  /* ── SECTION TITLE ── */
+  .section-title {
+    font-family: 'Frank Ruhl Libre', serif;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--purple-dk);
+    margin: 36px 0 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(to left, transparent, var(--border));
+  }
+
+  /* ── INTERFACE STRIP ── */
+  .interface-strip {
+    background: var(--dark);
+    border-radius: 14px;
+    padding: 20px 22px;
+    margin: 0 0 20px;
+  }
+  .interface-strip h4 {
+    font-family: 'Frank Ruhl Libre', serif;
+    font-size: 1rem;
+    color: #a5b4fc;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .if-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 7px 0;
+    font-size: 0.82rem;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    line-height: 1.4;
+  }
+  .if-row:last-child { border-bottom: none; }
+  .if-btn {
+    display: inline-block;
+    background: rgba(108,99,255,0.2);
+    border: 1px solid rgba(108,99,255,0.5);
+    border-radius: 6px;
+    padding: 2px 10px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #a5b4fc;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .if-desc { color: #94a3b8; }
+
+  /* ── TASK TYPE LEGEND ── */
+  .type-legend {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin: 16px 0 28px;
+  }
+  @media(max-width:480px) { .type-legend { grid-template-columns: 1fr; } }
+  .type-card {
+    border-radius: 12px;
+    padding: 14px 14px 12px;
+    border: 2px solid;
+    text-align: center;
+  }
+  .type-card.mand  { border-color: #90A8F8; background: #EEF2FF; }
+  .type-card.choi  { border-color: #7DCECB; background: #EEFAF9; }
+  .type-card.opt   { border-color: #F0C860; background: #FFFBEE; }
+  .type-icon { font-size: 1.6rem; display: block; margin-bottom: 6px; }
+  .type-name { font-weight: 700; font-size: 0.88rem; margin-bottom: 4px; }
+  .type-card.mand .type-name { color: var(--mand); }
+  .type-card.choi .type-name { color: #30998E; }
+  .type-card.opt  .type-name { color: #B07A00; }
+  .type-card p { font-size: 0.76rem; color: #5A5A8A; line-height: 1.4; }
+
+  /* ── BOARD PLAN ── */
+  .board-plan {
+    background: #16213e;
+    border-radius: 16px;
+    padding: 20px 22px 18px;
+    margin: 14px 0 24px;
+    color: #e2e8f0;
+  }
+  .board-plan h4 {
+    color: #a5b4fc;
+    font-size: 0.95rem;
+    font-family: 'Frank Ruhl Libre', serif;
+    margin-bottom: 14px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .bp-path {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+  .bp-node {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    min-width: 88px;
+    max-width: 110px;
+  }
+  .bp-circle {
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem;
+    border: 3px solid;
+    position: relative;
+  }
+  .bp-circle.start  { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); }
+  .bp-circle.mand   { background: rgba(108,99,255,0.25); border-color: #6C63FF; }
+  .bp-circle.choi   { background: rgba(78,205,196,0.25); border-color: #4ECDC4; }
+  .bp-circle.finish { background: rgba(255,182,77,0.25); border-color: #FFB64D; }
+  .bp-badge {
+    position: absolute;
+    top: -6px; right: -6px;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    font-size: 0.6rem;
+    font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff;
+  }
+  .bp-badge.mand  { background: #6C63FF; }
+  .bp-badge.choi  { background: #4ECDC4; }
+  .bp-label { font-size: 0.72rem; text-align: center; color: #94a3b8; line-height: 1.3; }
+  .bp-arrow { color: rgba(255,255,255,0.25); font-size: 1.2rem; flex-shrink: 0; }
+
+  /* ── STEP CARD ── */
+  .step-card {
+    background: var(--card-bg);
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    margin-bottom: 14px;
+    overflow: hidden;
+  }
+  .step-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 15px 20px;
+    cursor: pointer;
+    user-select: none;
+    transition: background .18s;
+  }
+  .step-header:hover { background: #F8F6FF; }
+  .step-num {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Frank Ruhl Libre', serif;
+    font-size: 0.95rem;
+    font-weight: 900;
+    color: #fff;
+    flex-shrink: 0;
+    background: linear-gradient(135deg, #6C63FF, #9D6FFF);
+  }
+  .step-title-wrap { flex: 1; }
+  .step-main-title { font-weight: 700; font-size: 0.95rem; color: var(--dark); line-height: 1.3; }
+  .step-sub { font-size: 0.77rem; color: #8880CC; margin-top: 2px; }
+  .step-emoji { font-size: 20px; flex-shrink: 0; }
+  .step-toggle { color: #8880CC; font-size: 0.9rem; transition: transform .2s; }
+  .step-card.open .step-toggle { transform: rotate(180deg); }
+  .step-body {
+    display: none;
+    padding: 0 20px 20px;
+    border-top: 1px solid var(--border);
+  }
+  .step-card.open .step-body { display: block; }
+
+  /* ── INSTRUCTION LIST ── */
+  .instruction-list { list-style: none; margin-top: 12px; }
+  .instruction-list li {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 9px 0;
+    border-bottom: 1px dashed rgba(108,99,255,0.1);
+    font-size: 0.9rem;
+    line-height: 1.55;
+    color: #2A2050;
+  }
+  .instruction-list li:last-child { border-bottom: none; }
+  .li-icon { flex-shrink: 0; font-size: 1.05rem; margin-top: 1px; }
+
+  /* ── UI CHIP ── */
+  .ui {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #EEF;
+    border: 1px solid #C0B8FF;
+    border-radius: 6px;
+    padding: 1px 8px;
+    font-size: 0.82em;
+    font-weight: 700;
+    color: var(--purple-dk);
+    white-space: nowrap;
+  }
+  .ui.mand  { background: #EEF2FF; border-color: #A5B0FF; color: var(--mand); }
+  .ui.choi  { background: #EEFAF9; border-color: #90CFCB; color: #30998E; }
+  .ui.opt   { background: #FFFBEE; border-color: #E8CC70; color: #805B00; }
+
+  /* ── TIP / WARN BOXES ── */
+  .tip-box {
+    display: flex; gap: 10px; align-items: flex-start;
+    background: #F0FDF4; border: 1px solid #86EFAC;
+    border-radius: 10px; padding: 12px 14px; margin-top: 14px;
+    font-size: 0.82rem; line-height: 1.55; color: #14532D;
+  }
+  .warn-box {
+    display: flex; gap: 10px; align-items: flex-start;
+    background: #FFFBEB; border: 1px solid #FCD34D;
+    border-radius: 10px; padding: 12px 14px; margin-top: 12px;
+    font-size: 0.82rem; line-height: 1.55; color: #78350F;
+  }
+  .info-box {
+    display: flex; gap: 12px; align-items: flex-start;
+    background: #EEF2FF; border: 1px solid #C7D2FE;
+    border-radius: 12px; padding: 16px 16px; margin-bottom: 22px;
+    font-size: 0.87rem; line-height: 1.6; color: #3730a3;
+  }
+  .info-box .ibi { font-size: 1.5rem; flex-shrink: 0; margin-top: 2px; }
+  .info-box strong { display: block; font-size: 0.95rem; margin-bottom: 4px; }
+
+  /* ── FIELD DEMO ── */
+  .field-demo {
+    background: #f8f7ff;
+    border: 1px solid #ddd8ff;
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin: 12px 0;
+    font-size: 0.85rem;
+    color: #3A3060;
+    line-height: 1.6;
+  }
+  .field-demo .fd-label {
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    color: #8880CC;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .field-demo .fd-val {
+    color: #16213e;
+    font-weight: 600;
+    border-right: 3px solid var(--purple);
+    padding-right: 10px;
+    margin-right: 2px;
+  }
+  .field-demo .fd-link {
+    color: #6C63FF;
+    font-family: monospace;
+    font-size: 0.8rem;
+    word-break: break-all;
+  }
+
+  /* ── OPTION ROW ── */
+  .option-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    background: #EEFAF9;
+    border: 1px solid #90CFCB;
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    font-size: 0.85rem;
+    color: #1A4A44;
+  }
+  .option-row .or-num {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: #4ECDC4;
+    color: #fff;
+    font-size: 0.72rem;
+    font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; margin-top: 2px;
+  }
+  .option-row .or-text { font-weight: 600; }
+  .option-row .or-link { font-size: 0.78rem; color: #6C63FF; font-family: monospace; word-break: break-all; margin-top: 2px; }
+
+  /* ── DIVIDER ── */
+  .divider { height: 1px; background: var(--border); margin: 30px 0; }
+
+  /* ── DONE BLOCK ── */
+  .done-block {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border-radius: 16px;
+    padding: 26px 24px 22px;
+    margin-top: 28px;
+    text-align: center;
+    color: #fff;
+  }
+  .done-block h4 {
+    font-family: 'Frank Ruhl Libre', serif;
+    font-size: 1.2rem;
+    margin-bottom: 8px;
+  }
+  .done-block p { font-size: 0.87rem; color: rgba(255,255,255,0.82); line-height: 1.65; }
+  .share-steps { text-align: right; margin-top: 16px; }
+  .share-step {
+    display: flex; align-items: flex-start; gap: 10px;
+    font-size: 0.85rem; padding: 6px 0; color: rgba(255,255,255,0.9);
+  }
+  .ss-num {
+    width: 22px; height: 22px; border-radius: 50%;
+    font-size: 0.72rem; font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; background: rgba(255,255,255,0.25); color: #fff; margin-top: 1px;
+  }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+
+  footer { text-align: center; padding: 30px 16px 16px; font-size: 0.75rem; color: #9890CC; }
+</style>
+</head>
+<body>
+
+<!-- ── HERO ── -->
+<div class="hero">
+  <span class="hero-icon">🎯</span>
+  <h1>מדריך הדרכה –<br><span>עורך לוח הבחירה הדיגיטלי</span></h1>
+  <p>הנחיות פשוטות וצעד-צעד לרכזות הכלה והשתלבות<br>לבניית לוח בחירה ראשון בתוך 5–7 דקות</p>
+  <div class="time-badge">⏱️ &nbsp;5–7 דקות | 1 חובה · 1 בחירה · 1 רשות</div>
+</div>
+
+<div class="wrap">
+
+  <!-- ── INTRO ── -->
+  <div class="info-box" style="margin-top:24px;">
+    <span class="ibi">👩‍🏫</span>
+    <div>
+      <strong>הפרויקט שתבני: לוח בחירה למורים – מליאה על עיקרון הבחירה</strong>
+      הלוח יכיל משימת חובה אחת, משימת בחירה אחת עם 3 אפשרויות, ומשימת רשות אחת. בכל אחת מהמשימות תתנסי בשדה אחר של הממשק, כולל הכנסת קישור. בסוף – תשתפי את הלוח עם המורות דרך קישור.
+    </div>
+  </div>
+
+  <!-- ── TYPE LEGEND ── -->
+  <div class="section-title">🗂️ שלושת סוגי המשימות בלוח</div>
+  <div class="type-legend">
+    <div class="type-card mand">
+      <span class="type-icon">📚</span>
+      <div class="type-name">משימת חובה</div>
+      <p>כל המשתתפות חייבות להשלים אותה. חוסמת התקדמות עד להשלמה.</p>
+    </div>
+    <div class="type-card choi">
+      <span class="type-icon">🎯</span>
+      <div class="type-name">משימת בחירה</div>
+      <p>המשתתפת בוחרת מתוך כמה אפשרויות שהמורה הגדירה מראש.</p>
+    </div>
+    <div class="type-card opt">
+      <span class="type-icon">🌟</span>
+      <div class="type-name">משימת רשות</div>
+      <p>אופציונלית – ניתן לדלג עליה. מתאימה לתוכן העשרה.</p>
+    </div>
+  </div>
+
+  <!-- ── INTERFACE MAP ── -->
+  <div class="section-title">🗺️ מפה מהירה – כפתורי העורך</div>
+  <div class="interface-strip">
+    <h4>✨ הכפתורים שתשתמשי בהם בפרויקט זה</h4>
+    <div class="if-row"><span class="if-btn">🖊️ עורך</span><span class="if-desc">לשונית ראשונה בסרגל הניווט – כאן בונים את הלוח</span></div>
+    <div class="if-row"><span class="if-btn">🎮 לוח</span><span class="if-desc">לשונית שנייה – תצוגת הלוח כפי שהמשתתפות יראו אותו</span></div>
+    <div class="if-row"><span class="if-btn">📚 הוסף משימת חובה</span><span class="if-desc">כפתור ירוק – יוצר כרטיס משימת חובה חדש</span></div>
+    <div class="if-row"><span class="if-btn">🎯 הוסף משימת בחירה</span><span class="if-desc">כפתור ירוק-כחול – יוצר כרטיס עם אפשרויות לבחירה</span></div>
+    <div class="if-row"><span class="if-btn">↑ / ↓</span><span class="if-desc">שינוי סדר המשימות בלוח</span></div>
+    <div class="if-row"><span class="if-btn">🗑️</span><span class="if-desc">מחיקת משימה</span></div>
+    <div class="if-row"><span class="if-btn">+ הוסף קישור נוסף</span><span class="if-desc">הוספת קישורים נוספים לתוך משימה</span></div>
+    <div class="if-row"><span class="if-btn">🔗 שתף קישור</span><span class="if-desc">כפתור ורוד-אדום בסרגל – שליחת הלוח למשתתפות</span></div>
+  </div>
+
+  <!-- ── BOARD PLAN ── -->
+  <div class="section-title">📋 תכנית הלוח שנבנה</div>
+  <div class="board-plan">
+    <h4>🗺️ מסלול הלוח – עיקרון הבחירה למליאת מורים</h4>
+    <div class="bp-path">
+      <div class="bp-node">
+        <div class="bp-circle start">🏁</div>
+        <div class="bp-label">התחלה</div>
+      </div>
+      <div class="bp-arrow">→</div>
+      <div class="bp-node">
+        <div class="bp-circle mand"><span class="bp-badge mand">1</span>📚</div>
+        <div class="bp-label">חובה: קראי על עיקרון הבחירה</div>
+      </div>
+      <div class="bp-arrow">→</div>
+      <div class="bp-node">
+        <div class="bp-circle choi"><span class="bp-badge choi">2</span>🎯</div>
+        <div class="bp-label">בחירה: כיצד מתחברים?</div>
+      </div>
+      <div class="bp-arrow">→</div>
+      <div class="bp-node">
+        <div class="bp-circle" style="background:rgba(249,199,79,0.25);border-color:#f9c74f;"><span class="bp-badge" style="background:#c49200;">3</span>🌟</div>
+        <div class="bp-label">רשות: העמקה והרחבה</div>
+      </div>
+      <div class="bp-arrow">→</div>
+      <div class="bp-node">
+        <div class="bp-circle finish">🏆</div>
+        <div class="bp-label">סיום</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STEPS ── -->
+  <div class="section-title">🪜 צעד אחר צעד</div>
+
+  <!-- STEP 1 -->
+  <div class="step-card open" onclick="toggleStep(this)">
+    <div class="step-header">
+      <div class="step-num">1</div>
+      <div class="step-title-wrap">
+        <div class="step-main-title">ודאי שאת בלשונית העורך</div>
+        <div class="step-sub">פתיחת ממשק הבנייה</div>
+      </div>
+      <span class="step-emoji">🖥️</span>
+      <span class="step-toggle">▼</span>
+    </div>
+    <div class="step-body">
+      <ul class="instruction-list">
+        <li><span class="li-icon">🌐</span><span>היכנסי לאתר וודאי שאת בכלי <strong>לוח בחירה מסלול</strong> (מופיע בסרגל הכלים הימני).</span></li>
+        <li><span class="li-icon">📌</span><span>בסרגל הניווט העליון תראי שתי לשוניות: <span class="ui">🖊️ עורך</span> ו-<span class="ui">🎮 לוח</span>. ודאי שהלשונית <span class="ui">🖊️ עורך</span> פעילה (לבנה).</span></li>
+        <li><span class="li-icon">✅</span><span>ממשק העורך כולל: שדות כותרת ומגבלת זמן בראש, ואחריהם כפתורי הוספת משימות ותצוגה מקדימה של המסלול.</span></li>
+      </ul>
+      <div class="tip-box"><span>💡</span><span>ניתן לעבור בין העורך לתצוגת הלוח בכל עת ללא איבוד נתונים – הלוח נשמר אוטומטית!</span></div>
+    </div>
+  </div>
+
+  <!-- STEP 2 -->
+  <div class="step-card" onclick="toggleStep(this)">
+    <div class="step-header">
+      <div class="step-num">2</div>
+      <div class="step-title-wrap">
+        <div class="step-main-title">קבעי כותרת ומגבלת זמן</div>
+        <div class="step-sub">הגדרות בסיסיות של הלוח</div>
+      </div>
+      <span class="step-emoji">📝</span>
+      <span class="step-toggle">▼</span>
+    </div>
+    <div class="step-body">
+      <ul class="instruction-list">
+        <li><span class="li-icon">✍️</span><span>בשדה <strong>שם הלוח</strong> (בחלק העליון של הדף) כתבי:</span></li>
+      </ul>
+      <div class="field-demo">
+        <div class="fd-label">שם הלוח</div>
+        <div class="fd-val">עיקרון הבחירה – מליאת מורים 🎯</div>
+      </div>
+      <ul class="instruction-list">
+        <li><span class="li-icon">⏱️</span><span>בשדה <strong>מגבלת זמן (בדקות)</strong> הקלידי: <strong>20</strong></span></li>
+        <li><span class="li-icon">👀</span><span>שימי לב לתצוגה המקדימה בתחתית הדף – היא מתעדכנת בזמן אמת עם כל שינוי.</span></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- STEP 3 -->
+  <div class="step-card" onclick="toggleStep(this)">
+    <div class="step-header">
+      <div class="step-num">3</div>
+      <div class="step-title-wrap">
+        <div class="step-main-title">הוסיפי משימת חובה ראשונה</div>
+        <div class="step-sub">📚 קריאה + הכנסת קישור ראשי</div>
+      </div>
+      <span class="step-emoji">📚</span>
+      <span class="step-toggle">▼</span>
+    </div>
+    <div class="step-body">
+      <ul class="instruction-list">
+        <li><span class="li-icon">➕</span><span>לחצי על <span class="ui mand">+ הוסף משימת חובה</span> – יופיע כרטיס כחול-סגול חדש.</span></li>
+        <li><span class="li-icon">✍️</span><span>בשדה <strong>כותרת המשימה</strong> כתבי:</span></li>
+      </ul>
+      <div class="field-demo">
+        <div class="fd-label">כותרת</div>
+        <div class="fd-val">קראי: מהו עיקרון הבחירה?</div>
+      </div>
+      <ul class="instruction-list">
+        <li><span class="li-icon">📋</span><span>בשדה <strong>תיאור המשימה</strong> כתבי:</span></li>
+      </ul>
+      <div class="field-demo">
+        <div class="fd-label">תיאור</div>
+        <div class="fd-val">קראי את המאמר המקושר למטה. לאחר הקריאה – ענו על השאלה: <em>מה עיקרון הבחירה אומר לגבי תפקיד המורה בכיתה?</em><br>כתבי תשובה קצרה (3–5 משפטים).</div>
+      </div>
+      <ul class="instruction-list">
+        <li><span class="li-icon">🔗</span><span>בשדה <strong>🔗 קישור ראשי</strong> הדביקי קישור למאמר או חומר קריאה שבחרת. לדוגמה:</span></li>
+      </ul>
+      <div class="field-demo">
+        <div class="fd-label">קישור ראשי (URL)</div>
+        <div class="fd-link">https://www.example.com/mamar-bekhira</div>
+        <div style="font-size:0.76rem;color:#8880CC;margin-top:4px;">💡 הקישור יופיע כפתור "פתח חומר לימוד ↗" בפני המשתתפות</div>
+      </div>
+      <ul class="instruction-list">
+        <li><span class="li-icon">☑️</span><span>ודאי שתיבת הסימון <strong>חסום התקדמות עד להשלמת המשימה</strong> מסומנת – כך המשתתפות לא יוכלו לדלג.</span></li>
+      </ul>
+      <div class="tip-box"><span>💡</span><span>ניתן להדביק כל קישור: מאמר, סרטון YouTube, מסמך Google, קובץ PDF וכו'. הקישור ייפתח בלשונית חדשה.</span></div>
+    </div>
+  </div>
+
+  <!-- STEP 4 -->
+  <div class="step-card" onclick="toggleStep(this)">
+    <div class="step-header">
+      <div class="step-num">4</div>
+      <div class="step-title-wrap">
+        <div class="step-main-title">הוסיפי משימת בחירה עם 3 אפשרויות</div>
+        <div class="step-sub">🎯 כל אפשרות עם טקסט + קישור</div>
+      </div>
+      <span class="step-emoji">🎯</span>
+      <span class="step-toggle">▼</span>
+    </div>
+    <div class="step-body">
+      <ul class="instruction-list">
+        <li><span class="li-icon">➕</span><span>לחצי על <span class="ui choi">+ הוסף משימת בחירה</span> – יופיע כרטיס ירקרק-תכלת עם אפשרויות.</span></li>
+        <li><span class="li-icon">✍️</span><span>כותרת:</span></li>
+      </ul>
+      <div class="field-demo">
+        <div class="fd-label">כותרת</div>
+        <div class="fd-val">בחרי: כיצד את מתחברת לעיקרון הבחירה?</div>
+      </div>
+      <ul class="instruction-list">
+        <li><span class="li-icon">📋</span><span>תיאור:</span></li>
+      </ul>
+      <div class="field-demo">
+        <div class="fd-label">תיאור</div>
+        <div class="fd-val">בחרי אחת מהאפשרויות הבאות – זו שהכי מדברת אלייך עכשיו. לכל אפשרות יש קישור לחומר מתאים.</div>
+      </div>
+      <p style="font-size:0.88rem;color:#5050A0;margin:16px 0 10px;font-weight:600;">עכשיו – מלאי את שלוש האפשרויות:</p>
+
+      <div class="option-row">
+        <div class="or-num">א</div>
+        <div>
+          <div class="or-text">צפי בסרטון: כיצד לבנות לוח בחירה בכיתה</div>
+          <div class="or-link">https://www.youtube.com/watch?v=...</div>
+        </div>
+      </div>
+      <div class="option-row">
+        <div class="or-num">ב</div>
+        <div>
+          <div class="or-text">קראי דוגמאות: לוחות בחירה מהכיתה – כך זה נראה בפועל</div>
+          <div class="or-link">https://www.example.com/dugmaot</div>
+        </div>
+      </div>
+      <div class="option-row">
+        <div class="or-num">ג</div>
+        <div>
+          <div class="or-text">נסי בעצמך: פתחי את כלי לוח הבחירה ובני לוח ראשון</div>
+          <div class="or-link">https://www.example.com/loach-bechira</div>
+        </div>
+      </div>
+
+      <p style="font-size:0.84rem;color:#5050A0;margin:14px 0 8px;font-weight:600;">כיצד ממלאים כל אפשרות:</p>
+      <ul class="instruction-list">
+        <li><span class="li-icon">✍️</span><span>בתיבת הטקסט של האפשרות הראשונה (שמוצגת כבר בכרטיס) כתבי את <strong>טקסט האפשרות א׳</strong>.</span></li>
+        <li><span class="li-icon">🔗</span><span>מתחת לטקסט יש שדה URL – הדביקי שם קישור מתאים לאפשרות זו.</span></li>
+        <li><span class="li-icon">✍️</span><span>חזרי על הפעולה עבור האפשרות השנייה.</span></li>
+        <li><span class="li-icon">➕</span><span>לחצי <span class="ui choi">+ הוסף אפשרות</span> שמופיע בתוך הכרטיס, ומלאי את האפשרות השלישית.</span></li>
+        <li><span class="li-icon">🔢</span><span>בשדה <strong>מינימום אפשרויות לבחירה</strong> – השאירי <strong>1</strong> (כל משתתפת בוחרת אפשרות אחת).</span></li>
+      </ul>
+      <div class="warn-box"><span>⚠️</span><span>חשוב: לא ניתן למחוק אפשרות כשנשארות רק 2. צריך לפחות 2 אפשרויות כדי שהמשימה תהיה "בחירה".</span></div>
+    </div>
+  </div>
+
+  <!-- STEP 5 -->
+  <div class="step-card" onclick="toggleStep(this)">
+    <div class="step-header">
+      <div class="step-num">5</div>
+      <div class="step-title-wrap">
+        <div class="step-main-title">הוסיפי משימת רשות</div>
+        <div class="step-sub">🌟 תוכן העשרה אופציונלי + קישור נוסף</div>
+      </div>
+      <span class="step-emoji">🌟</span>
+      <span class="step-toggle">▼</span>
+    </div>
+    <div class="step-body">
+      <ul class="instruction-list">
+        <li><span class="li-icon">➕</span><span>לחצי על <span class="ui opt">+ הוסף משימת רשות</span> – יופיע כרטיס בגוון צהוב-זהוב.</span></li>
+        <li><span class="li-icon">✍️</span><span>כותרת:</span></li>
+      </ul>
+      <div class="field-demo">
+        <div class="fd-label">כותרת</div>
+        <div class="fd-val">העמקה: כלים נוספים לעיקרון הבחירה 🌟</div>
+      </div>
+      <ul class="instruction-list">
+        <li><span class="li-icon">📋</span><span>תיאור:</span></li>
+      </ul>
+      <div class="field-demo">
+        <div class="fd-label">תיאור</div>
+        <div class="fd-val">למי שרוצה להעמיק עוד – כאן תמצאי רעיונות ומשאבים נוספים להכנסת עיקרון הבחירה לכיתה.<br>משימה זו אינה חובה, אך מאוד מומלצת!</div>
+      </div>
+      <ul class="instruction-list">
+        <li><span class="li-icon">🔗</span><span>בשדה <strong>🔗 קישור ראשי</strong> הדביקי קישור לחומר העשרה (מאמר, פודקאסט, סרטון).</span></li>
+        <li><span class="li-icon">➕</span><span>הפעם תוסיפי גם <strong>קישור נוסף</strong>: לחצי <span class="ui">+ הוסף קישור נוסף</span> בתוך הכרטיס.</span></li>
+        <li><span class="li-icon">✍️</span><span>בשדה <strong>שם הקישור</strong> כתבי:</span></li>
+      </ul>
+      <div class="field-demo">
+        <div class="fd-label">שם הקישור</div>
+        <div class="fd-val">דוגמאות מהשטח – מורות שמיישמות</div>
+      </div>
+      <ul class="instruction-list">
+        <li><span class="li-icon">🔗</span><span>בשדה <strong>כתובת URL</strong> הדביקי קישור מתאים.</span></li>
+        <li><span class="li-icon">☑️</span><span>שימי לב: בשונה ממשימת חובה, כאן <strong>אין</strong> תיבת סימון "חסום התקדמות" – משימת רשות תמיד ניתנת לדילוג.</span></li>
+      </ul>
+      <div class="tip-box"><span>💡</span><span>משימת הרשות מסומנת בלוח בכוכב 🌟 במקום עיגול מלא, כך שהמשתתפות יודעות שהיא אופציונלית.</span></div>
+    </div>
+  </div>
+
+  <!-- STEP 6 -->
+  <div class="step-card" onclick="toggleStep(this)">
+    <div class="step-header">
+      <div class="step-num">6</div>
+      <div class="step-title-wrap">
+        <div class="step-main-title">שני סדר משימות (בונוס)</div>
+        <div class="step-sub">שימוש בכפתורי ↑ ↓</div>
+      </div>
+      <span class="step-emoji">↕️</span>
+      <span class="step-toggle">▼</span>
+    </div>
+    <div class="step-body">
+      <ul class="instruction-list">
+        <li><span class="li-icon">👀</span><span>כל כרטיס משימה מכיל כפתורי <span class="ui">↑</span> ו-<span class="ui">↓</span> בפינה הימנית-עליונה.</span></li>
+        <li><span class="li-icon">🖱️</span><span>לחצי על <span class="ui">↑</span> כדי להזיז משימה מעלה בסדר הלוח, ועל <span class="ui">↓</span> כדי להזיז מטה.</span></li>
+        <li><span class="li-icon">👁️</span><span>שימי לב שתצוגת המסלול בתחתית הדף מתעדכנת מייד עם כל שינוי סדר.</span></li>
+      </ul>
+      <div class="tip-box"><span>💡</span><span>הסדר בלוח הוא הסדר שבו המשתתפות ייתקלו במשימות. כדאי להתחיל מחובה → חובה → בחירה.</span></div>
+    </div>
+  </div>
+
+  <!-- STEP 7 -->
+  <div class="step-card" onclick="toggleStep(this)">
+    <div class="step-header">
+      <div class="step-num">7</div>
+      <div class="step-title-wrap">
+        <div class="step-main-title">צפי בלוח שבנית</div>
+        <div class="step-sub">מעבר ללשונית "לוח" לבדיקה</div>
+      </div>
+      <span class="step-emoji">🎮</span>
+      <span class="step-toggle">▼</span>
+    </div>
+    <div class="step-body">
+      <ul class="instruction-list">
+        <li><span class="li-icon">🖱️</span><span>לחצי על הלשונית <span class="ui">🎮 לוח</span> בסרגל הניווט הכהה.</span></li>
+        <li><span class="li-icon">🏁</span><span>יופיע לוח גרפי עם מסלול ותחנות. חלונית "ברוכים הבאים" תיפתח – לחצי <strong>"קדימה לדרך!"</strong></span></li>
+        <li><span class="li-icon">👆</span><span>לחצי על כל תחנה עגולה בלוח כדי לבדוק שהמשימה שלה נכונה.</span></li>
+        <li><span class="li-icon">🔗</span><span>פתחי את תחנת משימת הבחירה ובדקי שהאפשרויות מוצגות נכון עם הקישורים.</span></li>
+        <li><span class="li-icon">↩️</span><span>לחזרה לעריכה – לחצי על הלשונית <span class="ui">🖊️ עורך</span></span></li>
+      </ul>
+      <div class="tip-box"><span>💡</span><span>בתצוגת הלוח תראי גם דמות תלת-ממדית מונפשת שזזה בין התחנות – זה מה שהמשתתפות יראו!</span></div>
+    </div>
+  </div>
+
+  <!-- STEP 8 -->
+  <div class="step-card" onclick="toggleStep(this)">
+    <div class="step-header">
+      <div class="step-num">8</div>
+      <div class="step-title-wrap">
+        <div class="step-main-title">שתפי את הלוח עם המורות</div>
+        <div class="step-sub">שליחת קישור למשתתפות המליאה</div>
+      </div>
+      <span class="step-emoji">🔗</span>
+      <span class="step-toggle">▼</span>
+    </div>
+    <div class="step-body">
+      <ul class="instruction-list">
+        <li><span class="li-icon">🎮</span><span>עברי ללשונית <span class="ui">🎮 לוח</span></span></li>
+        <li><span class="li-icon">🩷</span><span>לחצי על <span class="ui">🔗 שתף קישור</span> – הכפתור הוורוד-אדום בסרגל הניווט העליון.</span></li>
+        <li><span class="li-icon">📋</span><span>בחלון שנפתח לחצי <span class="ui">📋 העתק קישור</span> – הקישור יועתק ללוח.</span></li>
+        <li><span class="li-icon">💬</span><span>לחלופין – לחצי <span class="ui">💬 שלח בוואטסאפ</span> לשליחה ישירה.</span></li>
+        <li><span class="li-icon">✅</span><span>הקישור מכיל את כל הלוח – המורות יוכלו לפתוח ולהשתמש בו מיידית מכל מכשיר.</span></li>
+      </ul>
+      <div class="warn-box"><span>⚠️</span><span>הקישור נוצר מהנתונים שבלוח. כל שינוי שתעשי לאחר שיתוף – דורש יצירת קישור חדש!</span></div>
+    </div>
+  </div>
+
+  <!-- ── DONE ── -->
+  <div class="done-block">
+    <h4>🎉 לוח הבחירה למליאה מוכן!</h4>
+    <p>בנית לוח עם משימת חובה, משימת בחירה עם 3 אפשרויות מקושרות, ומשימת רשות.<br>המורות יוכלו לעבוד עם הלוח ישירות מהקישור ששלחת.</p>
+    <div class="share-steps">
+      <div class="share-step"><span class="ss-num">1</span><span>עברי ללשונית 🎮 לוח</span></div>
+      <div class="share-step"><span class="ss-num">2</span><span>לחצי "שתף קישור" (כפתור ורוד למעלה)</span></div>
+      <div class="share-step"><span class="ss-num">3</span><span>העתיקי קישור או שלחי בוואטסאפ</span></div>
+    </div>
+  </div>
+
+  <!-- ── EXTRA TIPS ── -->
+  <div class="divider"></div>
+  <div class="section-title">✨ טיפים שכדאי לדעת</div>
+
+  <div class="step-card" onclick="toggleStep(this)">
+    <div class="step-header">
+      <div class="step-num" style="background:linear-gradient(135deg,#43e97b,#38f9d7);">💾</div>
+      <div class="step-title-wrap">
+        <div class="step-main-title">שמירה אוטומטית</div>
+        <div class="step-sub">הלוח נשמר לדפדפן ברקע</div>
+      </div>
+      <span class="step-toggle">▼</span>
+    </div>
+    <div class="step-body">
+      <ul class="instruction-list">
+        <li><span class="li-icon">💚</span><span>הכלי שומר אוטומטית לדפדפן. אם תרעננו את הדף – תראו הודעה שמציעה לטעון את השמירה האחרונה.</span></li>
+        <li><span class="li-icon">💾</span><span>רוצי לשמור גיבוי? לחצי על <span class="ui">💾 הורד JSON</span> – ייווצר קובץ שניתן לייבא בעתיד עם <span class="ui">📥 ייבוא JSON</span>.</span></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="step-card" onclick="toggleStep(this)">
+    <div class="step-header">
+      <div class="step-num" style="background:linear-gradient(135deg,#FF6B9D,#FF8E53);">🗑️</div>
+      <div class="step-title-wrap">
+        <div class="step-main-title">מחיקה ואיפוס</div>
+        <div class="step-sub">מה קורה כשמוחקים</div>
+      </div>
+      <span class="step-toggle">▼</span>
+    </div>
+    <div class="step-body">
+      <ul class="instruction-list">
+        <li><span class="li-icon">🗑️</span><span>לחיצה על <span class="ui">🗑️</span> בכרטיס משימה מוחקת את אותה משימה בלבד.</span></li>
+        <li><span class="li-icon">⚠️</span><span>כפתור <span class="ui">🔄 אפס הכל</span> (אם קיים) ימחק את כל הנתונים – יש לאשר פעמיים.</span></li>
+      </ul>
+    </div>
+  </div>
+
+</div><!-- /wrap -->
+
+<footer>
+  מדריך זה נוצר עבור רכזות הכלה והשתלבות | כל הזכויות שמורות © 2025
+</footer>
+
+<script>
+  function toggleStep(card) {
+    card.classList.toggle('open');
+  }
+  document.querySelectorAll('.step-body').forEach(b => {
+    b.addEventListener('click', e => e.stopPropagation());
+  });
+</script>
+
+<!-- ── Share Button ── -->
+<div id="guide-share-btn" title="העתק קישור למדריך זה" onclick="guideShareLink()">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+  </svg>
+  <span>שתף קישור</span>
+</div>
+<div id="guide-share-toast">✓ הקישור הועתק!</div>
+
+<style>
+  #guide-share-btn {
+    position: fixed;
+    top: 18px;
+    left: 18px;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 9px 16px 9px 13px;
+    border-radius: 50px;
+    background: rgba(13,17,32,0.82);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: rgba(255,255,255,0.85);
+    font-family: 'Heebo', sans-serif;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.25);
+    transition: all 0.22s ease;
+    user-select: none;
+  }
+  #guide-share-btn:hover {
+    background: rgba(13,17,32,0.96);
+    border-color: rgba(255,255,255,0.32);
+    color: #fff;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 22px rgba(0,0,0,0.35);
+  }
+  #guide-share-btn:active { transform: translateY(0); }
+  #guide-share-btn svg { flex-shrink: 0; opacity: 0.85; }
+  #guide-share-toast {
+    position: fixed;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: rgba(13,17,32,0.94);
+    color: #fff;
+    padding: 11px 22px;
+    border-radius: 50px;
+    font-family: 'Heebo', sans-serif;
+    font-size: 0.88rem;
+    font-weight: 600;
+    z-index: 99999;
+    opacity: 0;
+    pointer-events: none;
+    border: 1px solid rgba(255,255,255,0.12);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.35);
+    transition: opacity 0.28s ease, transform 0.28s ease;
+  }
+  #guide-share-toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+</style>
+
+<script>
+  function guideShareLink() {
+    var url = window.location.href;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(showGuideToast).catch(fallbackCopy);
+    } else {
+      fallbackCopy();
+    }
+    function fallbackCopy() {
+      var ta = document.createElement('textarea');
+      ta.value = url;
+      ta.style.cssText = 'position:fixed;opacity:0;pointer-events:none';
+      document.body.appendChild(ta);
+      ta.focus(); ta.select();
+      try { document.execCommand('copy'); showGuideToast(); } catch(e) { prompt('העתק קישור:', url); }
+      document.body.removeChild(ta);
+    }
+    function showGuideToast() {
+      var t = document.getElementById('guide-share-toast');
+      t.classList.add('show');
+      setTimeout(function(){ t.classList.remove('show'); }, 2400);
+    }
+  }
+</script>
+
+</body>
+</html>
