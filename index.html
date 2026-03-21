@@ -2685,8 +2685,16 @@
 
     // ── Cache helpers ─────────────────────────────────────────────
     function smCacheGet() {
-        try { return JSON.parse(localStorage.getItem(SM_CACHE_KEY) || 'null') || { items: [], cats: [] }; }
-        catch { return { items: [], cats: [] }; }
+        try {
+            const raw = JSON.parse(localStorage.getItem(SM_CACHE_KEY) || 'null');
+            if (!raw) return { items: [], cats: [] };
+            // תמיכה בפורמט ישן (מערך)
+            if (Array.isArray(raw)) return { items: raw, cats: [] };
+            return {
+                items: Array.isArray(raw.items) ? raw.items : [],
+                cats:  Array.isArray(raw.cats)  ? raw.cats  : []
+            };
+        } catch { return { items: [], cats: [] }; }
     }
     function smCacheSet(data) {
         try { localStorage.setItem(SM_CACHE_KEY, JSON.stringify(data)); } catch {}
@@ -2753,22 +2761,22 @@
     }
 
     // ── Toggle + save ─────────────────────────────────────────────
-    window.smToggleItem = async function (itemId) {
+    window.smToggleItem = function (itemId) {
         const state = smCacheGet();
         const idx = state.items.indexOf(itemId);
         if (idx === -1) state.items.push(itemId); else state.items.splice(idx, 1);
         smApplyHidden(state.items);
         smCacheSet(state);
-        await smBinSave(state);
+        smBinSave(state); // fire-and-forget
     };
 
-    window.smToggleCat = async function (catId) {
+    window.smToggleCat = function (catId) {
         const state = smCacheGet();
         const idx = state.cats.indexOf(catId);
         if (idx === -1) state.cats.push(catId); else state.cats.splice(idx, 1);
         smApplyHiddenCats(state.cats);
         smCacheSet(state);
-        await smBinSave(state);
+        smBinSave(state); // fire-and-forget
     };
 
     window.toggleAdminMode = function () {
