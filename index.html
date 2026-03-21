@@ -2669,23 +2669,58 @@
     };
 
     // ═══════════════════════════════════════════════════════════════
-    // SM ADMIN MODE — password + visibility management
+    // SM ADMIN MODE — password + visibility (JSONBin-backed)
     // ═══════════════════════════════════════════════════════════════
-    const SM_STORAGE_KEY  = 'sm_hidden_items';
-    const SM_STORAGE_CATS = 'sm_hidden_cats';
-    const SM_PASSWORD     = 'open03964';
+    const SM_PASSWORD   = 'open03964';
+    const SM_BIN_ID     = '69bf0450aa77b81da90734ee';
+    const SM_MASTER_KEY = '$2a$10$paJ09U8vmLg2IEfitC1y2O7PlniWvQv2OwIFUESKS6NwG21YS8Xyi';
+    const SM_BIN_URL    = 'https://api.jsonbin.io/v3/b/' + SM_BIN_ID;
+    const SM_CACHE_KEY  = 'sm_vis_cache';
 
-    // ── Mapping: nav-item-id → welcome-screen-button-id ──────────
     const SM_WELCOME_MAP = {
         'nav-item-museum': 'welcome-btn-museum',
         'nav-item-school': 'welcome-btn-school',
         'nav-item-board':  'welcome-btn-board'
     };
 
-    function smLoadHidden()     { try { return JSON.parse(localStorage.getItem(SM_STORAGE_KEY)  || '[]'); } catch { return []; } }
-    function smLoadHiddenCats() { try { return JSON.parse(localStorage.getItem(SM_STORAGE_CATS) || '[]'); } catch { return []; } }
+    // ── Cache helpers ─────────────────────────────────────────────
+    function smCacheGet() {
+        try { return JSON.parse(localStorage.getItem(SM_CACHE_KEY) || 'null') || { items: [], cats: [] }; }
+        catch { return { items: [], cats: [] }; }
+    }
+    function smCacheSet(data) {
+        try { localStorage.setItem(SM_CACHE_KEY, JSON.stringify(data)); } catch {}
+    }
 
-    // Apply hidden state to all nav-items (and sync welcome buttons)
+    // ── JSONBin read ──────────────────────────────────────────────
+    async function smBinLoad() {
+        try {
+            const res = await fetch(SM_BIN_URL + '/latest', {
+                headers: { 'X-Master-Key': SM_MASTER_KEY }
+            });
+            if (!res.ok) throw new Error(res.status);
+            const json = await res.json();
+            return json.record || { items: [], cats: [] };
+        } catch (err) {
+            console.warn('[SM] JSONBin read failed:', err.message);
+            return null;
+        }
+    }
+
+    // ── JSONBin write ─────────────────────────────────────────────
+    async function smBinSave(data) {
+        try {
+            await fetch(SM_BIN_URL, {
+                method:  'PUT',
+                headers: { 'Content-Type': 'application/json', 'X-Master-Key': SM_MASTER_KEY },
+                body:    JSON.stringify(data)
+            });
+        } catch (err) {
+            console.warn('[SM] JSONBin write failed:', err.message);
+        }
+    }
+
+    // ── Apply to DOM ──────────────────────────────────────────────
     function smApplyHidden(hiddenIds) {
         document.querySelectorAll('.nav-item[id]').forEach(item => {
             const isHidden = hiddenIds.includes(item.id);
@@ -2695,17 +2730,11 @@
                 btn.classList.toggle('visible', !isHidden);
                 btn.innerHTML = isHidden ? '<i class="fa-solid fa-eye-slash"></i>' : '<i class="fa-solid fa-eye"></i>';
             }
-            // Sync matching welcome screen button
-            const welcomeId = SM_WELCOME_MAP[item.id];
-            if (welcomeId) {
-                const wb = document.getElementById(welcomeId);
-                if (wb) wb.style.display = isHidden ? 'none' : '';
-            }
+            const wid = SM_WELCOME_MAP[item.id];
+            if (wid) { const wb = document.getElementById(wid); if (wb) wb.style.display = isHidden ? 'none' : ''; }
         });
-        try { localStorage.setItem(SM_STORAGE_KEY, JSON.stringify(hiddenIds)); } catch {}
     }
 
-    // Apply hidden state to category label rows
     function smApplyHiddenCats(hiddenCats) {
         document.querySelectorAll('.nav-cat-row[id]').forEach(row => {
             const isHidden = hiddenCats.includes(row.id);
@@ -2716,39 +2745,41 @@
                 btn.innerHTML = isHidden ? '<i class="fa-solid fa-eye-slash"></i>' : '<i class="fa-solid fa-eye"></i>';
             }
         });
-        try { localStorage.setItem(SM_STORAGE_CATS, JSON.stringify(hiddenCats)); } catch {}
     }
 
-    window.smToggleItem = function (itemId) {
-        const hidden = smLoadHidden();
-        const idx = hidden.indexOf(itemId);
-        if (idx === -1) hidden.push(itemId); else hidden.splice(idx, 1);
-        smApplyHidden(hidden);
+    function smApplyState(state) {
+        smApplyHidden(state.items || []);
+        smApplyHiddenCats(state.cats || []);
+    }
+
+    // ── Toggle + save ─────────────────────────────────────────────
+    window.smToggleItem = async function (itemId) {
+        const state = smCacheGet();
+        const idx = state.items.indexOf(itemId);
+        if (idx === -1) state.items.push(itemId); else state.items.splice(idx, 1);
+        smApplyHidden(state.items);
+        smCacheSet(state);
+        await smBinSave(state);
     };
 
-    window.smToggleCat = function (catId) {
-        const hidden = smLoadHiddenCats();
-        const idx = hidden.indexOf(catId);
-        if (idx === -1) hidden.push(catId); else hidden.splice(idx, 1);
-        smApplyHiddenCats(hidden);
+    window.smToggleCat = async function (catId) {
+        const state = smCacheGet();
+        const idx = state.cats.indexOf(catId);
+        if (idx === -1) state.cats.push(catId); else state.cats.splice(idx, 1);
+        smApplyHiddenCats(state.cats);
+        smCacheSet(state);
+        await smBinSave(state);
     };
 
     window.toggleAdminMode = function () {
         const isActive = document.body.classList.toggle('admin-mode');
         document.getElementById('sm-admin-btn').classList.toggle('active', isActive);
-        if (!isActive) {
-            smApplyHidden(smLoadHidden());
-            smApplyHiddenCats(smLoadHiddenCats());
-        }
+        if (!isActive) smApplyState(smCacheGet());
     };
 
-    // ── Password Modal ────────────────────────────────────────────
+    // ── Password modal ────────────────────────────────────────────
     window.smPwdOpen = function () {
-        // אם כבר במצב ניהול — כיבוי ישיר ללא סיסמה
-        if (document.body.classList.contains('admin-mode')) {
-            toggleAdminMode();
-            return;
-        }
+        if (document.body.classList.contains('admin-mode')) { toggleAdminMode(); return; }
         const overlay = document.getElementById('sm-pwd-overlay');
         const input   = document.getElementById('sm-pwd-input');
         overlay.classList.add('open');
@@ -2766,29 +2797,28 @@
         const input = document.getElementById('sm-pwd-input');
         const err   = document.getElementById('sm-pwd-err');
         if (input.value === SM_PASSWORD) {
-            smPwdClose();
-            toggleAdminMode();
+            smPwdClose(); toggleAdminMode();
         } else {
             err.textContent = 'סיסמה שגויה — נסה שוב';
             input.classList.remove('error');
-            void input.offsetWidth; // reflow for animation restart
+            void input.offsetWidth;
             input.classList.add('error');
             input.value = '';
             setTimeout(() => input.classList.remove('error'), 500);
         }
     };
 
-    // Close password modal on overlay click
     document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('sm-pwd-overlay').addEventListener('click', e => {
             if (e.target === document.getElementById('sm-pwd-overlay')) smPwdClose();
         });
     });
 
-    // Initial apply on page load
-    document.addEventListener('DOMContentLoaded', () => {
-        smApplyHidden(smLoadHidden());
-        smApplyHiddenCats(smLoadHiddenCats());
+    // ── טעינה בפתיחת הדף: cache מיידי + JSONBin טרי ─────────────
+    document.addEventListener('DOMContentLoaded', async () => {
+        smApplyState(smCacheGet());               // מיידי
+        const fresh = await smBinLoad();          // עדכון מ-JSONBin
+        if (fresh) { smCacheSet(fresh); smApplyState(fresh); }
     });
     </script>
 <script>
