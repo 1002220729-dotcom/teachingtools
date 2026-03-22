@@ -1670,7 +1670,7 @@
             task.type==='mandatory'?'⭐ משימת חובה':task.type==='optional'?'🌟 משימת רשות':'🎯 משימת בחירה'
         }</span>
         <h2 style="margin:20px 0;color:var(--text-dark);">${task.title}</h2>
-        <p style="color:var(--text-light);line-height:1.8;margin-bottom:25px;">${task.description}</p>
+        <p style="color:var(--text-light);line-height:1.8;margin-bottom:25px;white-space:pre-wrap;">${task.description}</p>
         ${task.link ? `<a href="${task.link}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:12px 20px;border-radius:10px;text-decoration:none;font-weight:600;margin-bottom:20px;box-shadow:0 4px 12px rgba(102,126,234,0.3);">🔗 פתח חומר לימוד ↗</a>` : ''}
         ${(task.links||[]).filter(l=>l.url).map((l,i) => `<a href="${l.url}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:8px;background:rgba(102,126,234,0.1);color:#667eea;padding:8px 16px;border-radius:8px;text-decoration:none;font-weight:600;margin:4px 8px 4px 0;border:2px solid rgba(102,126,234,0.3);">🔗 ${l.title||`קישור ${i+1}`}</a>`).join('')}
         `;
@@ -1880,7 +1880,7 @@
         <h2 style="color:var(--board-primary);margin-bottom:10px;">✍️ כתיבת תשובה דיגיטלית</h2>
         <h3 style="color:var(--text-dark);margin-bottom:15px;">${task.title}</h3>
         <div style="background:#f5f7fa;padding:15px;border-radius:10px;margin-bottom:${linksHtml ? '12px' : '20px'};border-right:4px solid var(--board-primary);">
-            <p style="color:var(--text-dark);line-height:1.6;margin:0;">${task.description}</p>
+            <p style="color:var(--text-dark);line-height:1.6;margin:0;white-space:pre-wrap;">${task.description}</p>
         </div>
         ${linksHtml ? `<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;">${linksHtml}</div>` : ''}
         ${selectedChoiceHtml}
