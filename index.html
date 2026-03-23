@@ -1064,14 +1064,18 @@
 
         <div class="iframe-container">
             <div class="welcome-screen" id="welcomeScreen">
-                <!-- לוגו מנהיגים למאחריות -->
-                <img src="logo.png" alt="מנהיגים למאחריות – הכלה והשתלבות יסודי"
-                     style="max-width: 560px; width: 88%; margin-bottom: 10px;
-                            border-radius: 10px;
-                            filter: drop-shadow(0 8px 48px rgba(86,224,255,0.22))
-                                    drop-shadow(0 2px 18px rgba(0,0,0,0.55));
-                            animation: float 3s ease-in-out infinite;">
-                <p class="welcome-subtitle" style="margin-top:8px;">
+                <!-- לוגו פינה — מתמזג עם הרקע -->
+                <img src="logo.png" alt="מנהיגים למאחריות"
+                     style="position:absolute; top:28px; right:32px;
+                            width:260px; height:auto;
+                            mix-blend-mode: screen;
+                            opacity: 0.92;
+                            pointer-events:none;
+                            z-index:3;">
+
+                <i class="fa-solid fa-compass welcome-icon"></i>
+                <h1 class="welcome-title">כלים דיגיטליים להוראה הכלה והשתלבות</h1>
+                <p class="welcome-subtitle">
                     בחר כלי מהתפריט הימני כדי להתחיל.
                 </p>
                 <!-- כרטיסי כלים מהירים -->
