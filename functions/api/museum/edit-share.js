@@ -4,7 +4,7 @@
  * Returns: { ok: true, id: "edt_XXXXXXXX" }
  *
  * KV binding required: MUSEUM_KV
- * TTL: 90 days
+ * TTL: 365 days
  */
 export async function onRequestPost(context) {
   // Handle CORS preflight (#13)
