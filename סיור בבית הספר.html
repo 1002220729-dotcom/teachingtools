@@ -764,7 +764,6 @@ var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length
 
     // טעינת מסלול לפי ?tour=ID מהשרת
     if (tourId) {
-      // הצג מסך טעינה מיידית
       document.addEventListener('DOMContentLoaded', () => {
         const overlay = document.getElementById('tour-loading-overlay');
         if (overlay) overlay.style.display = 'flex';
@@ -773,16 +772,30 @@ var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length
       window.addEventListener('DOMContentLoaded', async () => {
         const overlay = document.getElementById('tour-loading-overlay');
         try {
-          const res = await fetch(APPS_SCRIPT_URL + '?id=' + tourId);
-          const json = await res.json();
-          if (json.status === 'success' && json.stations) {
-            stations = json.stations;
-            isCircularRoute = !!json.isCircular;
+          let tourData;
+
+          if (tourId.startsWith('mus_')) {
+            // קישור חדש — טעינה מ-Cloudflare KV
+            const res  = await fetch(`/api/museum/${tourId}`);
+            const json = await res.json();
+            if (json.ok && json.museumData) tourData = json.museumData;
+          } else {
+            // קישור ישן — טעינה מ-Apps Script (תאימות לאחור)
+            const res  = await fetch(APPS_SCRIPT_URL + '?id=' + tourId);
+            const json = await res.json();
+            if (json.status === 'success' && json.stations) {
+              tourData = { stations: json.stations, isCircular: json.isCircular, title: json.routeName };
+            }
+          }
+
+          if (tourData) {
+            stations      = tourData.stations || [];
+            isCircularRoute = !!tourData.isCircular;
             const titleEl = document.querySelector('.tour-title');
-            if (json.routeName && titleEl) titleEl.textContent = json.routeName;
+            if (tourData.title && titleEl) titleEl.textContent = tourData.title;
             if (typeof initTour === 'function') initTour();
           } else {
-            console.error('לא נמצא מסלול:', json);
+            console.error('לא נמצא מסלול עבור:', tourId);
           }
         } catch (e) {
           console.error('שגיאה בטעינת מסלול:', e);
@@ -1137,57 +1150,55 @@ var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length
           return;
         }
 
-        shareTourBtn.textContent = '⏳ שומר...';
-        shareTourBtn.disabled = true;
+        shareTourBtn.textContent = '⏳ מכין קישור...';
+        shareTourBtn.disabled    = true;
 
         try {
-          const payload = {
-            action: 'save_tour',
-            routeName: document.querySelector('.tour-title').textContent.trim(),
-            stations: stations.map(s => ({ id: s.id, name: s.name, desc: s.desc, link: s.link || '', type: s.type })),
-            isCircular: isCircularRoute
+          const baseUrl  = window.location.href.split('?')[0];
+          const tourData = {
+            stations:   stations.map(s => ({ id: s.id, name: s.name, desc: s.desc, link: s.link || '', type: s.type })),
+            isCircular: isCircularRoute,
+            title:      document.querySelector('.tour-title').textContent.trim()
           };
 
-          const res = await fetch(APPS_SCRIPT_URL, {
-            method: 'POST',
-            body: JSON.stringify(payload)
-          });
-          const json = await res.json();
+          // שלב 1: נסה LZ-string (נצחי, ללא שרת)
+          const compressed = LZString.compressToEncodedURIComponent(JSON.stringify(tourData));
+          let shareUrl     = `${baseUrl}?tour=${compressed}`;
 
-          if (json.status === 'success') {
-            const baseUrl = window.location.href.split('?')[0];
-            let shareUrl = `${baseUrl}?tour=${json.id}`;
-
-            // נסה לקצר דרך Cloudflare Function
-            try {
-              const shortenRes = await fetch(`/api/shorten?url=${encodeURIComponent(shareUrl)}`, {
-                signal: AbortSignal.timeout(6000)
-              });
-              if (shortenRes.ok) {
-                const shortenText = await shortenRes.text();
-                try {
-                  const shortenData = JSON.parse(shortenText);
-                  if (shortenData && shortenData.ok && shortenData.shortUrl) {
-                    shareUrl = shortenData.shortUrl;
-                  }
-                } catch(e) { /* keep original */ }
-              }
-            } catch(e) { /* keep original */ }
-
-            try {
-              await navigator.clipboard.writeText(shareUrl);
-              alert('✅ קישור הועתק ללוח!\n\n' + shareUrl + '\n\nהקישור תקף לכל זמן — גם אם תיצור מסלול חדש.');
-            } catch (e) {
-              prompt('העתק את הקישור הזה ושלח לתלמידים:', shareUrl);
-            }
-          } else {
-            alert('שגיאה בשמירה: ' + (json.message || 'נסה שוב'));
+          // שלב 2: קישור ארוך מדי — שמור ב-Cloudflare KV (365 יום)
+          if (shareUrl.length > 6000) {
+            const res  = await fetch('/api/museum/share', {
+              method:  'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body:    JSON.stringify({ museumData: tourData })
+            });
+            const json = await res.json();
+            if (json.ok && json.id) shareUrl = `${baseUrl}?tour=${json.id}`;
           }
+
+          // שלב 3: נסה לקצר ב-is.gd
+          try {
+            const shortenRes = await fetch(`/api/shorten?url=${encodeURIComponent(shareUrl)}`, {
+              signal: AbortSignal.timeout(6000)
+            });
+            if (shortenRes.ok) {
+              const shortenData = await shortenRes.json();
+              if (shortenData?.ok && shortenData.shortUrl) shareUrl = shortenData.shortUrl;
+            }
+          } catch(e) { /* המשך עם הקישור הנוכחי */ }
+
+          try {
+            await navigator.clipboard.writeText(shareUrl);
+            alert('✅ קישור הועתק ללוח!\n\n' + shareUrl);
+          } catch (e) {
+            prompt('העתק את הקישור הזה ושלח לתלמידים:', shareUrl);
+          }
+
         } catch (err) {
           alert('שגיאת חיבור: ' + err.message);
         } finally {
           shareTourBtn.textContent = '🔗 קישור לסיור';
-          shareTourBtn.disabled = false;
+          shareTourBtn.disabled    = false;
         }
       });
     }
