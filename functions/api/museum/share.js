@@ -4,7 +4,7 @@
  * Returns: { ok: true, id: "mus_XXXXXXXX" }
  *
  * KV binding required: MUSEUM_KV
- * TTL: 90 days (7,776,000 seconds)
+ * TTL: 365 days (7,776,000 seconds)
  */
 export async function onRequestPost(context) {
   // Handle CORS preflight (#13)
