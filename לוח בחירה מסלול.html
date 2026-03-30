@@ -1103,11 +1103,31 @@
         currentShareShortUrl = '';
         currentShareUrl = longUrl;
 
+        // קישור ארוך מדי — שמור ב-Cloudflare KV (365 יום)
+        if (longUrl.length > 6000) {
+            try {
+                const game = currentLoadedGame || buildCurrentGameJSON();
+                const res  = await fetch('/api/museum/share', {
+                    method:  'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body:    JSON.stringify({ museumData: game })
+                });
+                const json = await res.json();
+                if (json.ok && json.id) {
+                    const base   = window.location.href.split('#')[0].split('?')[0];
+                    const kvUrl  = base + '?game=' + json.id;
+                    currentShareUrl     = kvUrl;
+                    currentShareLongUrl = kvUrl;
+                    return { url: kvUrl, shortened: false };
+                }
+            } catch(e) { /* המשך עם הקישור הארוך */ }
+        }
+
         if (getAutoShortenEnabled()) {
             const shortUrl = await shortenUrlIfNeeded(longUrl);
             if (shortUrl && shortUrl !== longUrl) {
                 currentShareShortUrl = shortUrl;
-                currentShareUrl = shortUrl;
+                currentShareUrl      = shortUrl;
                 return { url: shortUrl, shortened: true };
             }
         }
@@ -2122,26 +2142,60 @@
         const compressed   = searchParams.get('game') || hashParam;
 
         if (compressed) {
-            try {
-                const json = LZString.decompressFromEncodedURIComponent(compressed);
-                const game = JSON.parse(json);
-                currentLoadedGame = game;
-                isSharedMode = true;
-                updateSharedModeUI();
-                loadGameFromData(game);
-                showMode('board');
-                char3D_ensureInit();
-                startGame();
-            } catch(e) {
-                console.error('Error loading from URL:', e);
-                alert('⚠️ שגיאה בטעינת הלוח מהקישור. פותח את העורך.');
-                isSharedMode = false;
-                updateSharedModeUI();
-                showMode('editor');
-                setupEditorDragAndDrop();
-                loadAutoSave();
-                document.getElementById('gameTitle').addEventListener('input', autoSave);
-                document.getElementById('timeLimit').addEventListener('change', autoSave);
+            // קישור KV (mus_...) — טעינה מהשרת
+            if (compressed.startsWith('mus_')) {
+                fetch(`/api/museum/${compressed}`)
+                    .then(r => r.json())
+                    .then(json => {
+                        if (json.ok && json.museumData) {
+                            const game = json.museumData;
+                            currentLoadedGame = game;
+                            isSharedMode = true;
+                            updateSharedModeUI();
+                            loadGameFromData(game);
+                            showMode('board');
+                            char3D_ensureInit();
+                            startGame();
+                        } else {
+                            console.error('לא נמצא לוח:', compressed);
+                            alert('⚠️ שגיאה בטעינת הלוח מהקישור. פותח את העורך.');
+                            isSharedMode = false;
+                            updateSharedModeUI();
+                            showMode('editor');
+                            setupEditorDragAndDrop();
+                            loadAutoSave();
+                        }
+                    })
+                    .catch(e => {
+                        console.error('Error loading from KV:', e);
+                        alert('⚠️ שגיאה בטעינת הלוח. פותח את העורך.');
+                        showMode('editor');
+                        setupEditorDragAndDrop();
+                        loadAutoSave();
+                    });
+            } else {
+                // קישור LZ-string — פענוח מקומי
+                try {
+                    const json = LZString.decompressFromEncodedURIComponent(compressed);
+                    const game = JSON.parse(json);
+                    currentLoadedGame = game;
+                    isSharedMode = true;
+                    updateSharedModeUI();
+                    loadGameFromData(game);
+                    showMode('board');
+                    char3D_ensureInit();
+                    startGame();
+                } catch(e) {
+                    console.error('Error loading from URL:', e);
+                    alert('⚠️ שגיאה בטעינת הלוח מהקישור. פותח את העורך.');
+                    isSharedMode = false;
+                    updateSharedModeUI();
+                    showMode('editor');
+                    setupEditorDragAndDrop();
+                    loadAutoSave();
+                    document.getElementById('gameTitle').addEventListener('input', autoSave);
+                    document.getElementById('timeLimit').addEventListener('change', autoSave);
+                }
             }
         } else {
             isSharedMode = false;
