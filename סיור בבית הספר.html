@@ -249,9 +249,10 @@
     .station {
       position: absolute;
       transform: translate(-50%, -50%);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+      /* גודל הדיב = גודל הנקודה בלבד, כך translate ממרכז את הנקודה עצמה על המסלול */
+      width: 18px;
+      height: 18px;
+      overflow: visible;
       pointer-events: auto; 
       cursor: pointer;
       z-index: 10;
@@ -263,14 +264,40 @@
     .station:hover .station-dot { transform: scale(1.2); }
 
     .station-label {
-      margin-top: 16px; padding: 6px 12px; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.5); border-radius: 12px; box-shadow: 0 4px 12px rgba(30, 58, 138, 0.15); font-size: 13px; font-weight: bold; color: var(--color-primary-dark); text-align: center; white-space: nowrap; z-index: 1; pointer-events: none; transition: all 0.3s ease;
+      /* כיתוב תלוי מתחת לנקודה — לא משפיע על מיקום הנקודה */
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 5px 11px;
+      background: rgba(255, 255, 255, 0.88);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(30, 58, 138, 0.15);
+      font-size: 13px;
+      font-weight: bold;
+      color: var(--color-primary-dark);
+      text-align: center;
+      white-space: nowrap;
+      z-index: 1;
+      pointer-events: none;
+      transition: background 0.3s ease, color 0.3s ease;
     }
 
+    .station.start {
+      width: 20px;
+      height: 24px;
+    }
     .station.start .station-dot {
       width: 20px; height: 24px; border-radius: 2px; background: linear-gradient(180deg, #f3f4f6, #e5e7eb); border: 2px solid #6b7280; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15), inset 0 2px 4px rgba(255, 255, 255, 0.8); position: relative;
     }
     .station.start .station-dot::before { content: "🚪"; position: absolute; top: -4px; left: 50%; transform: translateX(-50%); font-size: 14px; line-height: 1; }
 
+    .station.end {
+      width: 24px;
+      height: 22px;
+    }
     .station.end .station-dot {
       width: 24px; height: 22px; border-radius: 0 0 4px 4px; background: linear-gradient(145deg, #fef3c7, #fde68a); border: 2px solid #d97706; box-shadow: 0 6px 12px rgba(245, 158, 11, 0.3), inset 0 2px 4px rgba(255, 255, 255, 0.9); position: relative;
     }
@@ -280,7 +307,7 @@
     @keyframes house-bounce { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.15); } }
     .station.end .station-dot { animation: house-bounce 2s ease-in-out infinite; }
 
-    .station.start .station-label, .station.end .station-label { font-weight: 700; font-size: 11px; margin-top: 5px; }
+    .station.start .station-label, .station.end .station-label { font-weight: 700; font-size: 11px; }
 
     .runner {
       position: absolute;
@@ -429,7 +456,121 @@
       margin-top: 4px;
       flex-shrink: 0;
     }
-  
+
+    /* ===== תחנת בחירה ===== */
+    .station.choice {
+      width: 28px;
+      height: 28px;
+    }
+    .station.choice .station-dot {
+      width: 28px; height: 28px;
+      background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+      border-radius: 6px;
+      border: 3px solid white;
+      box-shadow: 0 3px 10px rgba(109,40,217,0.4);
+      display: flex; align-items: center; justify-content: center;
+      position: relative;
+    }
+    .station.choice .station-dot::before {
+      content: "✦";
+      color: white;
+      font-size: 13px;
+      font-weight: bold;
+      position: absolute;
+    }
+    .station.choice .station-label {
+      background: rgba(139,92,246,0.9);
+      color: white;
+      border-color: #6d28d9;
+    }
+    .station.choice.active .station-dot { background: linear-gradient(135deg,#7c3aed,#5b21b6); }
+    .station.choice.active .station-label { background: #5b21b6; }
+
+    .station.branch-sub {
+      width: 14px;
+      height: 14px;
+    }
+    .station.branch-sub .station-dot {
+      width: 14px; height: 14px;
+      background: #8b5cf6;
+      border: 2px solid white;
+    }
+    .station.branch-sub .station-label {
+      font-size: 11px; padding: 3px 8px;
+      background: rgba(139,92,246,0.85);
+      color: white; border-color: #8b5cf6;
+    }
+    .station.branch-sub.active .station-label { background: #6d28d9; }
+
+    .map-and-choice-row {
+      display: flex;
+      flex-direction: row-reverse; /* מפה מימין, בחירה משמאל */
+      gap: 14px;
+      align-items: flex-start;
+    }
+    .map-and-choice-row .map-container {
+      flex: 1;
+      min-width: 0;
+    }
+    .choice-panel {
+      width: 220px;
+      flex-shrink: 0;
+      background: rgba(139,92,246,0.08);
+      border: 2px solid rgba(139,92,246,0.35);
+      border-radius: 12px; padding: 14px;
+      display: flex;
+      flex-direction: column;
+      visibility: hidden;
+      opacity: 0;
+      transition: opacity 0.25s ease, visibility 0.25s ease;
+      align-self: stretch;
+    }
+    .choice-panel.active { visibility: visible; opacity: 1; }
+    @media (max-width: 600px) {
+      .map-and-choice-row { flex-direction: column; }
+      .choice-panel { width: 100%; }
+    }
+    .choice-panel h4 { margin: 0 0 10px; color: #6d28d9; font-size: 15px; }
+    .choice-options { display: flex; flex-direction: column; gap: 8px; flex: 1; }
+    .choice-option-btn {
+      padding: 10px 16px; background: white;
+      border: 2px solid #8b5cf6; border-radius: 8px;
+      cursor: pointer; font-size: 14px; font-weight: bold;
+      color: #6d28d9; text-align: right;
+      transition: all 0.2s;
+    }
+    .choice-option-btn:hover {
+      background: #f5f3ff; border-color: #6d28d9;
+      transform: translateY(-1px); box-shadow: 0 3px 8px rgba(109,40,217,0.2);
+    }
+    .choice-option-btn.selected { background: #8b5cf6; color: white; border-color: #6d28d9; }
+
+    .sub-stations-editor {
+      margin-top: 10px; padding: 12px;
+      background: #f5f3ff; border: 1px dashed #8b5cf6;
+      border-radius: 8px; display: none;
+    }
+    .sub-stations-editor.visible { display: block; }
+    .sub-stations-editor h5 { margin: 0 0 8px; color: #6d28d9; font-size: 13px; }
+    .sub-station-row {
+      display: flex; flex-direction: column; gap: 0;
+      padding: 6px 8px; background: white; border-radius: 6px;
+      border: 1px solid #c4b5fd; margin-bottom: 8px;
+    }
+    .sub-station-row-top { display: flex; align-items: center; gap: 6px; }
+    .sub-station-row .sub-inp-name { flex: 1; border: none; font-size: 13px; font-weight: bold; color: #374151; background: transparent; padding: 2px 4px; }
+    .sub-station-row-bottom { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; padding-top: 6px; border-top: 1px dashed #e9d5ff; }
+    .sub-station-row .sub-inp-desc { width: 100%; border: none; font-size: 13px; color: #6b7280; background: #f9f7ff; padding: 5px 8px; border-radius: 5px; }
+    .sub-station-row .sub-inp-link { width: 100%; border: none; font-size: 12px; color: #3b82f6; background: #f0f9ff; padding: 4px 8px; border-radius: 5px; direction: ltr; text-align: left; }
+    .sub-station-row .sub-link-label { font-size: 11px; color: #9ca3af; white-space: nowrap; margin-bottom: 1px; }
+    .sub-station-row input:focus { outline: none; box-shadow: 0 0 0 2px rgba(139,92,246,0.2); }
+    .btn-remove-sub { background: #fee2e2; border: none; color: #b91c1c; border-radius: 4px; cursor: pointer; padding: 2px 7px; font-size: 12px; }
+    .btn-add-sub { background: #8b5cf6; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; margin-top: 4px; }
+
+    .branch-path-outline { fill: none; stroke: #ddd6fe; stroke-width: 30; stroke-linecap: round; stroke-linejoin: round; opacity:0.6; }
+    .branch-path-bg      { fill: none; stroke: #7c3aed; stroke-width: 20; stroke-linecap: round; stroke-linejoin: round; }
+    .branch-path-line    { fill: none; stroke: #c4b5fd; stroke-width: 2.5; stroke-dasharray: 14,9; stroke-linecap: round; }
+
   /* Loading overlay for ?tour= */
   #tour-loading-overlay {
     position: fixed; inset: 0;
@@ -506,10 +647,18 @@ var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length
             <option value="normal">רגילה (נקודה)</option>
             <option value="start">התחלה / יציאה (דלת)</option>
             <option value="end" id="option-end">סיום (בית)</option>
+            <option value="choice">בחירה (צומת מסלולים) ✦</option>
           </select>
           <div class="circular-end-notice" id="circular-end-notice">
             🔄 <strong>מסלול מעגלי פעיל:</strong> תחנת הסיום היא תחנת היציאה עצמה — הרץ יחזור אליה אוטומטית. לא ניתן להוסיף תחנת &quot;סיום&quot; נפרדת.
           </div>
+        </div>
+
+        <div id="sub-stations-editor" class="sub-stations-editor">
+          <h5>✦ תחנות בחירה — כל תחנה היא נתיב נפרד מקביל:</h5>
+          <div id="sub-station-list"></div>
+          <button type="button" class="btn-add-sub" onclick="addSubStationRow()">➕ הוסף נתיב</button>
+          <p style="font-size:11px;color:#6b7280;margin:6px 0 0;">המסלול יתפצל בתחנה זו ויתכנס חזרה אחריה.</p>
         </div>
         <div class="form-actions">
           <button id="add-station-btn" class="btn-add">➕ הוסף למסלול</button>
@@ -541,13 +690,15 @@ var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length
       <button id="next-btn" class="nav-btn">&larr; תחנה הבאה</button>
     </div>
 
-    <!-- מפה -->
+    <!-- מפה + פאנל בחירה בצד -->
+    <div class="map-and-choice-row">
     <div class="map-container" id="map-container">
       <div class="tour-background-band"></div>
       <svg class="tour-path-svg" viewBox="0 0 1000 400" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
         <path id="main-road-outline" class="road-outline" d="" />
         <path id="main-road" class="road-bg" d="" />
         <path id="main-road-line" class="road-line" d="" />
+        <g id="branch-paths-group"></g>
       </svg>
       <div class="interactive-layer" id="stations-layer">
         <div id="runner" class="runner">
@@ -693,7 +844,14 @@ var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length
           </svg>
         </div>
       </div>
+    </div><!-- /map-container -->
+
+    <div id="choice-panel" class="choice-panel">
+      <h4>⑂ בחר את הנתיב שלך:</h4>
+      <div id="choice-options-list" class="choice-options"></div>
     </div>
+
+    </div><!-- /map-and-choice-row -->
 
     <!-- אזור הצגת פרטי התחנה -->
     <div class="station-info-card" id="station-info-card">
@@ -730,6 +888,12 @@ var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length
       { id: Date.now() + 3, name: "אולם כנסים", desc: "כאן מתקיימים טקסים ומפגשים שכבתיים.", type: "normal" },
       { id: Date.now() + 4, name: "ספרייה", desc: "לב הידע של בית הספר! מקום שקט לקריאה וחקירת עולמות.", type: "normal" },
       { id: Date.now() + 5, name: "חדר מדע", desc: "מעבדה משוכללת בה מבצעים ניסויים וחוקרים.", type: "normal" },
+      { id: Date.now() + 55, name: "בחר את הנתיב שלך", desc: "כאן המסלול מתפצל — בחר את התחום שמעניין אותך.", type: "choice", subStations: [
+          { name: "אמנות", desc: "חדר אומנות ויצירה" },
+          { name: "טכנולוגיה", desc: "מעבדת מחשבים ורובוטיקה" },
+          { name: "טבע", desc: "גינת בית הספר והחממה" }
+        ]
+      },
       { id: Date.now() + 6, name: "תחנת סיום", desc: "הגעת לסוף המסלול! אל תשכח לשמור את מחברת הסיור.", type: "end" }
     ];
 
@@ -829,7 +993,9 @@ var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length
     let pathElement;
     let pathLength;
     let animationFrameId;
-    let currentDistance = 0; 
+    let currentDistance = 0;
+    let visitingSubStation = null; // { choiceIndex, subIndex } כאשר מבקרים בנתיב בחירה
+    let subVisitPos = null; // { leftPct, topPct } מיקום מדויק של הנתיב (נשמר בעת כניסה)
 
     const prevBtn = document.getElementById('prev-btn');
     const nextBtn = document.getElementById('next-btn');
@@ -928,6 +1094,65 @@ var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length
     }
 
 
+
+    // =========================================
+    // ציור נתיבי ענף לתחנות בחירה
+    // =========================================
+    function drawBranchPaths() {
+      const group = document.getElementById('branch-paths-group');
+      if (!group) return;
+      group.innerHTML = '';
+
+      stations.forEach((station, idx) => {
+        if (station.type !== 'choice' || !station.subStations || station.subStations.length < 2) return;
+
+        const dist0   = getDistanceForStation(idx);
+        const nextIdx = idx + 1 < stations.length ? idx + 1 : idx;
+        const dist1   = getDistanceForStation(nextIdx);
+
+        const ptFork  = pathElement.getPointAtLength(dist0);
+        const ptMerge = pathElement.getPointAtLength(dist1);
+
+        // כיוון המסלול ווקטור ניצב
+        const dx = ptMerge.x - ptFork.x;
+        const dy = ptMerge.y - ptFork.y;
+        const segLen = Math.sqrt(dx*dx + dy*dy) || 1;
+        const perpX  = -dy / segLen;   // ניצב
+        const perpY  =  dx / segLen;
+        const fwdX   =  dx / segLen;   // קדימה
+        const fwdY   =  dy / segLen;
+
+        const count      = station.subStations.length;
+        const laneSpread = Math.max(70, 75 * count / 2); // אחיד עם חישוב הנקודות
+
+        station.subStations.forEach((sub, si) => {
+          const t       = count === 1 ? 0 : (si / (count - 1) - 0.5) * 2; // -1..+1
+          const perpOff = t * laneSpread;
+
+          // נקודות שליטה: cp1 יוצאת מהצומת ניצבית, cp2 מגיעה לכינוס ניצבית
+          // כך הקו נשאר מרווח לאורך כל המסלול ולא מתכנס באמצע
+          const exitLen  = segLen * 0.52;  // ← הוגדל: יציאה רחבה יותר מהצומת
+          const enterLen = segLen * 0.52;  // ← הוגדל: כניסה רחבה לכינוס
+
+          const cp1x = ptFork.x  + fwdX * exitLen  + perpX * perpOff;
+          const cp1y = ptFork.y  + fwdY * exitLen  + perpY * perpOff;
+          const cp2x = ptMerge.x - fwdX * enterLen + perpX * perpOff;
+          const cp2y = ptMerge.y - fwdY * enterLen + perpY * perpOff;
+
+          const d = `M ${ptFork.x.toFixed(1)},${ptFork.y.toFixed(1)} C ${cp1x.toFixed(1)},${cp1y.toFixed(1)} ${cp2x.toFixed(1)},${cp2y.toFixed(1)} ${ptMerge.x.toFixed(1)},${ptMerge.y.toFixed(1)}`;
+
+          ['branch-path-outline','branch-path-bg','branch-path-line'].forEach(cls => {
+            const el = document.createElementNS('http://www.w3.org/2000/svg','path');
+            el.setAttribute('class', cls);
+            el.setAttribute('d', d);
+            el.dataset.choiceIdx = idx;
+            el.dataset.subIdx = si;
+            group.appendChild(el);
+          });
+        });
+      });
+    }
+
     // =========================================
     // עדכון UI בהתאם למצב מסלול מעגלי
     // =========================================
@@ -950,6 +1175,7 @@ var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length
     // =========================================
     function initTour() {
       generatePathGeometry(); // בונים מחדש את המסלול קודם כל!
+      drawBranchPaths();
 
       const existingStations = stationsLayer.querySelectorAll('.station');
       existingStations.forEach(el => el.remove());
@@ -972,6 +1198,9 @@ var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length
         const leftPercent = (point.x / 1000) * 100;
         const topPercent = (point.y / 400) * 100; // תוקן ל-400
 
+        // תחנת בחירה — לא מציגים נקודה/כיתוב על המפה (הנתיבים עצמם הם הויזואל)
+        if (station.type === 'choice') return;
+
         const stationEl = document.createElement('div');
         const isCircularReturn = isCircularRoute && index === stations.length - 1 && stations.length > 1;
         const displayType = isCircularReturn ? 'start' : station.type;
@@ -984,6 +1213,57 @@ var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length
         stationEl.onclick = () => moveRunnerTo(index);
         
         stationsLayer.appendChild(stationEl);
+      });
+
+
+      // הוספת תת-תחנות (ענפי בחירה) — תואם לגיאומטריה של drawBranchPaths
+      stations.forEach((station, idx) => {
+        if (station.type !== 'choice' || !station.subStations || station.subStations.length < 2) return;
+
+        const dist0   = getDistanceForStation(idx);
+        const nextIdx = idx + 1 < stations.length ? idx + 1 : idx;
+        const dist1   = getDistanceForStation(nextIdx);
+
+        const ptFork  = pathElement.getPointAtLength(dist0);
+        const ptMerge = pathElement.getPointAtLength(dist1);
+
+        const dx = ptMerge.x - ptFork.x;
+        const dy = ptMerge.y - ptFork.y;
+        const segLen = Math.sqrt(dx*dx + dy*dy) || 1;
+        const perpX  = -dy / segLen;
+        const perpY  =  dx / segLen;
+
+        const count      = station.subStations.length;
+        const laneSpread = Math.max(70, 75 * count / 2); // זהה ל-drawBranchPaths
+
+        const fwdX2    =  dx / segLen;
+        const fwdY2    =  dy / segLen;
+        const exitLen2 = segLen * 0.52; // זהה ל-exitLen/enterLen בנתיבים
+
+        station.subStations.forEach((sub, si) => {
+          const t       = count === 1 ? 0 : (si / (count - 1) - 0.5) * 2;
+          const perpOff = t * laneSpread;
+
+          // חישוב cp1, cp2 — זהה לחישוב ב-drawBranchPaths
+          const cp1x = ptFork.x  + fwdX2 * exitLen2  + perpX * perpOff;
+          const cp1y = ptFork.y  + fwdY2 * exitLen2  + perpY * perpOff;
+          const cp2x = ptMerge.x - fwdX2 * exitLen2  + perpX * perpOff;
+          const cp2y = ptMerge.y - fwdY2 * exitLen2  + perpY * perpOff;
+
+          // נקודה אמיתית על עקומת בזייה קובית ב-t=0.5 (De Casteljau)
+          const bt = 0.5;
+          const mt = 1 - bt;
+          const x = mt*mt*mt*ptFork.x + 3*mt*mt*bt*cp1x + 3*mt*bt*bt*cp2x + bt*bt*bt*ptMerge.x;
+          const y = mt*mt*mt*ptFork.y + 3*mt*mt*bt*cp1y + 3*mt*bt*bt*cp2y + bt*bt*bt*ptMerge.y;
+
+          const subEl = document.createElement('div');
+          subEl.className = 'station branch-sub';
+          subEl.id = `branch-sub-${idx}-${si}`;
+          subEl.style.left = `${(x/1000)*100}%`;
+          subEl.style.top  = `${(y/400)*100}%`;
+          subEl.innerHTML  = `<div class="station-dot"></div><div class="station-label">${sub.name || 'נתיב ' + (si+1)}</div>`;
+          stationsLayer.appendChild(subEl);
+        });
       });
 
       moveRunnerTo(currentIndex, true);
@@ -1008,9 +1288,48 @@ var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length
       childSvg.style.transform = (lookPt.x > curPt.x) ? 'scaleX(-1)' : '';
     }
 
+    // גרסה מיוחדת שמתחילה מהמיקום הויזואלי הנוכחי של הדמות (אחרי ביקור בנתיב)
+    function moveRunnerToFromVisual(targetIndex) {
+      if (stations.length === 0) return;
+      // שמור את מיקום הנתיב המדויק לפני שמאפסים
+      const savedPos = subVisitPos;
+      visitingSubStation = null;
+      subVisitPos = null;
+      currentIndex = targetIndex;
+      updateUI();
+
+      const targetDistance = getDistanceForStation(targetIndex);
+      // נקודת התחלה = מיקום מדויק שנשמר בכניסה לנתיב (לא DOM שעלול להיות ditry)
+      const startLeftPct = savedPos ? savedPos.leftPct / 100 : parseFloat(runner.style.left) / 100;
+      const startTopPct  = savedPos ? savedPos.topPct  / 100 : parseFloat(runner.style.top)  / 100;
+
+      const duration  = 1200;
+      const startTime = performance.now();
+      cancelAnimationFrame(animationFrameId);
+
+      const targetPt     = pathElement.getPointAtLength(targetDistance);
+      const targetLeftPct = (targetPt.x / 1000);
+      const targetTopPct  = (targetPt.y / 400);
+
+      function animate(now) {
+        let progress = (now - startTime) / duration;
+        if (progress > 1) progress = 1;
+        const ease = progress < 0.5 ? 4*progress*progress*progress : 1 - Math.pow(-2*progress+2,3)/2;
+        runner.style.left = `${(startLeftPct + (targetLeftPct - startLeftPct) * ease) * 100}%`;
+        runner.style.top  = `${(startTopPct  + (targetTopPct  - startTopPct)  * ease) * 100}%`;
+        if (progress < 1) {
+          animationFrameId = requestAnimationFrame(animate);
+        } else {
+          currentDistance = targetDistance;
+        }
+      }
+      animationFrameId = requestAnimationFrame(animate);
+    }
+
     function moveRunnerTo(targetIndex, instant = false) {
       if (stations.length === 0) return;
-      
+      visitingSubStation = null; // איפוס מצב ביקור בנתיב בכל מעבר תחנה
+      subVisitPos = null;
       currentIndex = targetIndex;
       updateUI(); 
 
@@ -1101,8 +1420,43 @@ var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length
       let icon = "📍";
       if (currentStation.type === 'start') icon = "🚪";
       if (currentStation.type === 'end') icon = "🏠";
+      if (currentStation.type === 'choice') icon = "✦";
       const isCircularReturn = isCircularRoute && currentIndex === stations.length - 1 && stations.length > 1;
       if (isCircularReturn) icon = "🔄🚪";
+
+      // עדכון פאנל הבחירה
+      const choicePanel = document.getElementById('choice-panel');
+      const choiceOptionsList = document.getElementById('choice-options-list');
+      if (choicePanel && choiceOptionsList) {
+        if (currentStation.type === 'choice' && currentStation.subStations && currentStation.subStations.length >= 2) {
+          choicePanel.classList.add('active');
+          // עמעם את כפתור "תחנה הבאה" עד שנבחר נתיב
+          nextBtn.style.opacity = '0.45';
+          nextBtn.title = 'יש לבחור נתיב לפני שממשיכים';
+          choiceOptionsList.innerHTML = '';
+          currentStation.subStations.forEach((sub, si) => {
+            const btn = document.createElement('button');
+            btn.className = 'choice-option-btn';
+            btn.textContent = `${['א','ב','ג','ד','ה'][si] || (si+1)}. ${sub.name || 'נתיב ' + (si+1)}${sub.desc ? ' — ' + sub.desc : ''}`;
+            btn.onclick = () => {
+              choiceOptionsList.querySelectorAll('.choice-option-btn').forEach(b => b.classList.remove('selected'));
+              btn.classList.add('selected');
+              // הדגשת תת-תחנה על המפה
+              document.querySelectorAll('.station.branch-sub').forEach(el => el.classList.remove('active'));
+              const subEl = document.getElementById(`branch-sub-${currentIndex}-${si}`);
+              if (subEl) subEl.classList.add('active');
+              // כשנבחר נתיב — שחרר את כפתור "תחנה הבאה"
+              nextBtn.style.opacity = '';
+              nextBtn.title = '';
+              const choicePanel = document.getElementById('choice-panel');
+              if (choicePanel) choicePanel.style.boxShadow = '';
+            };
+            choiceOptionsList.appendChild(btn);
+          });
+        } else {
+          choicePanel.classList.remove('active');
+        }
+      }
 
       infoCardTitle.innerHTML = `${icon} ${currentStation.name}${isCircularReturn ? ' — חזרה לנקודת יציאה' : ''}`;
       const descText = isCircularReturn
@@ -1124,19 +1478,118 @@ var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length
     }
 
     prevBtn.addEventListener('click', () => { 
-      if (stations.length > 0) {
-        let prevIdx = currentIndex - 1;
-        if (prevIdx < 0 && isCircularRoute) prevIdx = stations.length - 1;
-        if (prevIdx >= 0) moveRunnerTo(prevIdx);
+      if (stations.length === 0) return;
+      // אם מבקרים בנתיב — חזרה לתחנת הבחירה עצמה
+      if (visitingSubStation !== null) {
+        visitingSubStation = null;
+        moveRunnerTo(currentIndex); // נשאר באותו אינדקס (תחנת הבחירה)
+        return;
       }
+      let prevIdx = currentIndex - 1;
+      if (prevIdx < 0 && isCircularRoute) prevIdx = stations.length - 1;
+      if (prevIdx >= 0) moveRunnerTo(prevIdx);
     });
 
+    // =========================================
+    // הצגת ביקור בנתיב בחירה (sub-station)
+    // =========================================
+    function showSubStationVisit(sub, subIdx) {
+      const icons = ['א', 'ב', 'ג', 'ד', 'ה'];
+      const icon = icons[subIdx] || (subIdx + 1);
+
+      // עדכון כרטיס מידע לתוכן הנתיב
+      infoCardTitle.innerHTML = `✦ נתיב ${icon}: ${sub.name || 'נתיב ' + (subIdx+1)}`;
+      const subLinkHtml = sub.link
+        ? `<div style="margin-top:10px;"><a href="${sub.link}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#7c3aed,#5b21b6);color:white;padding:8px 16px;border-radius:20px;text-decoration:none;font-weight:700;font-size:0.85rem;box-shadow:0 3px 10px rgba(124,58,237,0.35);">🔗 פתח קישור לנתיב זה ↗</a></div>`
+        : '';
+      const descHtml = sub.desc
+        ? `<p>${sub.desc}</p>${subLinkHtml}<p style="margin-top:10px;color:#6d28d9;font-weight:bold;">📍 אתה כרגע בנתיב זה</p>`
+        : `${subLinkHtml}<p style="color:#6d28d9;font-weight:bold;">📍 אתה כרגע בנתיב זה</p>`;
+      infoCardDesc.innerHTML = descHtml + `<p style="margin-top:12px;color:#6b7280;font-size:0.85em;">לחץ "תחנה הבאה" כדי לחזור למסלול הראשי ←</p>`;
+
+      // כפתור "תחנה הבאה" מוכן להמשך
+      nextBtn.style.opacity = '';
+      nextBtn.title = '';
+      nextBtn.innerHTML = '&larr; המשך למסלול';
+
+      // הדגשת הנתיב הנבחר על המפה
+      document.querySelectorAll('.station.branch-sub').forEach(el => el.classList.remove('active'));
+      const subEl = document.getElementById(`branch-sub-${visitingSubStation.choiceIndex}-${subIdx}`);
+      if (subEl) subEl.classList.add('active');
+
+      // הסתר פאנל בחירה
+      const choicePanel = document.getElementById('choice-panel');
+      if (choicePanel) choicePanel.classList.remove('active');
+
+      // הזזת הדמות אל נקודת הנתיב על המפה — אנימציה ב-requestAnimationFrame (ללא CSS transition)
+      if (subEl && mapContainer) {
+        const mapRect = mapContainer.getBoundingClientRect();
+        const subRect = subEl.getBoundingClientRect();
+        const targetLeftPct = ((subRect.left + subRect.width  / 2 - mapRect.left) / mapRect.width)  * 100;
+        const targetTopPct  = ((subRect.top  + subRect.height / 2 - mapRect.top)  / mapRect.height) * 100;
+
+        // שמור את המיקום המדויק — נשתמש בו כנקודת מוצא בחזרה (ולא נקרא DOM שוב)
+        subVisitPos = { leftPct: targetLeftPct, topPct: targetTopPct };
+
+        // קרא את המיקום הנוכחי של הדמות (באחוזים) לנקודת התחלה
+        const startLeftPct = parseFloat(runner.style.left) || targetLeftPct;
+        const startTopPct  = parseFloat(runner.style.top)  || targetTopPct;
+
+        const duration = 900;
+        const startTime = performance.now();
+        cancelAnimationFrame(animationFrameId);
+
+        function animateSub(now) {
+          let progress = (now - startTime) / duration;
+          if (progress > 1) progress = 1;
+          const ease = progress < 0.5 ? 4*progress*progress*progress : 1 - Math.pow(-2*progress+2,3)/2;
+          runner.style.left = `${startLeftPct + (targetLeftPct - startLeftPct) * ease}%`;
+          runner.style.top  = `${startTopPct  + (targetTopPct  - startTopPct)  * ease}%`;
+          if (progress < 1) animationFrameId = requestAnimationFrame(animateSub);
+        }
+        animationFrameId = requestAnimationFrame(animateSub);
+      }
+    }
+
     nextBtn.addEventListener('click', () => { 
-      if (stations.length > 0) {
+      if (stations.length === 0) return;
+
+      // -- מצב א: מבקרים כרגע בנתיב (sub-station) — ממשיכים לתחנה הבאה במסלול
+      if (visitingSubStation !== null) {
+        // מעבר מנתיב לתחנה הבאה
         let nextIdx = currentIndex + 1;
         if (nextIdx >= stations.length && isCircularRoute) nextIdx = 0;
-        if (nextIdx < stations.length) moveRunnerTo(nextIdx);
+        if (nextIdx < stations.length) moveRunnerToFromVisual(nextIdx);
+        return;
       }
+
+      const currentStation = stations[currentIndex];
+
+      // -- מצב ב: עומדים בתחנת בחירה — ב"תחנה הבאה" נכנסים לנתיב הנבחר
+      if (currentStation.type === 'choice' && currentStation.subStations && currentStation.subStations.length >= 2) {
+        const choiceOptionsList = document.getElementById('choice-options-list');
+        const selected = choiceOptionsList && choiceOptionsList.querySelector('.choice-option-btn.selected');
+        if (!selected) {
+          // לא נבחר נתיב — הצג רמז
+          const choicePanel = document.getElementById('choice-panel');
+          if (choicePanel) {
+            choicePanel.style.transition = 'box-shadow 0.15s';
+            choicePanel.style.boxShadow = '0 0 0 3px #f59e0b';
+            setTimeout(() => { choicePanel.style.boxShadow = ''; }, 600);
+          }
+          return;
+        }
+        // כניסה לנתיב הנבחר — הצג תצוגת ביקור
+        const selectedIndex = Array.from(choiceOptionsList.querySelectorAll('.choice-option-btn')).indexOf(selected);
+        visitingSubStation = { choiceIndex: currentIndex, subIndex: selectedIndex };
+        showSubStationVisit(currentStation.subStations[selectedIndex], selectedIndex);
+        return;
+      }
+
+      // -- מצב ג: תחנה רגילה — קדימה
+      let nextIdx = currentIndex + 1;
+      if (nextIdx >= stations.length && isCircularRoute) nextIdx = 0;
+      if (nextIdx < stations.length) moveRunnerTo(nextIdx);
     });
 
     // =========================================
@@ -1156,7 +1609,7 @@ var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length
         try {
           const baseUrl  = window.location.href.split('?')[0];
           const tourData = {
-            stations:   stations.map(s => ({ id: s.id, name: s.name, desc: s.desc, link: s.link || '', type: s.type })),
+            stations:   stations.map(s => ({ id: s.id, name: s.name, desc: s.desc, link: s.link || '', type: s.type, subStations: s.subStations || undefined })),
             isCircular: isCircularRoute,
             title:      document.querySelector('.tour-title').textContent.trim()
           };
@@ -1220,7 +1673,7 @@ var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length
         const projectData = {
           version: 1,
           title,
-          stations: stations.map(s => ({ id: s.id, name: s.name, desc: s.desc, link: s.link || '', type: s.type })),
+          stations: stations.map(s => ({ id: s.id, name: s.name, desc: s.desc, link: s.link || '', type: s.type, subStations: s.subStations || undefined })),
           isCircular: isCircularRoute,
           savedAt: new Date().toLocaleString('he-IL')
         };
@@ -1338,7 +1791,7 @@ var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length
     routeName: tourTitle,
     isCircular: isCircularRoute, // משתנה שכבר קיים אצלך בקוד
     notebookText: text,
-    stations: stations // שולחים את המערך כמו שהוא, הסקריפט של גוגל כבר ידלה ממנו name, desc, type
+    stations: stations.map(s => ({ id: s.id, name: s.name, desc: s.desc, link: s.link || '', type: s.type, subStations: s.subStations })) // שולחים כולל תחנות בחירה
   };
 
 // ③ שליחה ל-Google Sheets
@@ -1373,7 +1826,69 @@ var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length
     const addStationBtn = document.getElementById('add-station-btn');
     const cancelEditBtn = document.getElementById('cancel-edit-btn');
 
+
+    // =========================================
+    // תחנת בחירה – עורך תת-תחנות
+    // =========================================
+    window.addSubStationRow = function(name='', desc='', link='') {
+      const list = document.getElementById('sub-station-list');
+      if (!list) return;
+      const row = document.createElement('div');
+      row.className = 'sub-station-row';
+      row.innerHTML = `
+        <div class="sub-station-row-top">
+          <input class="sub-inp-name" type="text" placeholder="שם הנתיב" value="${name}">
+          <button type="button" class="btn-remove-sub" onclick="this.parentElement.parentElement.remove()">✕</button>
+        </div>
+        <div class="sub-station-row-bottom">
+          <span class="sub-link-label">תיאור (יוצג בכרטיסייה):</span>
+          <input class="sub-inp-desc" type="text" placeholder="תיאור קצר או תוכן העשרה..." value="${desc}">
+          <span class="sub-link-label">🔗 קישור לתוכן (אופציונלי):</span>
+          <input class="sub-inp-link" type="url" placeholder="https://..." value="${link}">
+        </div>
+      `;
+      list.appendChild(row);
+    };
+
+    function getSubStationsFromEditor() {
+      const rows = document.querySelectorAll('#sub-station-list .sub-station-row');
+      return Array.from(rows).map(row => ({
+        name: row.querySelector('.sub-inp-name').value.trim() || 'נתיב',
+        desc: row.querySelector('.sub-inp-desc').value.trim(),
+        link: row.querySelector('.sub-inp-link').value.trim()
+      })).filter(s => s.name);
+    }
+
+    function populateSubEditor(subStations) {
+      const list = document.getElementById('sub-station-list');
+      if (!list) return;
+      list.innerHTML = '';
+      (subStations || []).forEach(s => addSubStationRow(s.name, s.desc, s.link || ''));
+      if (!subStations || subStations.length === 0) {
+        addSubStationRow('', '');
+        addSubStationRow('', '');
+      }
+    }
+
     let editingStationId = null; 
+
+
+    // הצגה/הסתרה של עורך תת-תחנות לפי סוג
+    if (newStationType) {
+      newStationType.addEventListener('change', () => {
+        const subEditor = document.getElementById('sub-stations-editor');
+        if (!subEditor) return;
+        if (newStationType.value === 'choice') {
+          subEditor.classList.add('visible');
+          if (document.querySelectorAll('#sub-station-list .sub-station-row').length === 0) {
+            addSubStationRow('', '');
+            addSubStationRow('', '');
+          }
+        } else {
+          subEditor.classList.remove('visible');
+        }
+      });
+    }
 
     if (openEditorBtn) {
       openEditorBtn.addEventListener('click', () => {
@@ -1399,6 +1914,12 @@ var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length
       newStationDesc.value = '';
       newStationLink.value = '';
       newStationType.value = 'normal';
+      const subEditorReset = document.getElementById('sub-stations-editor');
+      if (subEditorReset) {
+        subEditorReset.classList.remove('visible');
+        const subListReset = document.getElementById('sub-station-list');
+        if (subListReset) subListReset.innerHTML = '';
+      }
       formTitle.innerHTML = '✨ הוספת תחנה חדשה';
       addStationBtn.innerHTML = '➕ הוסף למסלול';
       addStationBtn.classList.remove('btn-update');
@@ -1417,11 +1938,13 @@ var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length
 
         if (!name) { alert("נא להזין שם תחנה."); return; }
 
+        const subStations = (type === 'choice') ? getSubStationsFromEditor() : undefined;
+
         if (editingStationId) {
           const idx = stations.findIndex(s => s.id === editingStationId);
-          if (idx !== -1) stations[idx] = { ...stations[idx], name, desc, link, type };
+          if (idx !== -1) stations[idx] = { ...stations[idx], name, desc, link, type, subStations };
         } else {
-          stations.push({ id: Date.now(), name, desc, link, type });
+          stations.push({ id: Date.now(), name, desc, link, type, subStations });
         }
 
         resetEditorForm();
@@ -1437,6 +1960,16 @@ var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length
       newStationDesc.value = station.desc || '';
       newStationLink.value = station.link || '';
       newStationType.value = station.type;
+      // עדכון עורך תת-תחנות
+      const subEditor = document.getElementById('sub-stations-editor');
+      if (subEditor) {
+        if (station.type === 'choice') {
+          subEditor.classList.add('visible');
+          populateSubEditor(station.subStations);
+        } else {
+          subEditor.classList.remove('visible');
+        }
+      }
       formTitle.innerHTML = `✏️ עריכת תחנה: <span style="color:var(--color-primary)">${station.name}</span>`;
       addStationBtn.innerHTML = '💾 עדכן תחנה';
       addStationBtn.classList.add('btn-update');
@@ -1466,7 +1999,7 @@ var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length
         const item = document.createElement('div');
         item.className = 'editor-station-item';
         const isCircularReturnItem = isCircularRoute && index === stations.length - 1 && stations.length > 1;
-        let typeName = station.type === 'start' ? "התחלה / יציאה" : station.type === 'end' ? "סיום" : "רגילה";
+        let typeName = station.type === 'start' ? "התחלה / יציאה" : station.type === 'end' ? "סיום" : station.type === 'choice' ? `✦ בחירה (${(station.subStations||[]).length} נתיבים)` : "רגילה";
         if (isCircularReturnItem) typeName = "🔄 יציאה (חזרה במעגלי)";
         item.innerHTML = `
           <div class="editor-station-info">
