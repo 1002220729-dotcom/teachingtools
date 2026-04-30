@@ -567,6 +567,15 @@
     .btn-remove-sub { background: #fee2e2; border: none; color: #b91c1c; border-radius: 4px; cursor: pointer; padding: 2px 7px; font-size: 12px; }
     .btn-add-sub { background: #8b5cf6; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; margin-top: 4px; }
 
+    /* ===== קישורים מרובים ===== */
+    .links-container { display: flex; flex-direction: column; gap: 6px; }
+    .link-row { display: flex; gap: 6px; align-items: center; }
+    .link-row .form-input { flex: 1; font-family: monospace; font-size: 0.9rem; }
+    .btn-remove-link { background: #fee2e2; border: 1px solid #fecaca; color: #b91c1c; border-radius: 6px; cursor: pointer; padding: 6px 10px; font-size: 13px; font-weight: bold; white-space: nowrap; flex-shrink: 0; transition: background 0.15s; }
+    .btn-remove-link:hover { background: #fca5a5; }
+    .btn-add-link { align-self: flex-start; background: #dbeafe; border: 1px solid #93c5fd; color: #1d4ed8; border-radius: 6px; cursor: pointer; padding: 6px 14px; font-size: 13px; font-weight: bold; transition: background 0.15s; margin-top: 2px; }
+    .btn-add-link:hover { background: #bfdbfe; }
+
     .branch-path-outline { fill: none; stroke: #ddd6fe; stroke-width: 30; stroke-linecap: round; stroke-linejoin: round; opacity:0.6; }
     .branch-path-bg      { fill: none; stroke: #7c3aed; stroke-width: 20; stroke-linecap: round; stroke-linejoin: round; }
     .branch-path-line    { fill: none; stroke: #c4b5fd; stroke-width: 2.5; stroke-dasharray: 14,9; stroke-linecap: round; }
@@ -638,8 +647,11 @@ var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length
           <input type="text" id="new-station-desc" class="form-input" placeholder="תיאור קצר או תוכן העשרה...">
         </div>
         <div class="form-group">
-          <label for="new-station-link">🔗 קישור לתוכן (אופציונלי):</label>
-          <input type="url" id="new-station-link" class="form-input" placeholder="https://..." style="font-family:monospace;font-size:0.9rem;">
+          <label>🔗 קישורים לתוכן (אופציונלי):</label>
+          <div id="station-links-container" class="links-container">
+            <!-- שורות קישור מתווספות דינמית -->
+          </div>
+          <button type="button" class="btn-add-link" onclick="addLinkRow()">＋ הוסף קישור</button>
         </div>
         <div class="form-group">
           <label for="new-station-type">סוג התחנה:</label>
@@ -1810,8 +1822,40 @@ var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length
   });
 }); // <--- שים לב! זה ה-}) שסוגר את ה-downloadTourBtn.addEventListener שהיה חסר וגרם לקריסה
     // =========================================
-    // לוגיקת עורך מסלול
+    // קישורים מרובים — פונקציות עזר
     // =========================================
+    window.addLinkRow = function(value = '') {
+      const container = document.getElementById('station-links-container');
+      if (!container) return;
+      const row = document.createElement('div');
+      row.className = 'link-row';
+      row.innerHTML = `
+        <input type="url" class="form-input link-input" placeholder="https://..." value="${value}" style="font-family:monospace;font-size:0.9rem;">
+        <button type="button" class="btn-remove-link" onclick="this.parentElement.remove()" title="הסר קישור">✕</button>
+      `;
+      container.appendChild(row);
+      row.querySelector('.link-input').focus();
+    };
+
+    function getLinksFromEditor() {
+      return Array.from(document.querySelectorAll('#station-links-container .link-input'))
+        .map(i => i.value.trim())
+        .filter(v => v);
+    }
+
+    function populateLinksEditor(links) {
+      const container = document.getElementById('station-links-container');
+      if (!container) return;
+      container.innerHTML = '';
+      (links || []).forEach(l => addLinkRow(l));
+    }
+
+    // backward compat: המר link ישן ל-links מערך
+    function normalizeLinks(station) {
+      if (station.links && station.links.length > 0) return station.links;
+      if (station.link) return [station.link];
+      return [];
+    }
     const editorPanel = document.getElementById('editor-panel');
     const openEditorBtn = document.getElementById('open-editor-btn');
     const closeEditorBtn = document.getElementById('close-editor-btn');
@@ -1894,6 +1938,7 @@ var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length
       openEditorBtn.addEventListener('click', () => {
         renderEditorList();
         updateCircularUI(isCircularRoute);
+        populateLinksEditor([]); // התחל עם שדה ריק אחד כשפותחים
         editorPanel.classList.add('open');
         mapContainer.style.opacity = '0.3'; 
       });
@@ -1912,8 +1957,8 @@ var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length
       editingStationId = null;
       newStationName.value = '';
       newStationDesc.value = '';
-      newStationLink.value = '';
       newStationType.value = 'normal';
+      populateLinksEditor([]); // נקה קישורים
       const subEditorReset = document.getElementById('sub-stations-editor');
       if (subEditorReset) {
         subEditorReset.classList.remove('visible');
@@ -1933,7 +1978,7 @@ var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length
       addStationBtn.addEventListener('click', () => {
         const name = newStationName.value.trim();
         const desc = newStationDesc.value.trim();
-        const link = newStationLink.value.trim();
+        const links = getLinksFromEditor();
         const type = newStationType.value;
 
         if (!name) { alert("נא להזין שם תחנה."); return; }
@@ -1942,9 +1987,9 @@ var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length
 
         if (editingStationId) {
           const idx = stations.findIndex(s => s.id === editingStationId);
-          if (idx !== -1) stations[idx] = { ...stations[idx], name, desc, link, type, subStations };
+          if (idx !== -1) stations[idx] = { ...stations[idx], name, desc, links, link: links[0] || '', type, subStations };
         } else {
-          stations.push({ id: Date.now(), name, desc, link, type, subStations });
+          stations.push({ id: Date.now(), name, desc, links, link: links[0] || '', type, subStations });
         }
 
         resetEditorForm();
@@ -1958,8 +2003,8 @@ var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length
       editingStationId = station.id;
       newStationName.value = station.name;
       newStationDesc.value = station.desc || '';
-      newStationLink.value = station.link || '';
       newStationType.value = station.type;
+      populateLinksEditor(normalizeLinks(station));
       // עדכון עורך תת-תחנות
       const subEditor = document.getElementById('sub-stations-editor');
       if (subEditor) {
