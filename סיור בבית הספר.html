@@ -1477,8 +1477,9 @@ var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length
             : '<em style="color:#059669;">✅ השלמת את המסלול המעגלי! חזרת לנקודת הפתיחה.</em>')
         : (currentStation.desc || "אין תיאור זמין לתחנה זו.");
 
-      const linkHtml = currentStation.link
-        ? `<div style="margin-top:10px;"><a href="${currentStation.link}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:white;padding:8px 16px;border-radius:20px;text-decoration:none;font-weight:700;font-size:0.85rem;box-shadow:0 3px 10px rgba(59,130,246,0.35);">🔗 פתח קישור לתחנה זו ↗</a></div>`
+      const stationLinks = normalizeLinks(currentStation);
+      const linkHtml = stationLinks.length > 0
+        ? `<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:8px;">${stationLinks.map((l,i) => `<a href="${l}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:white;padding:8px 16px;border-radius:20px;text-decoration:none;font-weight:700;font-size:0.85rem;box-shadow:0 3px 10px rgba(59,130,246,0.35);">🔗 ${stationLinks.length > 1 ? 'קישור ' + (i+1) : 'פתח קישור לתחנה זו'} ↗</a>`).join('')}</div>`
         : '';
 
       infoCardDesc.innerHTML = descText + linkHtml;
@@ -1511,8 +1512,9 @@ var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length
 
       // עדכון כרטיס מידע לתוכן הנתיב
       infoCardTitle.innerHTML = `✦ נתיב ${icon}: ${sub.name || 'נתיב ' + (subIdx+1)}`;
-      const subLinkHtml = sub.link
-        ? `<div style="margin-top:10px;"><a href="${sub.link}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#7c3aed,#5b21b6);color:white;padding:8px 16px;border-radius:20px;text-decoration:none;font-weight:700;font-size:0.85rem;box-shadow:0 3px 10px rgba(124,58,237,0.35);">🔗 פתח קישור לנתיב זה ↗</a></div>`
+      const subLinks = sub.links && sub.links.length > 0 ? sub.links : (sub.link ? [sub.link] : []);
+      const subLinkHtml = subLinks.length > 0
+        ? `<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:8px;">${subLinks.map((l,i) => `<a href="${l}" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#7c3aed,#5b21b6);color:white;padding:8px 16px;border-radius:20px;text-decoration:none;font-weight:700;font-size:0.85rem;box-shadow:0 3px 10px rgba(124,58,237,0.35);">🔗 ${subLinks.length > 1 ? 'קישור ' + (i+1) : 'פתח קישור לנתיב זה'} ↗</a>`).join('')}</div>`
         : '';
       const descHtml = sub.desc
         ? `<p>${sub.desc}</p>${subLinkHtml}<p style="margin-top:10px;color:#6d28d9;font-weight:bold;">📍 אתה כרגע בנתיב זה</p>`
@@ -1874,21 +1876,45 @@ var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length
     // =========================================
     // תחנת בחירה – עורך תת-תחנות
     // =========================================
-    window.addSubStationRow = function(name='', desc='', link='') {
+    window.addSubStationRow = function(name='', desc='', links=[]) {
+      // תאימות לאחור: אם הגיע link (מחרוזת) במקום links (מערך)
+      if (typeof links === 'string') links = links ? [links] : [];
       const list = document.getElementById('sub-station-list');
       if (!list) return;
+      const rowId = 'sub-row-' + Date.now() + Math.random().toString(36).slice(2,6);
       const row = document.createElement('div');
       row.className = 'sub-station-row';
+      row.id = rowId;
+
+      // בניית שורות קישור קיימות
+      const linksHtml = (links.length > 0 ? links : ['']).map((l,i) => `
+        <div class="link-row sub-link-row">
+          <input class="sub-inp-link form-input" type="url" placeholder="https://..." value="${l}" style="font-family:monospace;font-size:0.82rem;">
+          ${i > 0 || links.length > 0 ? `<button type="button" class="btn-remove-link" onclick="this.parentElement.remove()" title="הסר קישור">✕</button>` : `<button type="button" class="btn-remove-link" onclick="this.parentElement.remove()" title="הסר קישור" style="visibility:hidden">✕</button>`}
+        </div>
+      `).join('');
+
       row.innerHTML = `
         <div class="sub-station-row-top">
           <input class="sub-inp-name" type="text" placeholder="שם הנתיב" value="${name}">
-          <button type="button" class="btn-remove-sub" onclick="this.parentElement.parentElement.remove()">✕</button>
+          <button type="button" class="btn-remove-sub" onclick="document.getElementById('${rowId}').remove()">✕</button>
         </div>
         <div class="sub-station-row-bottom">
           <span class="sub-link-label">תיאור (יוצג בכרטיסייה):</span>
           <input class="sub-inp-desc" type="text" placeholder="תיאור קצר או תוכן העשרה..." value="${desc}">
-          <span class="sub-link-label">🔗 קישור לתוכן (אופציונלי):</span>
-          <input class="sub-inp-link" type="url" placeholder="https://..." value="${link}">
+          <span class="sub-link-label">🔗 קישורים לתוכן (אופציונלי):</span>
+          <div class="sub-links-container" style="display:flex;flex-direction:column;gap:5px;">
+            ${linksHtml}
+          </div>
+          <button type="button" class="btn-add-link" style="margin-top:4px;font-size:12px;padding:5px 11px;"
+            onclick="(function(btn){
+              const container = btn.previousElementSibling;
+              const newRow = document.createElement('div');
+              newRow.className='link-row sub-link-row';
+              newRow.innerHTML='<input class=\\'sub-inp-link form-input\\' type=\\'url\\' placeholder=\\'https://...\\' style=\\'font-family:monospace;font-size:0.82rem;\\'><button type=\\'button\\' class=\\'btn-remove-link\\' onclick=\\'this.parentElement.remove()\\' title=\\'הסר קישור\\'>✕</button>';
+              container.appendChild(newRow);
+              newRow.querySelector('input').focus();
+            })(this)">＋ הוסף קישור</button>
         </div>
       `;
       list.appendChild(row);
@@ -1896,21 +1922,29 @@ var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length
 
     function getSubStationsFromEditor() {
       const rows = document.querySelectorAll('#sub-station-list .sub-station-row');
-      return Array.from(rows).map(row => ({
-        name: row.querySelector('.sub-inp-name').value.trim() || 'נתיב',
-        desc: row.querySelector('.sub-inp-desc').value.trim(),
-        link: row.querySelector('.sub-inp-link').value.trim()
-      })).filter(s => s.name);
+      return Array.from(rows).map(row => {
+        const links = Array.from(row.querySelectorAll('.sub-inp-link'))
+          .map(i => i.value.trim()).filter(Boolean);
+        return {
+          name: row.querySelector('.sub-inp-name').value.trim() || 'נתיב',
+          desc: row.querySelector('.sub-inp-desc').value.trim(),
+          links: links,
+          link: links[0] || ''   // תאימות לאחור
+        };
+      }).filter(s => s.name);
     }
 
     function populateSubEditor(subStations) {
       const list = document.getElementById('sub-station-list');
       if (!list) return;
       list.innerHTML = '';
-      (subStations || []).forEach(s => addSubStationRow(s.name, s.desc, s.link || ''));
+      (subStations || []).forEach(s => {
+        const links = s.links && s.links.length > 0 ? s.links : (s.link ? [s.link] : []);
+        addSubStationRow(s.name, s.desc, links);
+      });
       if (!subStations || subStations.length === 0) {
-        addSubStationRow('', '');
-        addSubStationRow('', '');
+        addSubStationRow('', '', []);
+        addSubStationRow('', '', []);
       }
     }
 
