@@ -911,12 +911,16 @@ var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length
 
     if (encodedStations) {
       try {
-        // נסה קודם LZ-string (קישורים חדשים קצרים)
-        let json = LZString.decompressFromEncodedURIComponent(encodedStations);
-        // אם לא הצליח – זה קישור ישן בפורמט Base64
-        if (!json) {
+        // נסה קודם base64 (קישורים חדשים)
+        let json = null;
+        try {
           const base64 = decodeURIComponent(encodedStations);
           json = decodeURIComponent(escape(atob(base64)));
+          // וודא שזה JSON תקין
+          JSON.parse(json);
+        } catch(e) {
+          // אם נכשל — זה קישור ישן בפורמט LZ-string
+          json = LZString.decompressFromEncodedURIComponent(encodedStations);
         }
         const parsedData = JSON.parse(json);
         
@@ -1607,6 +1611,36 @@ var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length
     });
 
     // =========================================
+    // =========================================
+    // ניקוי בטוח של תחנה — מחוץ ל-event listener
+    // =========================================
+    function cleanStation(s) {
+      const clean = {
+        id:    s.id,
+        name:  s.name  || '',
+        desc:  s.desc  || '',
+        type:  s.type  || 'normal',
+        link:  s.link  || '',
+        links: Array.isArray(s.links) ? s.links.map(String) : []
+      };
+      if (s.type === 'choice' && Array.isArray(s.subStations)) {
+        clean.subStations = s.subStations.map(sub => ({
+          name:  sub.name  || '',
+          desc:  sub.desc  || '',
+          link:  sub.link  || '',
+          links: Array.isArray(sub.links) ? sub.links.map(String) : []
+        }));
+      }
+      return clean;
+    }
+
+    // קידוד בטוח — ללא רקורסיה, תומך בעברית מלאה
+    function encodeForUrl(obj) {
+      const json = JSON.stringify(obj);
+      // unescape+btoa תומך ב-Unicode/עברית
+      return encodeURIComponent(btoa(unescape(encodeURIComponent(json))));
+    }
+
     // שיתוף הקישור כולל המצב המעגלי
     // =========================================
     const shareTourBtn = document.getElementById('share-tour-btn');
@@ -1623,41 +1657,14 @@ var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length
         try {
           const baseUrl = window.location.href.split('?')[0];
 
-          // ניקוי בטוח של תחנות — רק שדות פרימיטיביים, ללא DOM / הפניות מעגליות
-          function cleanStation(s) {
-            const clean = {
-              id:    s.id,
-              name:  s.name  || '',
-              desc:  s.desc  || '',
-              type:  s.type  || 'normal',
-              link:  s.link  || '',
-              links: Array.isArray(s.links) ? s.links.map(String) : []
-            };
-            if (s.type === 'choice' && Array.isArray(s.subStations)) {
-              clean.subStations = s.subStations.map(sub => ({
-                name:  sub.name  || '',
-                desc:  sub.desc  || '',
-                link:  sub.link  || '',
-                links: Array.isArray(sub.links) ? sub.links.map(String) : []
-              }));
-            }
-            return clean;
-          }
-
           const tourData = {
             stations:   stations.map(cleanStation),
             isCircular: isCircularRoute,
             title:      document.querySelector('.tour-title').textContent.trim()
           };
 
-          // בדיקת JSON תקין לפני דחיסה
-          let tourJson;
-          try { tourJson = JSON.stringify(tourData); }
-          catch (jsonErr) { throw new Error('שגיאה בהמרת הנתונים: ' + jsonErr.message); }
-
-          // שלב 1: נסה LZ-string (נצחי, ללא שרת)
-          const compressed = LZString.compressToEncodedURIComponent(tourJson);
-          let shareUrl     = `${baseUrl}?tour=${compressed}`;
+          // שלב 1: קידוד base64 — ללא רקורסיה, יעבוד תמיד
+          let shareUrl = `${baseUrl}?tour=${encodeForUrl(tourData)}`;
 
           // שלב 2: קישור ארוך מדי — שמור ב-Cloudflare KV (365 יום)
           if (shareUrl.length > 6000) {
