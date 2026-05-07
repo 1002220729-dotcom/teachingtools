@@ -1621,15 +1621,42 @@ var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length
         shareTourBtn.disabled    = true;
 
         try {
-          const baseUrl  = window.location.href.split('?')[0];
+          const baseUrl = window.location.href.split('?')[0];
+
+          // ניקוי בטוח של תחנות — רק שדות פרימיטיביים, ללא DOM / הפניות מעגליות
+          function cleanStation(s) {
+            const clean = {
+              id:    s.id,
+              name:  s.name  || '',
+              desc:  s.desc  || '',
+              type:  s.type  || 'normal',
+              link:  s.link  || '',
+              links: Array.isArray(s.links) ? s.links.map(String) : []
+            };
+            if (s.type === 'choice' && Array.isArray(s.subStations)) {
+              clean.subStations = s.subStations.map(sub => ({
+                name:  sub.name  || '',
+                desc:  sub.desc  || '',
+                link:  sub.link  || '',
+                links: Array.isArray(sub.links) ? sub.links.map(String) : []
+              }));
+            }
+            return clean;
+          }
+
           const tourData = {
-            stations:   stations.map(s => ({ id: s.id, name: s.name, desc: s.desc, link: s.link || '', type: s.type, subStations: s.subStations || undefined })),
+            stations:   stations.map(cleanStation),
             isCircular: isCircularRoute,
             title:      document.querySelector('.tour-title').textContent.trim()
           };
 
+          // בדיקת JSON תקין לפני דחיסה
+          let tourJson;
+          try { tourJson = JSON.stringify(tourData); }
+          catch (jsonErr) { throw new Error('שגיאה בהמרת הנתונים: ' + jsonErr.message); }
+
           // שלב 1: נסה LZ-string (נצחי, ללא שרת)
-          const compressed = LZString.compressToEncodedURIComponent(JSON.stringify(tourData));
+          const compressed = LZString.compressToEncodedURIComponent(tourJson);
           let shareUrl     = `${baseUrl}?tour=${compressed}`;
 
           // שלב 2: קישור ארוך מדי — שמור ב-Cloudflare KV (365 יום)
