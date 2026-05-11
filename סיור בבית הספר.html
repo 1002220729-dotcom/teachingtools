@@ -888,7 +888,7 @@ var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length
     // נתונים, משתנים גלובליים וטעינה
     // =========================================
     const urlParams = new URLSearchParams(window.location.search);
-    const viewMode = urlParams.get('mode') === 'view' || !!urlParams.get('tour');
+    const viewMode = urlParams.get('mode') === 'view' || !!urlParams.get('tour') || !!urlParams.get('data');
     const encodedStations = urlParams.get('data');
     const tourId = urlParams.get('tour');
     const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwXex7v8vvZ8oxMxI1OKhg2t_bNMA6BOiPSoNQgrQYnV3W4jrNdQ-PpAyp9X4pA2XbcQQ/exec';
@@ -1663,10 +1663,10 @@ var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length
             title:      document.querySelector('.tour-title').textContent.trim()
           };
 
-          // שלב 1: קידוד base64 — ללא רקורסיה, יעבוד תמיד
-          let shareUrl = `${baseUrl}?tour=${encodeForUrl(tourData)}`;
+          // שלב 1: קידוד base64 — פרמטר ?data= (נטען ישירות בלי שרת)
+          let shareUrl = `${baseUrl}?data=${encodeForUrl(tourData)}`;
 
-          // שלב 2: קישור ארוך מדי — שמור ב-Cloudflare KV (365 יום)
+          // שלב 2: קישור ארוך מדי — שמור ב-Cloudflare KV (365 יום), ?tour=ID
           if (shareUrl.length > 6000) {
             const res  = await fetch('/api/museum/share', {
               method:  'POST',
