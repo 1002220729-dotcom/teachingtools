@@ -888,7 +888,9 @@ var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length
     // נתונים, משתנים גלובליים וטעינה
     // =========================================
     const urlParams = new URLSearchParams(window.location.search);
-    const viewMode = urlParams.get('mode') === 'view' || !!urlParams.get('tour') || !!urlParams.get('data');
+    const hasSharedData = urlParams.has('data');
+    const hasSharedTour = urlParams.has('tour');
+    const viewMode = urlParams.get('mode') === 'view' || hasSharedTour || hasSharedData;
     const encodedStations = urlParams.get('data');
     const tourId = urlParams.get('tour');
     const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwXex7v8vvZ8oxMxI1OKhg2t_bNMA6BOiPSoNQgrQYnV3W4jrNdQ-PpAyp9X4pA2XbcQQ/exec';
@@ -909,12 +911,59 @@ var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length
       { id: Date.now() + 6, name: "תחנת סיום", desc: "הגעת לסוף המסלול! אל תשכח לשמור את מחברת הסיור.", type: "end" }
     ];
 
-    if (encodedStations) {
+    let sharedTourLoadFailed = false;
+
+    // A broken shared link must never look like a successfully loaded demo tour.
+    function showSharedTourError() {
+      sharedTourLoadFailed = true;
+      stations = [];
+      const showError = () => {
+        const overlay = document.getElementById('tour-loading-overlay');
+        if (!overlay) return;
+        overlay.style.display = 'flex';
+        overlay.setAttribute('role', 'alert');
+        const spinner = overlay.querySelector('.spinner');
+        if (spinner) spinner.style.display = 'none';
+        overlay.querySelector('p').textContent = 'לא ניתן לטעון את הפרויקט מהקישור';
+        overlay.querySelector('small').textContent = 'ייתכן שהקישור חלקי או שאינו זמין. בקש קישור חדש ממי שיצר את הסיור.';
+      };
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', showError);
+      else showError();
+    }
+
+    function applySharedTourData(data) {
+      const sharedStations = Array.isArray(data) ? data : data && data.stations;
+      if (!Array.isArray(sharedStations) || sharedStations.length === 0 ||
+          sharedStations.some(station => !station || typeof station.name !== 'string')) {
+        throw new Error('Invalid shared tour');
+      }
+      stations = sharedStations;
+      isCircularRoute = !Array.isArray(data) && !!data.isCircular;
+      if (data.title) {
+        const titleEl = document.querySelector('.tour-title');
+        const badge = titleEl.querySelector('.view-mode-badge');
+        titleEl.textContent = data.title;
+        if (badge) titleEl.appendChild(badge);
+      }
+    }
+
+    // AbortSignal.timeout is unavailable in some phone browsers.
+    async function fetchTourResource(url, options = {}, timeoutMs = 15000) {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        return await fetch(url, { ...options, signal: controller.signal });
+      } finally {
+        clearTimeout(timeout);
+      }
+    }
+
+    if (hasSharedData) {
       try {
         // נסה קודם base64 (קישורים חדשים)
         let json = null;
         try {
-          const base64 = decodeURIComponent(encodedStations);
+          const base64 = decodeURIComponent(encodedStations).replace(/ /g, '+').replace(/-/g, '+').replace(/_/g, '/');
           json = decodeURIComponent(escape(atob(base64)));
           // וודא שזה JSON תקין
           JSON.parse(json);
@@ -924,26 +973,17 @@ var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length
         }
         const parsedData = JSON.parse(json);
         
-        // תמיכה בגרסאות קודמות (מערך בלבד) או בגרסה החדשה (אובייקט עם מצב מעגלי)
-        if (Array.isArray(parsedData)) {
-          stations = parsedData;
-          isCircularRoute = false;
-        } else {
-          stations = parsedData.stations || [];
-          isCircularRoute = !!parsedData.isCircular;
-          // עדכון הכותרת אם קיימת בקישור
-          if (parsedData.title) {
-            document.querySelector('.tour-title').textContent = parsedData.title;
-          }
-        }
+        // Keep old data links working without reading browser storage.
+        applySharedTourData(parsedData);
         console.log('✅ נתוני סיור נטענו בהצלחה!');
       } catch (e) {
         console.error('❌ שגיאה בטעינת נתונים:', e);
+        showSharedTourError();
       }
     }
 
     // טעינת מסלול לפי ?tour=ID מהשרת
-    if (tourId) {
+    if (hasSharedTour && !hasSharedData) {
       document.addEventListener('DOMContentLoaded', () => {
         const overlay = document.getElementById('tour-loading-overlay');
         if (overlay) overlay.style.display = 'flex';
@@ -956,12 +996,14 @@ var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length
 
           if (tourId.startsWith('mus_')) {
             // קישור חדש — טעינה מ-Cloudflare KV
-            const res  = await fetch(`/api/museum/${tourId}`);
+            const res  = await fetchTourResource(`/api/museum/${encodeURIComponent(tourId)}`, { cache: 'no-store' });
+            if (!res.ok) throw new Error('Shared tour unavailable');
             const json = await res.json();
             if (json.ok && json.museumData) tourData = json.museumData;
           } else {
             // קישור ישן — טעינה מ-Apps Script (תאימות לאחור)
-            const res  = await fetch(APPS_SCRIPT_URL + '?id=' + tourId);
+            const res  = await fetchTourResource(APPS_SCRIPT_URL + '?id=' + encodeURIComponent(tourId));
+            if (!res.ok) throw new Error('Shared tour unavailable');
             const json = await res.json();
             if (json.status === 'success' && json.stations) {
               tourData = { stations: json.stations, isCircular: json.isCircular, title: json.routeName };
@@ -969,18 +1011,20 @@ var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length
           }
 
           if (tourData) {
-            stations      = tourData.stations || [];
-            isCircularRoute = !!tourData.isCircular;
-            const titleEl = document.querySelector('.tour-title');
-            if (tourData.title && titleEl) titleEl.textContent = tourData.title;
+            applySharedTourData(tourData);
+            if (circularRouteCheckbox) {
+              circularRouteCheckbox.checked = isCircularRoute;
+              updateCircularUI(isCircularRoute);
+            }
             if (typeof initTour === 'function') initTour();
           } else {
-            console.error('לא נמצא מסלול עבור:', tourId);
+            throw new Error('Shared tour not found');
           }
         } catch (e) {
           console.error('שגיאה בטעינת מסלול:', e);
+          showSharedTourError();
         } finally {
-          if (overlay) overlay.style.display = 'none';
+          if (overlay && !sharedTourLoadFailed) overlay.style.display = 'none';
         }
       });
     }
@@ -1033,7 +1077,7 @@ var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length
         });
       }
       // אל תרוץ initTour עם תחנות הדמו אם ממתינים לנתוני ?tour=
-      if (!tourId) initTour();
+      if ((!hasSharedTour || hasSharedData) && !sharedTourLoadFailed) initTour();
     });
 
     // =========================================
@@ -1634,13 +1678,6 @@ var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length
       return clean;
     }
 
-    // קידוד בטוח — ללא רקורסיה, תומך בעברית מלאה
-    function encodeForUrl(obj) {
-      const json = JSON.stringify(obj);
-      // unescape+btoa תומך ב-Unicode/עברית
-      return encodeURIComponent(btoa(unescape(encodeURIComponent(json))));
-    }
-
     // שיתוף הקישור כולל המצב המעגלי
     // =========================================
     const shareTourBtn = document.getElementById('share-tour-btn');
@@ -1655,7 +1692,7 @@ var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length
         shareTourBtn.disabled    = true;
 
         try {
-          const baseUrl = window.location.href.split('?')[0];
+          const baseUrl = window.location.origin + window.location.pathname;
 
           const tourData = {
             stations:   stations.map(cleanStation),
@@ -1663,30 +1700,19 @@ var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length
             title:      document.querySelector('.tour-title').textContent.trim()
           };
 
-          // שלב 1: קידוד base64 — פרמטר ?data= (נטען ישירות בלי שרת)
-          let shareUrl = `${baseUrl}?data=${encodeForUrl(tourData)}`;
-
-          // שלב 2: קישור ארוך מדי — שמור ב-Cloudflare KV (365 יום), ?tour=ID
-          if (shareUrl.length > 6000) {
-            const res  = await fetch('/api/museum/share', {
-              method:  'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body:    JSON.stringify({ museumData: tourData })
-            });
-            const json = await res.json();
-            if (json.ok && json.id) shareUrl = `${baseUrl}?tour=${json.id}`;
+          // Every shared project lives on the site's server. Only its short ID
+          // travels through messaging apps; no browser state or URL payload is needed.
+          const res = await fetchTourResource('/api/museum/share', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ museumData: tourData })
+          });
+          if (!res.ok) throw new Error('Project could not be saved');
+          const json = await res.json();
+          if (!json.ok || !/^mus_[A-Za-z0-9]+$/.test(json.id || '')) {
+            throw new Error('Invalid project link');
           }
-
-          // שלב 3: נסה לקצר ב-is.gd
-          try {
-            const shortenRes = await fetch(`/api/shorten?url=${encodeURIComponent(shareUrl)}`, {
-              signal: AbortSignal.timeout(6000)
-            });
-            if (shortenRes.ok) {
-              const shortenData = await shortenRes.json();
-              if (shortenData?.ok && shortenData.shortUrl) shareUrl = shortenData.shortUrl;
-            }
-          } catch(e) { /* המשך עם הקישור הנוכחי */ }
+          const shareUrl = `${baseUrl}?tour=${encodeURIComponent(json.id)}`;
 
           try {
             await navigator.clipboard.writeText(shareUrl);
@@ -1696,7 +1722,8 @@ var LZString=function(){function o(o,r){if(!t[o]){t[o]={};for(var n=0;n<o.length
           }
 
         } catch (err) {
-          alert('שגיאת חיבור: ' + err.message);
+          console.error('יצירת קישור לסיור נכשלה:', err);
+          alert('לא ניתן ליצור קישור לפרויקט כרגע. נסה שוב בעוד רגע.\nאפשר לשמור עותק באמצעות "שמור פרויקט".');
         } finally {
           shareTourBtn.textContent = '🔗 קישור לסיור';
           shareTourBtn.disabled    = false;
